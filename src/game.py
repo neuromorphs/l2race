@@ -1,6 +1,7 @@
 import os
 import pickle
 import socket
+import time
 from math import sin, radians, degrees, copysign
 
 import pygame
@@ -17,6 +18,8 @@ logger = logging.getLogger(__name__)
 WIDTH=1400
 HEIGHT=1000
 PPU=32
+CHECK_FOR_JOYSTICK_INTERVAL = 100
+
 
 class Game:
     def __init__(self, width=WIDTH, height=HEIGHT):
@@ -36,6 +39,7 @@ class Game:
 
     def run(self):
 
+        iterationCounter=0
         current_dir = os.path.dirname(os.path.abspath(__file__))
         image_path = os.path.join(current_dir, "../media/car.png")
         car_image = pygame.image.load(image_path)
@@ -50,15 +54,29 @@ class Game:
         serverSock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM) # UDP
         serverAddr=('localhost', 50000)
 
-        cmd='newcar'
-        p=pickle.dumps(cmd)
-        logger.info('sending cmd={}'.format(cmd))
-        serverSock.sendto(p,serverAddr)
-        p,gameSockAddr=serverSock.recvfrom(4096)
-        # gameSockAddr=pickle.loads(p)
-        logger.info('received car server address={}'.format(gameSockAddr))
+        gotServer=False
+        while not gotServer:
+            cmd='newcar'
+            p=pickle.dumps(cmd)
+            logger.info('sending cmd={}, waiting for server'.format(cmd))
+            serverSock.sendto(p,serverAddr)
+            try:
+                p,gameSockAddr=serverSock.recvfrom(4096)
+                gotServer=True
+                logger.info('received car server address={}'.format(gameSockAddr))
+            except:
+                logger.warning('no response; waiting...')
+                time.sleep(1)
+
 
         while not self.exit:
+            iterationCounter+=1
+            if iterationCounter%CHECK_FOR_JOYSTICK_INTERVAL==0 and not isinstance(self.input,Joystick):
+                try:
+                    self.input = Joystick()
+                except:
+                    pass
+
             dt = self.clock.get_time() / 1000
 
             # Event queue
@@ -86,6 +104,13 @@ class Game:
 
             self.clock.tick(self.ticks)
 
+            if inp.quit:
+                logger.info('quit recieved, ending main loop')
+                self.exit=True
+
+
+        logger.info('quitting')
         pygame.quit()
+        quit()
 
 

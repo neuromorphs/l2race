@@ -7,6 +7,8 @@ class car_input:
         self.steering=0
         self.throttle=0
         self.brake=0
+        self.reverse=False
+        self.quit=False
 
     def __str__(self):
         return 'steering={:.2f}, throttle={:.2f}, brake={:.2f}'.format(self.steering,self.throttle,self.brake)

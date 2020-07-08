@@ -17,8 +17,10 @@ class Car:
 
     def update(self, dt, input):
         
-        acceleration=input.throttle*self.car_state.max_acceleration-input.brake * self.car_state.brake_deceleration
         self.car_state.speed =self.car_state.velocity.length()  # in case something external touched component of velocity, like collision
+        acceleration=input.throttle*self.car_state.max_acceleration-input.brake * self.car_state.brake_deceleration
+        if input.reverse: # todo fix, logic incorrect
+            acceleration=-acceleration
 
         if acceleration==0:
             acceleration=-self.car_state.free_deceleration

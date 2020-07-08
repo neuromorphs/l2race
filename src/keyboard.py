@@ -17,18 +17,22 @@ class Keyboard:
         if not any(pressed):
             return self.car_input
 
-        if pressed[pygame.K_UP]:
+        if pressed[pygame.K_UP] or pressed[pygame.K_w]:
            self.car_input.throttle=1
            self.car_input.brake=0
-        elif pressed[pygame.K_DOWN]:
+        elif pressed[pygame.K_DOWN] or pressed[pygame.K_s]:
            self.car_input.throttle=0
            self.car_input.brake=1
         elif pressed[pygame.K_SPACE]:
             pass
-        if pressed[pygame.K_RIGHT]:
+        if pressed[pygame.K_RIGHT] or pressed[pygame.K_d]:
             self.car_input.steering =-1
-        elif pressed[pygame.K_LEFT]:
+        elif pressed[pygame.K_LEFT] or pressed[pygame.K_a]:
             self.car_input.steering =1
+        elif pressed[pygame.K_BACKSPACE]:
+            self.car_input.reverse != self.car_input.reverse
+        elif pressed[pygame.K_ESCAPE]:
+            self.car_input.quit =True
         else:
             self.car_input.steering = 0
         return self.car_input

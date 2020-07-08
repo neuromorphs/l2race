@@ -30,8 +30,13 @@ class ServerCarThread(threading.Thread):
             # logger.info('sending car_state={}'.format(car.car_state))
             p=pickle.dumps(car.car_state)
             clientSock.sendto(p,clientAddr)
+            if car_input.quit:
+                logger.info('quit recieved from {}, ending control loop'.format(self.clientAddr))
+                break
 
+        logger.info('closing client socket')
         clientSock.close()
+
 
 if __name__ == '__main__':
     sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
