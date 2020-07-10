@@ -42,7 +42,8 @@ class Joystick:
         self.car_input.steering = self.joy.get_axis(0) #self.axes[0]
         self.car_input.throttle = (1 + self.joy.get_axis(5)) / 2 # (1+self.axes[5])/2
         self.car_input.brake = (1+self.joy.get_axis(2))/2 #(1+self.axes[2])/2
-        self.car_input.quit=self.joy.get_button(2) # X button
+        self.car_input.reset=self.joy.get_button(7) # menu button
+        self.car_input.quit=self.joy.get_button(6) # windows button
         revPressed=self.joy.get_button(1) # B button
         if revPressed and not self._rev_was_pressed: # if it was not pressed last time and is pressed now, toggle reverse
             self.car_input.reverse=not self.car_input.reverse

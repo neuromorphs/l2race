@@ -26,13 +26,15 @@ class Keyboard:
         elif pressed[pygame.K_SPACE]:
             pass
         if pressed[pygame.K_RIGHT] or pressed[pygame.K_d]:
-            self.car_input.steering =-1
-        elif pressed[pygame.K_LEFT] or pressed[pygame.K_a]:
             self.car_input.steering =1
+        elif pressed[pygame.K_LEFT] or pressed[pygame.K_a]:
+            self.car_input.steering =-1
         elif pressed[pygame.K_BACKSPACE]:
             self.car_input.reverse != self.car_input.reverse
         elif pressed[pygame.K_ESCAPE]:
             self.car_input.quit =True
+        elif pressed[pygame.K_r]:
+            self.car_input.reset =True
         else:
             self.car_input.steering = 0
         return self.car_input

@@ -21,9 +21,9 @@ class ServerCarThread(threading.Thread):
         p = pickle.dumps(gameAddr)
         clientSock.sendto(p,self.clientAddr)
         logger.info('starting control/state loop')
-        car = Car(0, 0)
+        car = Car()
         while True:
-            data,clientAddr = clientSock.recvfrom(4096)
+            data,clientAddr = clientSock.recvfrom(4096) # todo add timeout to handle dropped packets
             (dt,car_input) = pickle.loads(data)
             # logger.info('got dt={:1f}ms, car_input={}'.format(dt*1e3, car_input))
             car.update(dt,car_input)

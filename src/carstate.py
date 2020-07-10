@@ -5,12 +5,12 @@ from pygame.math import Vector2
 from src.mylogger import mylogger
 logger = mylogger(__name__)
 
-class car_state:
+class CarState:
     """
     Complete state of car
     """
 
-    def __init__(self, x, y, angle_deg=0.0, length=4, width=2, max_steering=50, max_acceleration=5.0):
+    def __init__(self, x, y, angle_deg=0.0, length=40, width=20, max_steering=40, max_acceleration=100.0):
         # intrinsic state
         self.position = Vector2(x, y) # x increases to right, y increases downwards
         self.velocity = Vector2(0.0, 0.0) # vx and vy, with y increasing downwards
@@ -22,9 +22,9 @@ class car_state:
         # limits
         self.max_acceleration = max_acceleration
         self.max_steering = max_steering
-        self.max_speed = 20
-        self.brake_deceleration = 20
-        self.free_deceleration = 2
+        self.max_speed = 400
+        self.brake_deceleration = 200
+        self.free_deceleration = 30
 
         # current control input
         self.throttle = 0.0
@@ -39,3 +39,8 @@ class car_state:
         self.lap_fraction=0
         self.angle_to_track_deg=0
 
+        # other car(s) # todo add structure to send other car states to client for rendering
+
+    def __str__(self):
+        s='speed={:.2f} steering={:.2f} angle_deg={:.2f}'.format(self.speed,self.steering,self.angle_deg)
+        return(s)

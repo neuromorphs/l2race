@@ -8,6 +8,7 @@ class car_input:
         self.throttle=0
         self.brake=0
         self.reverse=False
+        self.reset=False
         self.quit=False
 
     def __str__(self):

@@ -9,25 +9,25 @@ from pygame.math import Vector2
 
 import logging
 
+from src.globals import SCREEN_WIDTH, SCREEN_HEIGHT, PPU
 from src.network import getudpsocket, HOST
 from src.joystick import Joystick
 from src.keyboard import Keyboard
+from src.track import Track
 
 logger = logging.getLogger(__name__)
 
-WIDTH=1400
-HEIGHT=1000
-PPU=32
 CHECK_FOR_JOYSTICK_INTERVAL = 100
 
 
-class Game:
-    def __init__(self, width=WIDTH, height=HEIGHT):
+class Game: # todo move to client
+    def __init__(self, width=SCREEN_WIDTH, height=SCREEN_HEIGHT):
         pygame.init()
+        logger.info('using pygame version {}'.format(pygame.version.ver))
         pygame.display.set_caption("l2race")
         self.width = width
         self.height = height
-        self.screen = pygame.display.set_mode((self.width, self.height))
+        self.screen = pygame.display.set_mode(size=(self.width, self.height),flags=0)
         self.clock = pygame.time.Clock()
         self.ticks = 60
         self.exit = False
@@ -36,6 +36,7 @@ class Game:
             self.input=Joystick()
         except:
             self.input=Keyboard()
+        self.track=Track() # TODO for now just use default track
 
     def run(self):
 
@@ -48,8 +49,7 @@ class Game:
         car_image=pygame.transform.scale(car_image,(int(sc*rect.width),int(sc*rect.height)))
 
         from src.car import Car
-        car = Car(0, 0)
-        ppu = PPU
+        car = Car()
 
         serverSock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM) # UDP
         serverAddr=('localhost', 50000)
@@ -61,7 +61,7 @@ class Game:
             logger.info('sending cmd={}, waiting for server'.format(cmd))
             serverSock.sendto(p,serverAddr)
             try:
-                p,gameSockAddr=serverSock.recvfrom(4096)
+                p,gameSockAddr=serverSock.recvfrom(4096) # todo add timeout for flaky connection
                 gotServer=True
                 logger.info('received car server address={}'.format(gameSockAddr))
             except:
@@ -73,7 +73,7 @@ class Game:
             iterationCounter+=1
             if iterationCounter%CHECK_FOR_JOYSTICK_INTERVAL==0 and not isinstance(self.input,Joystick):
                 try:
-                    self.input = Joystick()
+                    self.input = Joystick() # check for joystick that might get turned on during play
                 except:
                     pass
 
@@ -86,20 +86,22 @@ class Game:
 
             # User input
             inp=self.input.read()
+            # logger.info(inp)
 
-            c=(dt,inp)
+            c=(dt,inp) # todo add general command structure to msg
             p=pickle.dumps(c)
             serverSock.sendto(p,gameSockAddr)
 
-            r=serverSock.recv(4096)
+            r=serverSock.recv(4096) # todo, make blocking with timeout to handle dropped packets
             cs=pickle.loads(r)
             car.car_state=cs
 
             # Drawing
             self.screen.fill((10, 10, 10))
+            car.track.draw(self.screen)
             rotated = pygame.transform.rotate(car_image, car.car_state.angle_deg)
             rect = rotated.get_rect()
-            self.screen.blit(rotated, ((car.car_state.position * ppu) - (int(rect.width / 2), int(rect.height / 2))))
+            self.screen.blit(rotated, ((car.car_state.position ) - (int(rect.width / 2), int(rect.height / 2))))
             pygame.display.flip()
 
             self.clock.tick(self.ticks)
