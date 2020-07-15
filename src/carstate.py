@@ -15,6 +15,7 @@ class CarState:
         self.position = Vector2(x, y) # x increases to right, y increases downwards
         self.velocity = Vector2(0.0, 0.0) # vx and vy, with y increasing downwards
         self.speed=0
+        self.drift_angle_deg=0 # drift angle, (beta) relative to heading direction. Zero for no drift. +-90 for drifting entirely sideways
         self.angle_deg = angle_deg # degrees, increases CCW with zero pointing to right
         self.length = length
         self.width = width

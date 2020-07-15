@@ -7,6 +7,7 @@ import pygame
 from src.globals import SCREEN_WIDTH, SCREEN_HEIGHT
 import cmath
 import numpy as np
+from svgpathtools import svg2paths
 
 logger = logging.getLogger(__name__)
 
@@ -41,7 +42,6 @@ class Track:
     def load(self,file):
         # https://stackoverflow.com/questions/15857818/python-svg-parser
         logger.info('loading track from {}'.format(file))
-        from svgpathtools import svg2paths
         self.paths, self.attributes = svg2paths(file)
         # for (p,a) in zip(paths,attributes):
         #     print('path='+str(p))

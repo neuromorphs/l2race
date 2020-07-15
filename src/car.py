@@ -10,7 +10,9 @@ from src.globals import SCREEN_WIDTH, SCREEN_HEIGHT, PPU
 
 class Car:
     """
-    Model of car including dynamical model
+    Model of car including dynamical model. Based on https://asmedigitalcollection.asme.org/dynamicsystems/article/142/2/021004/1066044/Toward-Automated-Vehicle-Control-Beyond-the
+
+    .. figure:: ../media/coordinates.png
     """
 
 

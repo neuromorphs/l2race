@@ -55,7 +55,11 @@ class Game: # todo move to client
         serverAddr=('localhost', 50000)
 
         gotServer=False
-        while not gotServer:
+        while not gotServer :
+            inp = self.input.read()
+            if inp.quit:
+                logger.info('startup aborted before connecting to server')
+                pygame.quit()
             cmd='newcar'
             p=pickle.dumps(cmd)
             logger.info('sending cmd={}, waiting for server'.format(cmd))
