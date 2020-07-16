@@ -9,7 +9,7 @@ from pygame.math import Vector2
 
 import logging
 
-from src.globals import SCREEN_WIDTH, SCREEN_HEIGHT, PPU
+from src.globals import SCREEN_WIDTH, SCREEN_HEIGHT
 from src.network import getudpsocket, HOST
 from src.joystick import Joystick
 from src.keyboard import Keyboard
@@ -27,7 +27,7 @@ class Game: # todo move to client
         pygame.display.set_caption("l2race")
         self.width = width
         self.height = height
-        self.screen = pygame.display.set_mode(size=(self.width, self.height),flags=0)
+        self.screen = pygame.display.set_mode(size=(self.width, self.height), flags=0)
         self.clock = pygame.time.Clock()
         self.ticks = 60
         self.exit = False
@@ -36,20 +36,15 @@ class Game: # todo move to client
             self.input=Joystick()
         except:
             self.input=Keyboard()
-        self.track=Track() # TODO for now just use default track
+        # self.track=Track() # TODO for now just use default track # (Marcin) I think this line is redundant here
 
     def run(self):
 
-        iterationCounter=0
-        current_dir = os.path.dirname(os.path.abspath(__file__))
-        image_path = os.path.join(current_dir, "../media/car.png")
-        car_image = pygame.image.load(image_path)
-        sc=.5
-        rect = car_image.get_rect()
-        car_image=pygame.transform.scale(car_image,(int(sc*rect.width),int(sc*rect.height)))
-
         from src.car import Car
         car = Car()
+
+        iterationCounter=0
+
 
         serverSock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM) # UDP
         serverAddr=('localhost', 50000)
@@ -92,7 +87,7 @@ class Game: # todo move to client
             inp=self.input.read()
             # logger.info(inp)
 
-            c=(dt,inp) # todo add general command structure to msg
+            c=(dt, inp) # todo add general command structure to msg
             p=pickle.dumps(c)
             serverSock.sendto(p,gameSockAddr)
 
@@ -102,10 +97,9 @@ class Game: # todo move to client
 
             # Drawing
             self.screen.fill((10, 10, 10))
-            car.track.draw(self.screen)
-            rotated = pygame.transform.rotate(car_image, car.car_state.angle_deg)
-            rect = rotated.get_rect()
-            self.screen.blit(rotated, ((car.car_state.position ) - (int(rect.width / 2), int(rect.height / 2))))
+            car.track.draw(self.screen, car=car)
+            print(car.car_state.position)
+            car.draw(self.screen)
             pygame.display.flip()
 
             self.clock.tick(self.ticks)

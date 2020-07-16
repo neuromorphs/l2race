@@ -12,7 +12,7 @@ from svgpathtools import svg2paths
 logger = logging.getLogger(__name__)
 
 
-class Track:
+class TrackX:
     """
     race track
     """
@@ -29,9 +29,10 @@ class Track:
         self.bPointList=None
         self.load(file)
 
-    def draw(self, surface:pygame.surface):
-        pygame.draw.lines(surface,color='BLUE',closed=False, points=self.vertices, width=self.widths)
-        pygame.draw.lines(surface,color='WHITE',closed=False, points=self.vertices, width=1)
+    def draw(self, surface: pygame.surface, car=None):
+        surface.fill((65, 105, 225))
+        pygame.draw.lines(surface, color='RED', closed=False, points=self.vertices, width=self.widths)
+        pygame.draw.lines(surface, color='WHITE', closed=False, points=self.vertices, width=1)
 
     def findClosestSegment(self, point: pygame.Vector2):
         p=np.array(point)
@@ -92,6 +93,7 @@ class Track:
 
         pass
 
+
 def _lineseg_dists(p:np.array, a:np.array, b:np.array):
     """Cartesian distances from points to line segments
 
@@ -128,7 +130,18 @@ https://stackoverflow.com/questions/27161533/find-the-shortest-distance-between-
 
     return np.hypot(h, c)
 
+
 if __name__ == '__main__':
     track=Track('../media/testCourse.svg')
     track.findClosestSegment(pygame.Vector2(0, 0))
 
+
+# Version of the track based on the extracting contour and loading png
+class Track:
+    def __init__(self, file='./media/track.png'):
+        self.track = pygame.image.load(file)
+
+    def draw(self, surface:pygame.surface, car):
+        surface.fill((65, 105, 225))
+        #surface.blit(self.track, (SCREEN_WIDTH//2 - car.car_state.position.x, SCREEN_HEIGHT//2 - car.car_state.position.y))
+        surface.blit(self.track,(0,0))

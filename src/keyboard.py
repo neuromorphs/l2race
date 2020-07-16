@@ -14,6 +14,10 @@ class Keyboard:
     def read(self):
         pressed = pygame.key.get_pressed()
 
+        self.car_input.throttle = 0
+        self.car_input.brake = 0
+        self.car_input.steering = 0
+
         if not any(pressed):
             return self.car_input
 
@@ -25,6 +29,7 @@ class Keyboard:
            self.car_input.brake=1
         elif pressed[pygame.K_SPACE]:
             pass
+
         if pressed[pygame.K_RIGHT] or pressed[pygame.K_d]:
             self.car_input.steering =1
         elif pressed[pygame.K_LEFT] or pressed[pygame.K_a]:

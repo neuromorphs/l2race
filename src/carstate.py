@@ -10,7 +10,7 @@ class CarState:
     Complete state of car
     """
 
-    def __init__(self, x, y, angle_deg=0.0, length=40, width=20, max_steering=40, max_acceleration=100.0):
+    def __init__(self, x, y, angle_deg=0.0, length=20, width=20, max_steering=40, max_acceleration=100.0):
         # intrinsic state
         self.position = Vector2(x, y) # x increases to right, y increases downwards
         self.velocity = Vector2(0.0, 0.0) # vx and vy, with y increasing downwards
