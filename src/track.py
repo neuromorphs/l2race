@@ -4,7 +4,7 @@ import logging
 import pygame
 # import svglib
 # from svglib.svglib import svg2rlg
-from src.globals import SCREEN_WIDTH, SCREEN_HEIGHT
+from src.globals import SCREEN_WIDTH_PIXELS, SCREEN_HEIGHT_PIXELS
 import cmath
 import numpy as np
 from svgpathtools import svg2paths
@@ -29,7 +29,7 @@ class TrackX:
         self.bPointList=None
         self.load(file)
 
-    def draw(self, surface: pygame.surface, car=None):
+    def draw(self, surface: pygame.surface):
         surface.fill((65, 105, 225))
         pygame.draw.lines(surface, color='RED', closed=False, points=self.vertices, width=self.widths)
         pygame.draw.lines(surface, color='WHITE', closed=False, points=self.vertices, width=1)
@@ -74,12 +74,12 @@ class TrackX:
             srcheight=ymax-ymin
         # now we have points of track vertices, but they are not scaled to screen yet.
         size=.9
-        scalex= SCREEN_WIDTH / float(srcwidth)
-        scaley= SCREEN_HEIGHT / float(srcheight)
+        scalex= SCREEN_WIDTH_PIXELS / float(srcwidth)
+        scaley= SCREEN_HEIGHT_PIXELS / float(srcheight)
         # transform so that track fits into 90% of screen
         for p in self.vertices:
-            p[0]=(1-size)*SCREEN_WIDTH+(p[0]-xmin)*(size-(1-size))*scalex
-            p[1]=(1-size)*SCREEN_HEIGHT+(p[1]-ymin)*(size-(1-size))*scaley
+            p[0]= (1-size) * SCREEN_WIDTH_PIXELS + (p[0] - xmin) * (size - (1 - size)) * scalex
+            p[1]= (1-size) * SCREEN_HEIGHT_PIXELS + (p[1] - ymin) * (size - (1 - size)) * scaley
         self.boundingBox=pygame.Rect(xmin,ymin,srcwidth,srcheight) # Rect(left, top, width, height) # todo in original units now
         alist=list()
         blist=list()
@@ -141,7 +141,7 @@ class Track:
     def __init__(self, file='./media/track.png'):
         self.track = pygame.image.load(file)
 
-    def draw(self, surface:pygame.surface, car):
+    def draw(self, surface:pygame.surface):
         surface.fill((65, 105, 225))
         #surface.blit(self.track, (SCREEN_WIDTH//2 - car.car_state.position.x, SCREEN_HEIGHT//2 - car.car_state.position.y))
         surface.blit(self.track,(0,0))

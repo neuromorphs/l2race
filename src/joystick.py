@@ -11,6 +11,16 @@ from src.mylogger import mylogger
 
 logger = mylogger(__name__)
 
+def printhelp():
+    print('Joystick commands:\n'
+          'steer with left joystick left|right\n'
+          'throttle is right paddle, brake is left paddle\n'
+          'B toggles reverse gear\n'
+          'Menu button resets car\n'
+          'Windows button quits\n'
+          )
+
+
 class Joystick:
 
     def __init__(self):
@@ -35,11 +45,12 @@ class Joystick:
         else:
             logger.warning('no or too many joystick(s) found; only keyboard control possible')
             raise Exception('no joystick found')
+        printhelp()
 
     def read(self):
         pygame.event.get() # must call get() to handle internal queue
 
-        self.car_input.steering = self.joy.get_axis(0) #self.axes[0]
+        self.car_input.steering = self.joy.get_axis(0) #self.axes[0], returns + for right push, which should make steering angle positive, i.e. CW
         self.car_input.throttle = (1 + self.joy.get_axis(5)) / 2 # (1+self.axes[5])/2
         self.car_input.brake = (1+self.joy.get_axis(2))/2 #(1+self.axes[2])/2
         self.car_input.reset=self.joy.get_button(7) # menu button

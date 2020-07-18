@@ -9,3 +9,7 @@ You can build the conda env l2race using
 conda env create -f environment.yml
 
 See https://docs.conda.io/projects/conda/en/latest/user-guide/tasks/manage-environments.html#creating-an-environment-from-an-environment-yml-file
+
+For server, it is not ideal, but for now just clone the commonroad repo at the same level as l2race, i.e. side by side in same containing folder. I.e. make a folder, then have l2race and commonroad both in that folder. Then l2race adds the path to that folder when it starts up.
+
+It is not ideal because it means that you cannot navigate to those classes easily (pycharm thinks they cannot be found). The solution would be to add the commonroad folder to PYTHONPATH, but this is also a hack.

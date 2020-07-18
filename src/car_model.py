@@ -1,0 +1,185 @@
+import logging
+from math import sin, radians, degrees, cos, copysign
+
+from pygame import Vector2
+
+from accelerationConstraints import accelerationConstraints
+from car_input import car_input
+from car_state import CarState
+from globals import *
+from src.mylogger import mylogger
+# TODO move to separate repo to hide from participants
+from steeringConstraints import steeringConstraints
+from track import Track
+import numpy as np
+
+logger = mylogger(__name__)
+
+# import sys
+# sys.path.append('../commonroad-vehicle-models/Python')
+# import parameters, these are functions that must be called with (); see examples below
+from parameters_vehicle1 import parameters_vehicle1 # Ford Escort
+from parameters_vehicle2 import parameters_vehicle2 # BMW 320i
+from parameters_vehicle3 import parameters_vehicle3 # VW Vanagon
+from init_KS import init_KS
+from init_ST import init_ST
+from init_MB import init_MB
+from vehicleDynamics_KS import vehicleDynamics_KS # kinematic single track, no slip
+from vehicleDynamics_ST import vehicleDynamics_ST # single track bicycle with slip
+from vehicleDynamics_MB import vehicleDynamics_MB # fancy multibody model
+
+# indexes into model state
+# states
+# x0 = x-position in a global coordinate system
+# x1 = y-position in a global coordinate system
+# x2 = steering angle of front wheels
+# x3 = velocity in x-direction
+# x4 = yaw angle
+IXPOS = 0
+IYPOS = 1
+ISTEERANGLE = 2
+ISPEED = 3
+IYAW = 4
+
+class CarModel:
+    """
+    Car model, hidden from participants, updated on server
+    """
+    def __init__(self, track:Track=None):
+        # self.model=vehicleDynamics_ST()
+        self.car_state=CarState()
+        self.track=track
+        self.model=vehicleDynamics_KS
+        self.parameters=parameters_vehicle1
+        self.car_state.width=self.parameters().w
+        self.car_state.length=self.parameters().l
+        # set car accel and braking based on car type (not in parameters from commonroad)
+        self.accel_max=G/2
+        self.brake_max=G/2
+        if self.parameters==parameters_vehicle1:
+            self.accel_max= self.zeroTo60mpsTimeToAccelG(10.6) * G #1992 ford escort https://www.automobile-catalog.com/car/1992/879800/ford_escort_gt_automatic.html
+            self.brake_max=.9*G
+        elif self.parameters==parameters_vehicle2: # BMW 320i
+            self.accel_max=self.zeroTo60mpsTimeToAccelG(9.5)*G
+            self.brake_max=.95*G
+        elif self.parameters==parameters_vehicle3: # VW vanagon
+            self.accel_max=self.zeroTo60mpsTimeToAccelG(17.9)*G
+            self.brake_max=.8*G
+        sx0 = self.car_state.position_m.x
+        sy0 = self.car_state.position_m.y
+        delta0 = 0
+        vel0 = 0
+        Psi0 = 0
+        dotPsi0 = 0
+        beta0 = 0
+        initialState = [sx0, sy0, delta0, vel0, Psi0, dotPsi0, beta0]  # initial state for simulation
+        self.model_state = init_KS(initialState)  # initial state for kinematic single-track model
+
+    def zeroTo60mpsTimeToAccelG(self,time):
+        return (60*0.447)/time/G
+
+    def update(self, dt, input:car_input):
+        if input.reset:
+            self.reset()
+
+        # compute commanded longitudinal acceleration from throttle and brake input
+        if input.throttle>input.brake: # ignore brake
+            accel=(input.throttle)*self.accel_max # commanded acceleration from driver # TODO BS params, a_max=11.5m/s^2 is bigger than g
+        elif self.model_state[ISPEED]>0:
+            accel=(-input.brake)*self.brake_max
+        else:
+            accel=0
+
+        # go from driver input to commanded steering and acceleration
+        commandedSteeringRad = input.steering * self.parameters().steering.max  # commanded steering angle (not velocity of steering) from driver
+
+        steerVelRadPerSec=self.computeSteerVelocityRadPerSec(commandedSteeringRad)
+
+        # consider steering constraints
+
+        u = [None]*2
+        # u0 = steering angle velocity of front wheels
+        # u1 = longitudinal acceleration
+
+        # returns the steering velocity limited by constraints like limit
+        # steeringConstraints(steeringAngle,steeringVelocity,p)
+        u[0]=steeringConstraints(steeringAngle=self.model_state[ISTEERANGLE], steeringVelocity=steerVelRadPerSec, p=self.parameters().steering)
+
+        # get acceleration along car, applying acceleration constraints
+        # accelerationConstraints(velocity,acceleration,p):
+        u[1]=accelerationConstraints(velocity=self.model_state[ISPEED], acceleration=accel, p=self.parameters().longitudinal)
+
+        # compute derivatives of model state from input
+        dfdt=self.model(x=self.model_state, uInit=u, p=self.parameters())
+        # print('\nderivatives of state:\n'+str(dfdt))
+        # Euler step model
+        self.model_state+=np.asarray(dt * np.array(dfdt))
+
+        # set speed to zero if it comes out negative from Euler braking
+        self.model_state[ISPEED]=max(0,self.model_state[ISPEED])
+
+         # update observed state from model
+
+        # set l2race driver observed car_state from car model
+        self.car_state.position_m.x=self.model_state[IXPOS]
+        self.car_state.position_m.y=self.model_state[IYPOS]
+        self.car_state.speed_m_per_sec=self.model_state[ISPEED]
+        self.car_state.steering_angle_deg=degrees(self.model_state[ISTEERANGLE])
+        self.car_state.body_angle_deg=degrees(self.model_state[IYAW])
+        self.car_state.yaw_rate_deg_per_sec=degrees(dfdt[IYAW])
+        self.car_state.velocity_m_per_sec.x= self.car_state.speed_m_per_sec * cos(radians(self.car_state.body_angle_deg))
+        self.car_state.velocity_m_per_sec.y= self.car_state.speed_m_per_sec * sin(radians(self.car_state.body_angle_deg))
+
+        # self.constrain_to_map()
+        self.locate() # todo is this where we localize ourselves on map?
+        # logger.info(self.car_state)
+
+        # logger.setLevel(logging.DEBUG)
+        # print('\r'+str(self.car_state),end='')
+
+    def computeSteerVelocityRadPerSec(self, commandedSteering:float):
+        # based on https://github.com/f1tenth/f1tenth_gym/blob/master/src/racecar.cpp
+        diff=commandedSteering-self.model_state[ISTEERANGLE]
+        if abs(diff)>radians(.1):
+            # bang/bang control: Sets the steering speed to max value in direction to make difference smaller
+            steerVel=copysign(self.parameters().steering.v_max,diff)
+
+            # proportional control: Sets the steering speed to in direction to
+            # make difference smaller that is proportional to diff/max_steer
+            # steerVel=diff/self.parameters().steering.max
+        else:
+            steerVel=0
+        return steerVel
+
+    def locate(self):
+        # todo locate ourselves on self.track
+        pass
+
+    def reset(self):
+        logger.info('resetting car')
+        self.__init__(self.track)
+        pass # todo reset to starting line
+
+    def constrain_to_map(self):
+
+        w = SCREEN_WIDTH_PIXELS * M_PER_PIXEL
+        h = SCREEN_HEIGHT_PIXELS * M_PER_PIXEL
+        if self.car_state.position_m.x > w:
+            self.car_state.position_m.x = w
+            self.car_state.velocity_m_per_sec.x = 0
+        elif self.car_state.position_m.x < 0:
+            self.car_state.position_m.x = 0
+            self.car_state.velocity_m_per_sec.x = 0
+        if self.car_state.position_m.y > h:
+            self.car_state.position_m.y = h
+            self.car_state.velocity_m_per_sec.y = 0
+        elif self.car_state.position_m.y < 0:
+            self.car_state.position_m.y = 0
+            self.car_state.velocity_m_per_sec.y = 0
+
+        self.car_state.speed_m_per_sec=self.car_state.velocity_m_per_sec.length()
+
+        self.model_state[IXPOS]=self.car_state.position_m.x
+        self.model_state[IYPOS]=self.car_state.position_m.y
+        self.model_state[ISPEED]=self.car_state.speed_m_per_sec
+
