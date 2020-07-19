@@ -6,12 +6,17 @@
 import scipy.constants
 
 SERVER_PORT = 50000
+# SERVER_HOST='192.168.0.206' # tobi home internal lan ip
+# SERVER_HOST='178.82.113.207' # tobi home external lan ip
+SERVER_HOST='localhost'
 
+# DO NOT CHANGE UNLESS you change on server too
 # define screen area, track is scaled to fill this area, note 4:3 aspect ratio
 SCREEN_WIDTH_PIXELS=1024 #  pixels
 SCREEN_HEIGHT_PIXELS= 768 # pixels
+# meters per screen pixel, e.g. 4m car would be 40 pixels, so about 4% of width
+# increase M_PER_PIXEL to make cars smaller relative to track
+M_PER_PIXEL=0.1
 
-M_PER_PIXEL=0.1 # meters per screen pixel, e.g. 4m car would be 40 pixels, so about 4% of width
 SOCKET_TIMEOUT_SEC=1 # timeout for UDP socket reads
-
 G=scipy.constants.value('standard acceleration of gravity')

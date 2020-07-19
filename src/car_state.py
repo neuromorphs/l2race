@@ -12,18 +12,18 @@ class CarState:
 
     """
 
-    def __init__(self, x=M_PER_PIXEL * SCREEN_WIDTH_PIXELS / 2, y=M_PER_PIXEL * SCREEN_HEIGHT_PIXELS / 2, body_angle_deg=0.0, length_m=4.5, width_m=2, max_steering=40, max_acceleration=100.0): # TODO car dimensions are not part of dynamic state, fix
+    def __init__(self, x=M_PER_PIXEL * SCREEN_WIDTH_PIXELS / 2, y=M_PER_PIXEL * SCREEN_HEIGHT_PIXELS / 2, body_angle_deg=0.0, length_m=4.5, width_m=2.0, max_steering=40, max_acceleration=100.0): # TODO car dimensions are not part of dynamic state, fix
         # todo constructor should put car at starting line, not middle of screen
         # intrinsic state
         # Screen coordinate system is computer vision standard, 0,0 is UL corner and y increases *downwards*.
         # It causes some confusion about angles.
         self.position_m = Vector2(x, y) # x increases to right, y increases downwards
         self.velocity_m_per_sec = Vector2(0.0, 0.0) # vx and vy, with y increasing downwards, i.e. vy>0 means car is moving down the screen
-        self.speed_m_per_sec=0 # length of velocity vector in track coordinates
-        self.steering_angle_deg = 0 # degrees of front wheel steering, increases CW/right with zero straight ahead
+        self.speed_m_per_sec=0.0 # length of velocity vector in track coordinates
+        self.steering_angle_deg = 0.0 # degrees of front wheel steering, increases CW/right with zero straight ahead
         self.body_angle_deg = body_angle_deg # degrees, increases CW (on screen!) with zero pointing to right/east
-        self.yaw_rate_deg_per_sec = 0 # degrees/sec, increases CW on screen
-        self.drift_angle_deg=0 # drift angle, (beta) relative to heading direction. Zero for no drift. +-90 for drifting entirely sideways. + is drift to left,- to right. TODO check description correct
+        self.yaw_rate_deg_per_sec = 0.0 # degrees/sec, increases CW on screen
+        self.drift_angle_deg=0.0 # drift angle, (beta) relative to heading direction. Zero for no drift. +-90 for drifting entirely sideways. + is drift to left,- to right. TODO check description correct
         self.length = length_m # length in meters
         self.width = width_m # width in meters
 

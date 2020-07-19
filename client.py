@@ -35,7 +35,7 @@ class Game:
         self.heightPixels = heightPixels
         self.screen = pygame.display.set_mode(size=(self.widthPixels, self.heightPixels), flags=0)
         self.clock = pygame.time.Clock()
-        self.ticks = 10 # frame/animation/simulation rate of client (but dt is computed on server real time)
+        self.ticks = 20 # frame/animation/simulation rate of client (but dt is computed on server real time)
         self.exit = False
         self.input=None
 
@@ -50,8 +50,8 @@ class Game:
     def run(self):
         iterationCounter=0
         serverSock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM) # UDP
-        serverAddr=('localhost', 50000)
-        # serverSock.settimeout(SOCKET_TIMEOUT_SEC)
+        serverAddr=(SERVER_HOST, SERVER_PORT)
+        serverSock.settimeout(SOCKET_TIMEOUT_SEC)
 
         logger.info('connecting to server at '+str(serverAddr))
 
@@ -63,7 +63,7 @@ class Game:
                 pygame.quit()
             cmd='newcar'
             p=pickle.dumps(cmd)
-            logger.info('sending cmd={}, waiting for server'.format(cmd))
+            logger.info('sending cmd={} to {}, waiting for server'.format(cmd,serverAddr))
             serverSock.sendto(p,serverAddr)
             try:
                 data,gameSockAddr=serverSock.recvfrom(4096) # todo add timeout for flaky connection

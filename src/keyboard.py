@@ -39,9 +39,9 @@ class Keyboard:
             pass
 
         if pressed[pygame.K_RIGHT] or pressed[pygame.K_d]:
-            self.car_input.steering = -1 # steer in negative angle direction, i.e. CW
+            self.car_input.steering = +1 # steer in negative angle direction, i.e. CW
         elif pressed[pygame.K_LEFT] or pressed[pygame.K_a]:
-            self.car_input.steering = +1 # steer in positive angle, i.e. CCW
+            self.car_input.steering = -1 # steer in positive angle, i.e. CCW
         elif pressed[pygame.K_BACKSPACE]:
             self.car_input.reverse = not self.car_input.reverse
         elif pressed[pygame.K_ESCAPE]:

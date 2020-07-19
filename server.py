@@ -41,7 +41,8 @@ class ServerCarThread(threading.Thread):
                 break
             if car_input.reset:
                 logger.info('reset recieved from {}, resetting car'.format(self.clientAddr))
-            dt = .1 # todo debug  #clock.tick()/1000.0
+
+            dt = clock.tick()/1000.0 # compute local real timestep, done on server to prevent accelerated real time cheating
             self.car_model.update(dt=dt,input=car_input)
             self.car.car_state=self.car_model.car_state
             # self.car.car_state.update(self.car_model) # update user observed car state from model
@@ -67,8 +68,10 @@ if __name__ == '__main__':
         logger.info('received message: {} from {}'.format(cmd, clientAddr))
 
         if cmd=='newcar':
-            logger.info('starting a new ServerCarThread for client at {}'.format(clientAddr))
+            logger.info('model server starting a new ServerCarThread for client at {}'.format(clientAddr))
             carThread=ServerCarThread(clientAddr, track)
             clients[clientAddr]=carThread
             carThread.start()
+        else:
+            logger.warning('model server received unknown cmd={}'.format(cmd))
 
