@@ -138,24 +138,27 @@ if __name__ == '__main__':
 # Version of the track based on the extracting contour and loading png
 def get_position_on_map(car_state):
     x = int(car_state.position_m.x / M_PER_PIXEL)
-    y = int(car_state.position_m.x / M_PER_PIXEL)
+    y = int(car_state.position_m.y / M_PER_PIXEL)
+
+    # print('Position on map: ('+str(y)+','+str(x)+')')
     return x, y
 
 
 class Track:
     def __init__(self, media_folder_path='./media/'):
         self.track = pygame.image.load(media_folder_path + 'track.png')
-        # self.track_map = np.load('TrackInfo.npy')
+        self.track_map = np.load(media_folder_path + 'track_map.npy')
+        self.TrackInfo = np.load(media_folder_path + 'TrackInfo.npy', allow_pickle='TRUE').item()
 
     def draw(self, surface: pygame.surface):
         surface.fill((65, 105, 225))
         # surface.blit(self.track, (SCREEN_WIDTH//2 - car.car_state.position.x, SCREEN_HEIGHT//2 - car.car_state.position.y))
         surface.blit(self.track, (0, 0))
 
-    # def get_surface_type(self, car_state):
-    #     x, y = get_position_on_map(car_state)
-    #     return self.track_map[y, x]
-    #
+    def get_surface_type(self, car_state):
+        x, y = get_position_on_map(car_state)
+        return self.track_map[y, x]
+
     # def get_nearest_checkpoint_idx(self, car_state):
     #     x, y = get_position_on_map(car_state)
     #

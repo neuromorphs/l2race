@@ -16,7 +16,14 @@ SCREEN_WIDTH_PIXELS=1024 #  pixels
 SCREEN_HEIGHT_PIXELS= 768 # pixels
 # meters per screen pixel, e.g. 4m car would be 40 pixels, so about 4% of width
 # increase M_PER_PIXEL to make cars smaller relative to track
-M_PER_PIXEL=0.1
+M_PER_PIXEL=0.15
 
-SOCKET_TIMEOUT_SEC=1 # timeout for UDP socket reads
+SOCKET_TIMEOUT_SEC=.1 # timeout for UDP socket reads
 G=scipy.constants.value('standard acceleration of gravity')
+
+# client
+FPS=30 # frames per second for simulation and animation
+CHECK_FOR_JOYSTICK_INTERVAL = 100 # check for missing joystick every this many cycles
+
+#server
+DO_NOT_RESET_CAR_WHEN_IT_GOES_OFF_TRACK=True

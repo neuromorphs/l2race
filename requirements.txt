@@ -4,3 +4,5 @@ pygame==2.0.0.dev10
 matplotlib==3.2.2
 numpy==1.19.0
 pygame==2.0.0.dev10
+argparse
+argcomplete

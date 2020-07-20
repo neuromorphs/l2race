@@ -8,7 +8,7 @@ logger = mylogger(__name__)
 def printhelp():
     print('Keyboard commands:\n'
           'drive with LEFT/UP/RIGHT/DOWN or AWDS keys\n'
-          'r resets car'
+          'r resets car\n'
           'ESC quits\n'
           'h|? shows this help')
 class Keyboard:

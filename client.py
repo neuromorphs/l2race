@@ -2,13 +2,18 @@
 Client racecar agent
 
 """
+import argparse
 import os
+
+import argcomplete as argcomplete
 import pygame
 from math import sin, radians, degrees, copysign
 from pygame.math import Vector2
 import logging
 import socket, pickle
+import pygame.freetype  # Import the freetype module.
 
+from args import client_args
 from car_state import CarState
 from src.mylogger import mylogger
 
@@ -22,8 +27,24 @@ from src.joystick import Joystick
 from src.keyboard import Keyboard
 from src.track import Track
 from src.car import Car
+# may only apply to windows
+try:
+    from scripts.regsetup import description
+    from gooey import Gooey  # pip install Gooey
+except Exception:
+    logger.warning('Gooey GUI builder not available, will use command line arguments.\n'
+                   'Install with "pip install Gooey". See README')
 
-CHECK_FOR_JOYSTICK_INTERVAL = 100
+
+def get_args():
+    parser = argparse.ArgumentParser(
+        description='l2race client: run this if you are a racer.',
+        epilog='Run with no arguments to open dialog for server IP', allow_abbrev=True,
+        formatter_class=argparse.ArgumentDefaultsHelpFormatter)
+    parser = client_args(parser)
+    argcomplete.autocomplete(parser)
+    args = parser.parse_args()
+    return args
 
 
 class Game:
@@ -34,8 +55,9 @@ class Game:
         self.widthPixels = widthPixels
         self.heightPixels = heightPixels
         self.screen = pygame.display.set_mode(size=(self.widthPixels, self.heightPixels), flags=0)
+        self.game_font = pygame.freetype.SysFont('Consolas', 16)
         self.clock = pygame.time.Clock()
-        self.ticks = 20 # frame/animation/simulation rate of client (but dt is computed on server real time)
+        self.ticks = FPS # frame/animation/simulation rate of client (but dt is computed on server real time)
         self.exit = False
         self.input=None
 
@@ -47,23 +69,35 @@ class Game:
             self.input=Keyboard()
         # self.track=Track() # TODO for now just use default track # (Marcin) I think this line is redundant here
 
+    def render_multi_line(self, screen, text, x, y, fsize):
+        lines = text.splitlines()
+        for i, l in enumerate(lines):
+            self.game_font.render_to(screen, (x, y + fsize * i), l, [255,255,255]),
+
+    # self.game_font.render_to(self.screen, (10, 10), str(self.car.car_state), (255, 255, 255))
+
     def run(self):
         iterationCounter=0
         serverSock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM) # UDP
         serverAddr=(SERVER_HOST, SERVER_PORT)
         serverSock.settimeout(SOCKET_TIMEOUT_SEC)
+        serverSock.bind(('',0)) # bind to receive on any port from server
 
-        logger.info('connecting to server at '+str(serverAddr))
+        logger.info('connecting to l2race model server at '+str(serverAddr))
 
         gotServer=False
         while not gotServer :
+            # Event queue
+            for event in pygame.event.get():
+                if event.type == pygame.QUIT:
+                    self.exit = True # TODO clean up, seems redundant. what sets pygame.QUIT?
             inp = self.input.read()
             if inp.quit:
                 logger.info('startup aborted before connecting to server')
                 pygame.quit()
             cmd='newcar'
             p=pickle.dumps(cmd)
-            logger.info('sending cmd={} to {}, waiting for server'.format(cmd,serverAddr))
+            logger.info('sending cmd={} to server initial address {}, waiting for server'.format(cmd,serverAddr))
             serverSock.sendto(p,serverAddr)
             try:
                 data,gameSockAddr=serverSock.recvfrom(4096) # todo add timeout for flaky connection
@@ -71,9 +105,14 @@ class Game:
                 self.car = Car(track=self.track)
                 self.car.car_state=pickle.loads(data) # server sends initial state of car
                 self.car.loadAndScaleCarImage()
-                logger.info('received car server address={}'.format(gameSockAddr))
-            except:
-                logger.warning('no response; waiting...')
+                logger.info('received car server response and initial car state; will use {} for communicating with l2race model server'.format(gameSockAddr))
+                logger.info('initial car state is '+str(self.car.car_state))
+            except socket.timeout:
+                s='timeout for response from {}; will try again...'.format(serverAddr)
+                logger.warning(s)
+                self.game_font.render_to(self.screen, (10,10), s, [255, 255, 255])
+                pygame.display.flip()
+
                 time.sleep(1)
                 continue
 
@@ -114,15 +153,20 @@ class Game:
                 except socket.timeout:
                     logger.warning('Timeout on socket receive from server, using previous car state. check server to make sure it is still running')
                 except ConnectionResetError:
-                    logger.warning('Connection was reset, will look for server again')
+                    logger.warning('Connection to {} was reset, will look for server again'.format(gameSockAddr))
                     gotServer=False
                     break
+                except TypeError as te:
+                    logger.warning(te+": ignoring and waiting for next state")
+                    continue
 
                 # Drawing
-                self.screen.fill((10, 10, 10))
+                # self.screen.fill((10, 10, 10))
                 self.track.draw(self.screen)
                 # print(self.car.car_state.position)
                 self.car.draw(self.screen)
+                self.render_multi_line(self.screen,str(self.car.car_state),10,10,20)
+                # self.game_font.render_to(self.screen, (10, 10), str(self.car.car_state), (255, 255, 255))
                 pygame.display.flip()
 
                 self.clock.tick(self.ticks) # limit runtime to self.ticks Hz update rate
@@ -133,5 +177,17 @@ class Game:
         quit()
 
 if __name__ == '__main__':
+    try:
+        ga = Gooey(get_args, program_name="v2e", default_size=(575, 600))
+        logger.info('Use --ignore-gooey to disable GUI and run with command line arguments')
+        ga()
+    except:
+        logger.warning('Gooey GUI not available, using command line arguments. \n'
+                       'You can try to install with "pip install Gooey"')
+    args = get_args()
+
+    SERVER_HOST = args.host
+    SERVER_PORT = args.port
+    FPS = args.fps
     game = Game()
     game.run()

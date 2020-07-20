@@ -3,6 +3,7 @@ from math import sin, radians, degrees, cos, copysign
 
 from pygame import Vector2
 
+
 from accelerationConstraints import accelerationConstraints
 from car_input import car_input
 from car_state import CarState
@@ -25,13 +26,14 @@ logger.setLevel(logging.DEBUG)
 from parameters_vehicle1 import parameters_vehicle1 # Ford Escort
 from parameters_vehicle2 import parameters_vehicle2 # BMW 320i
 from parameters_vehicle3 import parameters_vehicle3 # VW Vanagon
+from parameters_drifter import parameters_drifter
 from init_KS import init_KS
 from init_ST import init_ST
 from init_MB import init_MB
 from vehicleDynamics_KS import vehicleDynamics_KS # kinematic single track, no slip
 from vehicleDynamics_ST import vehicleDynamics_ST # single track bicycle with slip
 from vehicleDynamics_MB import vehicleDynamics_MB # fancy multibody model
-
+from timeit import default_timer as timer
 LOGGING_INTERVAL_CYCLES=20 # log output only this often
 
 # indexes into model state
@@ -41,11 +43,16 @@ LOGGING_INTERVAL_CYCLES=20 # log output only this often
 # x2 = steering angle of front wheels
 # x3 = velocity in x-direction
 # x4 = yaw angle
+# ST model adds two more
+# x5 = yaw rate
+# x6 = slip angle at vehicle center
 IXPOS = 0
 IYPOS = 1
 ISTEERANGLE = 2
 ISPEED = 3
 IYAW = 4
+IYAWRATE = 5
+ISLIPANGLE=6
 
 
 def func_KS(t, x , u, p):
@@ -72,22 +79,22 @@ class CarModel:
         self.car_state=CarState()
         self.track=track
         # change MODEL_TYPE to select vehicle model type
-        MODEL_TYPE = 'ST' # 'KS' 'ST' 'MB' # model type KS: kinematic single track, ST: single track (with slip), MB: fancy multibody
-        if MODEL_TYPE=='KS':
+        self.model_type = 'ST' # 'KS' 'ST' 'MB' # model type KS: kinematic single track, ST: single track (with slip), MB: fancy multibody
+        if self.model_type== 'KS':
             self.model=vehicleDynamics_KS
             self.model_init=init_KS
             self.model_func=func_KS
-        elif MODEL_TYPE=='ST':
+        elif self.model_type== 'ST':
             self.model=vehicleDynamics_ST
             self.model_init=init_ST
             self.model_func=func_ST
-        elif MODEL_TYPE=='MB':
+        elif self.model_type== 'MB':
             self.model=vehicleDynamics_MB
             self.model_init=init_MB
             self.model_func=func_MB
 
         # select car with next line
-        self.parameters=parameters_vehicle3
+        self.parameters=parameters_drifter
 
         self.car_state.width=self.parameters().w
         self.car_state.length=self.parameters().l
@@ -111,16 +118,17 @@ class CarModel:
         dotPsi0 = 0
         beta0 = 0
         initialState = [sx0, sy0, delta0, vel0, Psi0, dotPsi0, beta0]  # initial state for simulation
-        if MODEL_TYPE=='MB':
+        if self.model_type== 'MB':
             self.model_state = self.model_init(initialState,self.parameters())  # initial state for MB needs params too
         else:
             self.model_state = self.model_init(initialState)  # initial state
         self.cycle_count=0
+        self.time=0
 
     def zeroTo60mpsTimeToAccelG(self,time):
         return (60*0.447)/time/G
 
-    def update(self, dt, input:car_input):
+    def update(self, dtSec, input:car_input):
         if input.reset:
             self.reset()
 
@@ -140,12 +148,20 @@ class CarModel:
         # u1 = longitudinal acceleration
         u=[steerVelRadPerSec,accel]
 
-        t=[0,dt]
-        sol= solve_ivp(fun=self.model_func, t_span=t, t_eval=[dt], y0=self.model_state, args=(u, self.parameters()))
+
+        tSpan=[self.time,self.time+dtSec]
+        self.time+=dtSec
+
+        start=timer()
+        sol= solve_ivp(fun=self.model_func, t_span=tSpan,
+                       y0=self.model_state,
+                       args=(u, self.parameters()),
+                       first_step=min(dtSec/2,0.05))
+        end=timer()
+        dtSolveSec=end-start
         if not sol.success:
             logger.warning('solver failed: {}'.format(sol.message))
-        self.model_state = sol.y.ravel()
-
+        self.model_state = sol.y[:,-1].ravel()
         # # compute derivatives of model state from input
         # dfdt=self.model(x=self.model_state, uInit=u, p=self.parameters())
         # print('derivatives of state: '+str(dfdt))
@@ -153,8 +169,8 @@ class CarModel:
         # # Euler step model
         # self.model_state+=np.asarray(dt * np.array(dfdt))
 
-        # set speed to zero if it comes out negative from Euler braking
-        self.model_state[ISPEED]=max([0,self.model_state[ISPEED]])
+        # # set speed to zero if it comes out negative from Euler braking
+        # self.model_state[ISPEED]=max([0,self.model_state[ISPEED]])
 
         # update driver's observed state from model
         # set l2race driver observed car_state from car model
@@ -163,7 +179,9 @@ class CarModel:
         self.car_state.speed_m_per_sec=self.model_state[ISPEED]
         self.car_state.steering_angle_deg=degrees(self.model_state[ISTEERANGLE])
         self.car_state.body_angle_deg=degrees(self.model_state[IYAW])
-        self.car_state.yaw_rate_deg_per_sec=0.0 # todo get from solver degrees(dfdt[IYAW])
+        if self.model_type=='ST':
+            self.car_state.yaw_rate_deg_per_sec=degrees(self.model_state[IYAWRATE])
+            self.car_state.drift_angle_deg=degrees(self.model_state[ISLIPANGLE])
         self.car_state.velocity_m_per_sec.x= self.car_state.speed_m_per_sec * cos(radians(self.car_state.body_angle_deg))
         self.car_state.velocity_m_per_sec.y= self.car_state.speed_m_per_sec * sin(radians(self.car_state.body_angle_deg))
 
@@ -172,9 +190,15 @@ class CarModel:
         # logger.info(self.car_state)
 
         if self.cycle_count%LOGGING_INTERVAL_CYCLES==0:
-            print('\rcar_model.py: cycle {}; dt={:.2f}; {}'.format(self.cycle_count, dt,str(self.car_state)),end='')
+            print('\rcar_model.py: cycle {}, dt={:.2f}ms, soln_time={:.3f}ms: {}'.format(self.cycle_count, dtSec * 1e3,dtSolveSec * 1e3,  str(self.car_state)), end='')
 
         self.cycle_count+=1
+
+        current_surface = self.track.get_surface_type(self.car_state)
+        # print(current_surface)
+        if not DO_NOT_RESET_CAR_WHEN_IT_GOES_OFF_TRACK and current_surface == 0:
+            logger.info("went off track, resetting car")
+            self.reset()
 
     def computeSteerVelocityRadPerSec(self, commandedSteering:float):
         # based on https://github.com/f1tenth/f1tenth_gym/blob/master/src/racecar.cpp

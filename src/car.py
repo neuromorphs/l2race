@@ -2,20 +2,19 @@ import os
 
 import pygame
 from pygame.math import Vector2
-from math import sin, cos, radians, degrees, copysign
 from src.mylogger import mylogger
 from src.track import Track
 
-logger = mylogger(__name__)
 from src.car_state import CarState
 from src.globals import SCREEN_WIDTH_PIXELS, SCREEN_HEIGHT_PIXELS, M_PER_PIXEL
+
+logger = mylogger(__name__)
 
 
 class Car:
     """
     Local model of car. It has CarState() that is updated by remote server, and methods for drawing car and other static information related to car that is not transmitted over socket.
     """
-
 
     def __init__(self, track:Track=None): # TODO initialize at starting line with correct angle; this is job of model server
         self.car_state = CarState() # TODO change to init to starting line of track
