@@ -55,7 +55,7 @@ class Game:
         self.widthPixels = widthPixels
         self.heightPixels = heightPixels
         self.screen = pygame.display.set_mode(size=(self.widthPixels, self.heightPixels), flags=0)
-        self.game_font = pygame.freetype.SysFont('Consolas', 16)
+        self.game_font = pygame.freetype.SysFont(GAME_FONT_NAME, GAME_FONT_SIZE)
         self.clock = pygame.time.Clock()
         self.ticks = FPS # frame/animation/simulation rate of client (but dt is computed on server real time)
         self.exit = False
@@ -69,10 +69,10 @@ class Game:
             self.input=Keyboard()
         # self.track=Track() # TODO for now just use default track # (Marcin) I think this line is redundant here
 
-    def render_multi_line(self, screen, text, x, y, fsize):
+    def render_multi_line(self, text, x, y): # todo clean up
         lines = text.splitlines()
         for i, l in enumerate(lines):
-            self.game_font.render_to(screen, (x, y + fsize * i), l, [255,255,255]),
+            self.game_font.render_to(self.screen, (x, y + GAME_FONT_SIZE * i), l, [255,255,255]),
 
     # self.game_font.render_to(self.screen, (10, 10), str(self.car.car_state), (255, 255, 255))
 
@@ -80,8 +80,8 @@ class Game:
         iterationCounter=0
         serverSock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM) # UDP
         serverAddr=(SERVER_HOST, SERVER_PORT)
-        serverSock.settimeout(SOCKET_TIMEOUT_SEC)
-        serverSock.bind(('',0)) # bind to receive on any port from server
+        # serverSock.settimeout(SOCKET_TIMEOUT_SEC)
+        # serverSock.bind(('',0)) # bind to receive on any port from server - seems to cause 'ConnectionResetError: [WinError 10054] An existing connection was forcibly closed by the remote host'
 
         logger.info('connecting to l2race model server at '+str(serverAddr))
 
@@ -107,10 +107,10 @@ class Game:
                 self.car.loadAndScaleCarImage()
                 logger.info('received car server response and initial car state; will use {} for communicating with l2race model server'.format(gameSockAddr))
                 logger.info('initial car state is '+str(self.car.car_state))
-            except socket.timeout:
-                s='timeout for response from {}; will try again...'.format(serverAddr)
+            except OSError as err:
+                s='{}:\n error for response from {}; will try again...'.format(err,serverAddr)
                 logger.warning(s)
-                self.game_font.render_to(self.screen, (10,10), s, [255, 255, 255])
+                self.render_multi_line(s, 10, 10)
                 pygame.display.flip()
 
                 time.sleep(1)
@@ -157,7 +157,7 @@ class Game:
                     gotServer=False
                     break
                 except TypeError as te:
-                    logger.warning(te+": ignoring and waiting for next state")
+                    logger.warning(str(te)+": ignoring and waiting for next state")
                     continue
 
                 # Drawing
@@ -165,7 +165,7 @@ class Game:
                 self.track.draw(self.screen)
                 # print(self.car.car_state.position)
                 self.car.draw(self.screen)
-                self.render_multi_line(self.screen,str(self.car.car_state),10,10,20)
+                self.render_multi_line(str(self.car.car_state), 10, 10)
                 # self.game_font.render_to(self.screen, (10, 10), str(self.car.car_state), (255, 255, 255))
                 pygame.display.flip()
 

@@ -24,6 +24,8 @@ G=scipy.constants.value('standard acceleration of gravity')
 # client
 FPS=30 # frames per second for simulation and animation
 CHECK_FOR_JOYSTICK_INTERVAL = 100 # check for missing joystick every this many cycles
+GAME_FONT_NAME='Consolas'
+GAME_FONT_SIZE=16
 
 #server
 DO_NOT_RESET_CAR_WHEN_IT_GOES_OFF_TRACK=True
