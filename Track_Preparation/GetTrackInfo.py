@@ -131,24 +131,23 @@ for i in range(len(X)):
 
 im_start[im_start < 200] = 0
 
-idx = np.where(Y = max(Y))
+idx = np.where((Y == max(Y)))
 start_max = (Y[idx], X[idx])
-idx = np.where(Y = min(Y))
+idx = np.where(Y == min(Y))
 start_min = (Y[idx], X[idx])
 
 # todo save this satart_min/max as separate numpy array
 # Actually it is enough to save dy. The x position will be given by the first checkpoint
 
 # Find the point on the start line and on the middle line
-(Y, X) = np.where(im_start > 0 & im == 30)
-
+(Y, X) = np.where(((im_start > 0) & (im == 30)))
+pass
 # todo Make this point to the first checkpoint
 
+idx_start = np.array(np.where((x == X) & (y == Y))).squeeze()
 
-
-
-
-
+x = np.hstack((x[idx_start:], x[:idx_start]))
+y = np.hstack((y[idx_start:], y[:idx_start]))
 
 
 # Choose points on the middle line to make checkpoints
