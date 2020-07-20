@@ -157,6 +157,7 @@ class Track:
 
     def get_surface_type(self, car_state):
         x, y = get_position_on_map(car_state)
+        if x<0 or x>=self.track_map.shape[0] or y<0 or y>self.track_map.shape[1]: return 0
         return self.track_map[y, x]
 
     # def get_nearest_checkpoint_idx(self, car_state):

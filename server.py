@@ -74,7 +74,7 @@ class ServerCarThread(threading.Thread):
 
 if __name__ == '__main__':
     try:
-        ga = Gooey(get_args, program_name="v2e", default_size=(575, 600))
+        ga = Gooey(get_args, program_name="l2race server", default_size=(575, 600))
         logger.info('Use --ignore-gooey to disable GUI and run with command line arguments')
         ga()
     except:
