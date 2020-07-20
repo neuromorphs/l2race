@@ -1,3 +1,4 @@
+# class for Car, holds other important stuff
 import os
 
 import pygame

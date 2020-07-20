@@ -1,7 +1,7 @@
-
+# arguments for l2race client and server
 import os
+from src.globals import *
 import logging
-from globals import *
 
 logger = logging.getLogger(__name__)
 

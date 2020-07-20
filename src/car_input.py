@@ -1,4 +1,4 @@
-
+# structure to hold driver control input
 class car_input:
     """ Car control input from software agent or human driver
     """

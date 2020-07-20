@@ -1,4 +1,4 @@
-# User input
+# Driver control input from keyboard
 import pygame
 
 from src.car_input import car_input

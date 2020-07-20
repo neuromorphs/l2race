@@ -13,11 +13,6 @@ import logging
 import socket, pickle
 import pygame.freetype  # Import the freetype module.
 
-from args import client_args
-from car_state import CarState
-from src.mylogger import mylogger
-
-logger=mylogger(__name__)
 import pickle
 import socket
 import time
@@ -27,6 +22,11 @@ from src.joystick import Joystick
 from src.keyboard import Keyboard
 from src.track import Track
 from src.car import Car
+from src.args import client_args
+from src.mylogger import mylogger
+
+logger=mylogger(__name__)
+
 # may only apply to windows
 try:
     from scripts.regsetup import description

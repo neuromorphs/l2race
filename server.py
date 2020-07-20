@@ -1,17 +1,16 @@
 import argparse
 import socket, pickle
 import threading
-
 import argcomplete
-
-from args import server_args
-from car_model import CarModel
-from src.car import Car
-from src.mylogger import mylogger
-from src.globals import *
 from timeit import default_timer as timer
-from track import Track
+
+from src.args import server_args
+from src.car_model import CarModel
+from src.car import Car
+from src.globals import *
+from src.track import Track
 # may only apply to windows
+from src.mylogger import mylogger
 logger=mylogger(__name__)
 try:
     from scripts.regsetup import description

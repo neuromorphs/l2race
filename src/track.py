@@ -3,10 +3,10 @@ import logging
 import pygame
 # import svglib
 # from svglib.svglib import svg2rlg
-from src.globals import SCREEN_WIDTH_PIXELS, SCREEN_HEIGHT_PIXELS, M_PER_PIXEL
 import cmath
 import numpy as np
 from svgpathtools import svg2paths
+from src.globals import SCREEN_WIDTH_PIXELS, SCREEN_HEIGHT_PIXELS, M_PER_PIXEL
 
 logger = logging.getLogger(__name__)
 

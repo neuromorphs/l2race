@@ -1,13 +1,8 @@
-import logging
-
-import pygame
+# the observed state of car as seen by drivers
 from pygame.math import Vector2
-
-from globals import SCREEN_WIDTH_PIXELS, SCREEN_HEIGHT_PIXELS, M_PER_PIXEL
 from src.mylogger import mylogger
 logger = mylogger(__name__)
-
-
+from src.globals import SCREEN_WIDTH_PIXELS, SCREEN_HEIGHT_PIXELS, M_PER_PIXEL
 
 class CarState:
     """

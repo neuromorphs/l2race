@@ -1,3 +1,4 @@
+# customized logger with color output
 import logging
 
 def mylogger(name):

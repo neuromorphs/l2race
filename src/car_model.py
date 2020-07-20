@@ -1,38 +1,32 @@
+# the actual model of car, run on server
+# TODO move to separate repo to hide from participants
 import logging
 from math import sin, radians, degrees, cos, copysign
-
-from pygame import Vector2
-
-
-from accelerationConstraints import accelerationConstraints
-from car_input import car_input
-from car_state import CarState
-from globals import *
-from src.mylogger import mylogger
-# TODO move to separate repo to hide from participants
-from steeringConstraints import steeringConstraints
-from track import Track
-import numpy as np
 from scipy.integrate import solve_ivp, odeint
+
+from src.car_input import car_input
+from src.car_state import CarState
+from src.globals import *
+from src.mylogger import mylogger
+from src.track import Track
 
 logger = mylogger(__name__)
 logger.setLevel(logging.DEBUG)
 
 # import sys
 # sys.path.append('../commonroad-vehicle-models/Python')
-# or else put commonroad-vehicle-models somewhere, make symlink to the folder within l2race,
-# then add this link as a pycharm src folder
-# import parameters, these are functions that must be called with (); see examples below
-from parameters_vehicle1 import parameters_vehicle1 # Ford Escort
-from parameters_vehicle2 import parameters_vehicle2 # BMW 320i
-from parameters_vehicle3 import parameters_vehicle3 # VW Vanagon
-from parameters_drifter import parameters_drifter
-from init_KS import init_KS
-from init_ST import init_ST
-from init_MB import init_MB
-from vehicleDynamics_KS import vehicleDynamics_KS # kinematic single track, no slip
-from vehicleDynamics_ST import vehicleDynamics_ST # single track bicycle with slip
-from vehicleDynamics_MB import vehicleDynamics_MB # fancy multibody model
+# either copy/clone https://gitlab.lrz.de/tum-cps/commonroad-vehicle-models/-/tree/master/Python to commonroad
+# or make symlink to folder named commonroad within l2rac
+from commonroad.parameters_vehicle1 import parameters_vehicle1 # Ford Escort
+from commonroad.parameters_vehicle2 import parameters_vehicle2 # BMW 320i
+from commonroad.parameters_vehicle3 import parameters_vehicle3 # VW Vanagon
+from .parameters_drifter import parameters_drifter
+from commonroad.init_KS import init_KS
+from commonroad.init_ST import init_ST
+from commonroad.init_MB import init_MB
+from commonroad.vehicleDynamics_KS import vehicleDynamics_KS # kinematic single track, no slip
+from commonroad.vehicleDynamics_ST import vehicleDynamics_ST # single track bicycle with slip
+from commonroad.vehicleDynamics_MB import vehicleDynamics_MB # fancy multibody model
 from timeit import default_timer as timer
 LOGGING_INTERVAL_CYCLES=20 # log output only this often
 

@@ -1,8 +1,7 @@
 FROM python:3.7
-ADD server.py /
-ADD src/ /
-ADD media/ /
-ADD commonroad-vehicle-models/ /
-ADD requirements.txt /
+WORKDIR /app
+COPY requirements.txt /app/
 RUN pip install -r requirements.txt
-CMD [ "python", "./server.py" ]
+COPY . /app
+EXPOSE 50000
+CMD [ "python", "./server.py", "--ignore-gooey" ]
