@@ -24,6 +24,7 @@ from src.track import Track
 from src.car import Car
 from src.args import client_args
 from src.mylogger import mylogger
+from src.car_controller import car_controller
 
 logger=mylogger(__name__)
 
@@ -64,7 +65,7 @@ class Game:
         self.track=Track()
         self.car = None # will make it later after we get info from server about car
         try:
-            self.input=Joystick()
+            self.input = Joystick()
         except:
             self.input=Keyboard()
         # self.track=Track() # TODO for now just use default track # (Marcin) I think this line is redundant here

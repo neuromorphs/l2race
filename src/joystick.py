@@ -10,7 +10,7 @@ from src.car_command import car_command
 from src.mylogger import mylogger
 
 import platform
-from src.globals import WIRELESS, USB
+from src.globals import WIRELESS, JOY_NUMBER
 
 logger = mylogger(__name__)
 
@@ -36,7 +36,7 @@ class Joystick:
 
         self._rev_was_pressed=False # to go to reverse mode or toggle out of it
 
-        self.wireless = USB
+        self.wireless = WIRELESS
 
         pygame.init()
         joystick.init()
@@ -49,7 +49,7 @@ class Joystick:
             logger.info('joystick found with ' + str(self.numAxes) + ' axes and ' + str(self.numButtons) + ' buttons')
         else:
             if platform.system() == 'Linux':
-                self.joy = joystick.Joystick(3)
+                self.joy = joystick.Joystick(4 - JOY_NUMBER)
                 self.joy.init()
                 self.numAxes = self.joy.get_numaxes()
                 self.numButtons = self.joy.get_numbuttons()
