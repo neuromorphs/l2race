@@ -26,12 +26,10 @@ FPS=30 # frames per second for simulation and animation
 CHECK_FOR_JOYSTICK_INTERVAL = 100 # check for missing joystick every this many cycles
 GAME_FONT_NAME='Consolas'
 GAME_FONT_SIZE=16
+# Joystick connectivity
+XBOX_ONE_BLUETOOTH_JOYSTICK = True # set False for older xbox controller, true for xbox one
+JOY_NUMBER = 2 # todo what is this parameter?
 
 #server
-DO_NOT_RESET_CAR_WHEN_IT_GOES_OFF_TRACK=True
-
 DO_NOT_RESET_CAR_WHEN_IT_GOES_OFF_TRACK = True
 
-# Joystick connectivity
-WIRELESS = False
-JOY_NUMBER = 2

@@ -10,7 +10,7 @@ from src.car_command import car_command
 from src.my_logger import my_logger
 
 import platform
-from src.globals import WIRELESS, JOY_NUMBER
+from src.globals import XBOX_ONE_BLUETOOTH_JOYSTICK, JOY_NUMBER
 
 logger = my_logger(__name__)
 
@@ -36,7 +36,7 @@ class my_joystick:
 
         self._rev_was_pressed=False # to go to reverse mode or toggle out of it
 
-        self.wireless = WIRELESS
+        self.wireless = XBOX_ONE_BLUETOOTH_JOYSTICK
 
         pygame.init()
         joystick.init()

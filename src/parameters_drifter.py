@@ -30,7 +30,7 @@ def parameters_drifter():
     p.m = unitConversion.lb_sec2_ft_IN_kg(101.3367)  #vehicle mass [kg]  MASS
     p.m_s = unitConversion.lb_sec2_ft_IN_kg(90.21635)  #sprung mass [kg]  SMASS
     p.m_uf = unitConversion.lb_sec2_ft_IN_kg(5.56015)  #unsprung mass front [kg]  UMASSF
-    p.m_ur = unitConversion.lb_sec2_ft_IN_kg(5.56015)  #unsprung mass rear [kg]  UMASSR
+    p.m_ur = unitConversion.lb_sec2_ft_IN_kg(1.56015)  #unsprung mass rear [kg]  UMASSR
 
     #axes distances
     p.a = unitConversion.ft_IN_m(3.775563)  #distance from spring mass center of gravity to front axle [m]  LENA
