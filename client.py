@@ -140,6 +140,10 @@ class Game:
                     logger.info('quit recieved, ending main loop')
                     self.exit=True
 
+                if command.reset:
+                    # car state reset handled on server side, here just put in forward gear
+                    self.input.car_input.reverse=False
+
                 # send control to server
                 data=command # todo add general command structure to msg
                 p=pickle.dumps(data)

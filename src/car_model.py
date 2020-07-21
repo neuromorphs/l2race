@@ -93,8 +93,8 @@ class CarModel:
         self.car_state.width=self.parameters().w
         self.car_state.length=self.parameters().l
         # set car accel and braking based on car type (not in parameters from commonroad-vehicle-models)
-        self.accel_max=G/2
-        self.brake_max=G/2
+        self.accel_max=self.zeroTo60mpsTimeToAccelG(4) * G # 5 second 0-60 mph, very quick car is default
+        self.brake_max=.9*G
         if self.parameters==parameters_vehicle1:
             self.accel_max= self.zeroTo60mpsTimeToAccelG(10.6) * G #1992 ford escort https://www.automobile-catalog.com/car/1992/879800/ford_escort_gt_automatic.html
             self.brake_max=.9*G

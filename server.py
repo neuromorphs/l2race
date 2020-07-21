@@ -50,7 +50,7 @@ class ServerCarThread(threading.Thread):
         logger.info('starting control/state loop (waiting for initial client control')
         lastT=timer()
         while True:
-            data,clientAddr = clientSock.recvfrom(4096) # get control input
+            data,clientAddr = clientSock.recvfrom(1024) # get control input
             command = pickle.loads(data)
             if command.quit:
                 logger.info('quit recieved from {}, ending control loop'.format(self.clientAddr))
@@ -65,7 +65,7 @@ class ServerCarThread(threading.Thread):
             # self.car.car_state.update(self.car_model) # update user observed car state from model
             # logger.info('sending car_state={}'.format(car.car_state))
             data=(dtSec, carThread.car.car_state) # send (dt,car_state) to client # todo instrument to see how big is data in bytes
-            p=pickle.dumps(data) # about 750 bytes
+            p=pickle.dumps(data) # about 840 bytes
             clientSock.sendto(p,clientAddr)
 
         logger.info('closing client socket')

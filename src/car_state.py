@@ -44,6 +44,9 @@ class car_state:
 
         self.server_msg=None # message from server to be displayed to driver
 
+    def reset(self):
+        pass
+
     def __str__(self):
         s='{}\npos=({:4.1f},{:4.1f})m vel=({:5.1f},{:5.1f})m/s, speed={:6.2f}m/s\nsteering_angle={:4.1f}deg body_angle={:4.1f}deg\nyaw_rate={:4.1f}deg/s drift_angle={:4.1f}'\
             .format(str(self.command),
@@ -57,5 +60,6 @@ class car_state:
                     self.yaw_rate_deg_per_sec,
                     self.drift_angle_deg)
         return s
+
 
 

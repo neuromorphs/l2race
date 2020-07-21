@@ -66,6 +66,7 @@ class car:
 
     def reset(self):
         """ reset car to starting position"""
+        self.car_state.reset()
         x=0
         y=0
         if self.track:

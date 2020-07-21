@@ -66,9 +66,9 @@ def vehicleDynamics_ST(x,uInit,p):
     u.append(accelerationConstraints(x[3],uInit[1],p.longitudinal)) # different name uInit/u due to side effects of u
 
     # switch to kinematic model for small velocities
-    if abs(x[3]) < 0.1:
+    if x[3]<0 or abs(x[3]) < 1: # tobi added for reverse gear and increased to 1m/s to reduce numerical instability at low speed by /speed - hint from matthias
         #wheelbase
-        lwb = p.a + p.b; 
+        lwb = p.a + p.b
         
         #system dynamics
         x_ks = [x[0],  x[1],  x[2],  x[3],  x[4]]

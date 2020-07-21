@@ -2,7 +2,7 @@ from .steeringConstraints import steeringConstraints
 from .accelerationConstraints import accelerationConstraints
 from .vehicleDynamics_KS import vehicleDynamics_KS
 
-import commonroad.tireModel
+from . import tireModel
 import math
 
 def vehicleDynamics_MB(x,uInit,p):
