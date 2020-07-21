@@ -4,6 +4,7 @@
       <settings>
         <option name="imageTag" value="" />
         <option name="buildCliOptions" value="" />
+        <option name="buildOnly" value="true" />
         <option name="command" value="" />
         <option name="containerName" value="" />
         <option name="entrypoint" value="" />
@@ -16,6 +17,7 @@
             </DockerPortBindingImpl>
           </list>
         </option>
+        <option name="publishAllPorts" value="true" />
         <option name="commandLineOptions" value="" />
         <option name="sourceFilePath" value="Dockerfile" />
       </settings>

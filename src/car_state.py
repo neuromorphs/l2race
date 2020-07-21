@@ -1,12 +1,12 @@
 # the observed state of car as seen by drivers
 from pygame.math import Vector2
 
-from car_command import car_command
-from src.mylogger import mylogger
-logger = mylogger(__name__)
+from src.car_command import car_command
+from src.my_logger import my_logger
+logger = my_logger(__name__)
 from src.globals import SCREEN_WIDTH_PIXELS, SCREEN_HEIGHT_PIXELS, M_PER_PIXEL
 
-class CarState:
+class car_state:
     """
     Complete state of car. Updated by hidden model based on control input.
 

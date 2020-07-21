@@ -2,8 +2,8 @@
 import pygame
 
 from src.car_command import car_command
-from src.mylogger import mylogger
-logger = mylogger(__name__)
+from src.my_logger import my_logger
+logger = my_logger(__name__)
 
 def printhelp():
     print('Keyboard commands:\n'
@@ -11,7 +11,7 @@ def printhelp():
           'r resets car\n'
           'ESC quits\n'
           'h|? shows this help')
-class Keyboard:
+class my_keyboard:
 
     def __init__(self):
         pygame.init()

@@ -1,7 +1,7 @@
 #https://docs.docker.com/compose/compose-file/
 version: '3.8'
 services:
-    server:
+    l2race-server:
         build: .
         ports:
             - "20000-63000/udp"

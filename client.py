@@ -18,15 +18,14 @@ import socket
 import time
 import pygame
 from src.globals import *
-from src.joystick import Joystick
-from src.keyboard import Keyboard
+from src.my_joystick import my_joystick
+from src.my_keyboard import my_keyboard
 from src.track import Track
-from src.car import Car
-from src.args import client_args
-from src.mylogger import mylogger
-from src.car_controller import car_controller
+from src.car import car
+from src.my_args import client_args
+from src.my_logger import my_logger
 
-logger=mylogger(__name__)
+logger=my_logger(__name__)
 
 # may only apply to windows
 try:
@@ -65,9 +64,9 @@ class Game:
         self.track=Track()
         self.car = None # will make it later after we get info from server about car
         try:
-            self.input = Joystick()
+            self.input=my_joystick()
         except:
-            self.input=Keyboard()
+            self.input=my_keyboard()
         # self.track=Track() # TODO for now just use default track # (Marcin) I think this line is redundant here
 
     def render_multi_line(self, text, x, y): # todo clean up
@@ -103,7 +102,7 @@ class Game:
             try:
                 data,gameSockAddr=serverSock.recvfrom(4096) # todo add timeout for flaky connection
                 gotServer=True
-                self.car = Car(track=self.track)
+                self.car = car(track=self.track)
                 self.car.car_state=pickle.loads(data) # server sends initial state of car
                 self.car.loadAndScaleCarImage()
                 logger.info('received car server response and initial car state; will use {} for communicating with l2race model server'.format(gameSockAddr))
@@ -121,9 +120,9 @@ class Game:
             logger.info('starting main loop')
             while not self.exit:
                 iterationCounter+=1
-                if iterationCounter%CHECK_FOR_JOYSTICK_INTERVAL==0 and not isinstance(self.input,Joystick):
+                if iterationCounter%CHECK_FOR_JOYSTICK_INTERVAL==0 and not isinstance(self.input, my_joystick):
                     try:
-                        self.input = Joystick() # check for joystick that might get turned on during play
+                        self.input = my_joystick() # check for joystick that might get turned on during play
                     except:
                         pass
 

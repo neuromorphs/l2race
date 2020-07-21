@@ -4,14 +4,14 @@ import threading
 import argcomplete
 from timeit import default_timer as timer
 
-from src.args import server_args
+from src.my_args import server_args
 from src.car_model import CarModel
-from src.car import Car
+from src.car import car
 from src.globals import *
 from src.track import Track
 # may only apply to windows
-from src.mylogger import mylogger
-logger=mylogger(__name__)
+from src.my_logger import my_logger
+logger=my_logger(__name__)
 try:
     from scripts.regsetup import description
     from gooey import Gooey  # pip install Gooey
@@ -36,7 +36,7 @@ class ServerCarThread(threading.Thread):
         threading.Thread.__init__(self)
         self.clientAddr=addr
         self.track=track
-        self.car = Car(track=track)
+        self.car = car(track=track)
         self.car_model=CarModel(track=track)
 
     def run(self):

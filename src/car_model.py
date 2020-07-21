@@ -5,12 +5,12 @@ from math import sin, radians, degrees, cos, copysign
 from scipy.integrate import solve_ivp, odeint
 
 from src.car_command import car_command
-from src.car_state import CarState
+from src.car_state import car_state
 from src.globals import *
-from src.mylogger import mylogger
+from src.my_logger import my_logger
 from src.track import Track
 
-logger = mylogger(__name__)
+logger = my_logger(__name__)
 logger.setLevel(logging.DEBUG)
 
 # import sys
@@ -70,7 +70,7 @@ class CarModel:
     """
     def __init__(self, track:Track=None):
         # self.model=vehicleDynamics_ST()
-        self.car_state=CarState()
+        self.car_state=car_state()
         self.track=track
         # change MODEL_TYPE to select vehicle model type
         self.model_type = 'ST' # 'KS' 'ST' 'MB' # model type KS: kinematic single track, ST: single track (with slip), MB: fancy multibody

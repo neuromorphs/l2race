@@ -7,12 +7,12 @@ import pygame # conda install -c cogsci pygame; maybe because it only is supplie
 from pygame import joystick
 
 from src.car_command import car_command
-from src.mylogger import mylogger
+from src.my_logger import my_logger
 
 import platform
 from src.globals import WIRELESS, JOY_NUMBER
 
-logger = mylogger(__name__)
+logger = my_logger(__name__)
 
 def printhelp():
     print('Joystick commands:\n'
@@ -24,7 +24,7 @@ def printhelp():
           )
 
 
-class Joystick:
+class my_joystick:
 
     def __init__(self):
         self.joy=None
@@ -101,7 +101,7 @@ class Joystick:
 
 
 if __name__ == '__main__':
-    joy=Joystick()
+    joy=my_joystick()
     it=0
     while True:
         # joy.read()
