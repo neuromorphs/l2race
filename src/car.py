@@ -1,5 +1,6 @@
 # class for Car, holds other important stuff
 import os
+from math import radians, cos, sin
 
 import pygame
 from pygame.math import Vector2
@@ -27,6 +28,19 @@ class Car:
         rotated = pygame.transform.rotate(self.image, -self.car_state.body_angle_deg)
         rect = rotated.get_rect()
         screen.blit(rotated, ((self.car_state.position_m/M_PER_PIXEL) - (int(rect.width / 2), int(rect.height / 2))))
+        # draw throttle command
+        len=self.car_state.command.throttle*self.car_state.length*2
+        body_rad=radians(self.car_state.body_angle_deg)
+        tv=(len*cos(body_rad),len*sin(body_rad))
+        pygame.draw.line(screen, [255,50,50],self.car_state.position_m/M_PER_PIXEL, (self.car_state.position_m+tv)/M_PER_PIXEL,1)
+        # draw steering command
+        str_len=self.car_state.length/2
+        str_orig=self.car_state.position_m+(cos(body_rad)*str_len,sin(body_rad)*str_len)
+        str_rad=radians(self.car_state.body_angle_deg+self.car_state.steering_angle_deg)
+        str_vec=(str_len*cos(str_rad),str_len*sin(str_rad))
+        str_pos1=str_orig-str_vec
+        str_pos2=str_orig+str_vec
+        pygame.draw.line(screen, [50,250,250],str_pos1/M_PER_PIXEL, str_pos2/M_PER_PIXEL,2)
 
     def locate(self):
         """ locates car on track and updates in the car_state"""

@@ -1,5 +1,7 @@
 # the observed state of car as seen by drivers
 from pygame.math import Vector2
+
+from car_command import car_command
 from src.mylogger import mylogger
 logger = mylogger(__name__)
 from src.globals import SCREEN_WIDTH_PIXELS, SCREEN_HEIGHT_PIXELS, M_PER_PIXEL
@@ -26,9 +28,7 @@ class CarState:
         self.width = width_m # width in meters
 
         # current commanded control input
-        self.throttle = 0.0
-        self.steering = 0.0
-        self.brake = 0.0
+        self.command=car_command()
 
         # track
         self.track_file = None
@@ -45,8 +45,9 @@ class CarState:
         self.server_msg=None # message from server to be displayed to driver
 
     def __str__(self):
-        s='pos=({:4.1f},{:4.1f})m vel=({:5.1f},{:5.1f})m/s, speed={:6.2f}m/s\nsteering_angle={:4.1f}deg body_angle={:4.1f}deg\nyaw_rate={:4.1f}deg/s drift_angle={:4.1f}'\
-            .format(self.position_m.x,
+        s='{}\npos=({:4.1f},{:4.1f})m vel=({:5.1f},{:5.1f})m/s, speed={:6.2f}m/s\nsteering_angle={:4.1f}deg body_angle={:4.1f}deg\nyaw_rate={:4.1f}deg/s drift_angle={:4.1f}'\
+            .format(str(self.command),
+                    self.position_m.x,
                     self.position_m.y,
                     self.velocity_m_per_sec.x,
                     self.velocity_m_per_sec.y,

@@ -51,16 +51,16 @@ class ServerCarThread(threading.Thread):
         lastT=timer()
         while True:
             data,clientAddr = clientSock.recvfrom(4096) # get control input
-            car_input = pickle.loads(data)
-            if car_input.quit:
+            command = pickle.loads(data)
+            if command.quit:
                 logger.info('quit recieved from {}, ending control loop'.format(self.clientAddr))
                 break
-            if car_input.reset:
+            if command.reset:
                 logger.info('reset recieved from {}, resetting car'.format(self.clientAddr))
             now=timer()
             dtSec = now-lastT # compute local real timestep, done on server to prevent accelerated real time cheating
             lastT=now
-            self.car_model.update(dtSec=dtSec, input=car_input)
+            self.car_model.update(dtSec=dtSec, command=command)
             self.car.car_state=self.car_model.car_state
             # self.car.car_state.update(self.car_model) # update user observed car state from model
             # logger.info('sending car_state={}'.format(car.car_state))

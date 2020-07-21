@@ -4,7 +4,7 @@ import logging
 from math import sin, radians, degrees, cos, copysign
 from scipy.integrate import solve_ivp, odeint
 
-from src.car_input import car_input
+from src.car_command import car_command
 from src.car_state import CarState
 from src.globals import *
 from src.mylogger import mylogger
@@ -122,20 +122,25 @@ class CarModel:
     def zeroTo60mpsTimeToAccelG(self,time):
         return (60*0.447)/time/G
 
-    def update(self, dtSec, input:car_input):
-        if input.reset:
+    def update(self, dtSec, command:car_command):
+        if command.reset:
             self.reset()
 
+        self.car_state.command=command
+
         # compute commanded longitudinal acceleration from throttle and brake input
-        if input.throttle>input.brake: # ignore brake
-            accel=(input.throttle)*self.accel_max # commanded acceleration from driver # TODO BS params, a_max=11.5m/s^2 is bigger than g
+        if command.throttle>command.brake: # ignore brake
+            accel= (command.throttle) * self.accel_max # commanded acceleration from driver # TODO BS params, a_max=11.5m/s^2 is bigger than g
         elif self.model_state[ISPEED]>0:
-            accel=(-input.brake)*self.brake_max
+            accel= (-command.brake) * self.brake_max
         else:
             accel=0
 
+        if command.reverse:
+            accel=-accel/4
+
         # go from driver input to commanded steering and acceleration
-        commandedSteeringRad = input.steering * self.parameters().steering.max  # commanded steering angle (not velocity of steering) from driver
+        commandedSteeringRad = command.steering * self.parameters().steering.max  # commanded steering angle (not velocity of steering) from driver
         steerVelRadPerSec=self.computeSteerVelocityRadPerSec(commandedSteeringRad)
 
         # u0 = steering angle velocity of front wheels
@@ -188,8 +193,7 @@ class CarModel:
 
         self.cycle_count+=1
 
-        current_surface = self.track.get_surface_type(self.car_state)
-        # print(current_surface)
+        current_surface = self.track.get_surface_type(car_state=self.car_state)
         if not DO_NOT_RESET_CAR_WHEN_IT_GOES_OFF_TRACK and current_surface == 0:
             logger.info("went off track, resetting car")
             self.reset()

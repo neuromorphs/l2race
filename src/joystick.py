@@ -6,7 +6,7 @@ buttons ABXY are first four buttons 0-3, then menu and window buttons are 4th an
 import pygame # conda install -c cogsci pygame; maybe because it only is supplied for earlier python, might need conda install -c evindunn pygame ; sudo apt-get install libsdl-ttf2.0-0
 from pygame import joystick
 
-from src.car_input import car_input
+from src.car_command import car_command
 from src.mylogger import mylogger
 
 import platform
@@ -28,7 +28,7 @@ class Joystick:
 
     def __init__(self):
         self.joy=None
-        self.car_input=car_input()
+        self.car_input=car_command()
         self.numAxes=None
         self.numButtons=None
         self.axes=None

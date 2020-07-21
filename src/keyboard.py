@@ -1,7 +1,7 @@
 # Driver control input from keyboard
 import pygame
 
-from src.car_input import car_input
+from src.car_command import car_command
 from src.mylogger import mylogger
 logger = mylogger(__name__)
 
@@ -15,7 +15,7 @@ class Keyboard:
 
     def __init__(self):
         pygame.init()
-        self.car_input = car_input()
+        self.car_input = car_command()
         printhelp()
 
     def read(self):

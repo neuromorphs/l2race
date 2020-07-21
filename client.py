@@ -80,8 +80,8 @@ class Game:
         iterationCounter=0
         serverSock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM) # UDP
         serverAddr=(SERVER_HOST, SERVER_PORT)
-        # serverSock.settimeout(SOCKET_TIMEOUT_SEC)
-        # serverSock.bind(('',0)) # bind to receive on any port from server - seems to cause 'ConnectionResetError: [WinError 10054] An existing connection was forcibly closed by the remote host'
+        serverSock.settimeout(SOCKET_TIMEOUT_SEC)
+        serverSock.bind(('',0)) # bind to receive on any port from server - seems to cause 'ConnectionResetError: [WinError 10054] An existing connection was forcibly closed by the remote host'
 
         logger.info('connecting to l2race model server at '+str(serverAddr))
 
@@ -91,8 +91,8 @@ class Game:
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:
                     self.exit = True # TODO clean up, seems redundant. what sets pygame.QUIT?
-            inp = self.input.read()
-            if inp.quit:
+            command = self.input.read()
+            if command.quit:
                 logger.info('startup aborted before connecting to server')
                 pygame.quit()
             cmd='newcar'
@@ -134,14 +134,14 @@ class Game:
                         self.exit = True
 
                 # User input
-                inp=self.input.read()
+                command=self.input.read()
                 # logger.info(inp)
-                if inp.quit:
+                if command.quit:
                     logger.info('quit recieved, ending main loop')
                     self.exit=True
 
                 # send control to server
-                data=inp # todo add general command structure to msg
+                data=command # todo add general command structure to msg
                 p=pickle.dumps(data)
                 serverSock.sendto(p,gameSockAddr)
 
@@ -162,6 +162,9 @@ class Game:
 
                 # Drawing
                 # self.screen.fill((10, 10, 10))
+                # self.track.get_nearest_waypoint_idx(car_state=self.car.car_state)
+                # self.track.get_current_angle_to_road(car_state=self.car.car_state)
+                # self.track.get_distance_to_nearest_segment(car_state=self.car.car_state)
                 self.track.draw(self.screen)
                 # print(self.car.car_state.position)
                 self.car.draw(self.screen)
