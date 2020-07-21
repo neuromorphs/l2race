@@ -9,6 +9,9 @@ from pygame import joystick
 from src.car_input import car_input
 from src.mylogger import mylogger
 
+import platform
+from src.globals import WIRELESS, USB
+
 logger = mylogger(__name__)
 
 def printhelp():
@@ -33,32 +36,53 @@ class Joystick:
 
         self._rev_was_pressed=False # to go to reverse mode or toggle out of it
 
+        self.wireless = USB
+
         pygame.init()
         joystick.init()
         count = joystick.get_count()
-        if  count == 1:
+        if count == 1:
             self.joy = joystick.Joystick(0)
             self.joy.init()
             self.numAxes = self.joy.get_numaxes()
             self.numButtons = self.joy.get_numbuttons()
             logger.info('joystick found with ' + str(self.numAxes) + ' axes and ' + str(self.numButtons) + ' buttons')
         else:
-            logger.warning('no or too many joystick(s) found; only keyboard control possible')
-            raise Exception('no joystick found')
+            if platform.system() == 'Linux':
+                self.joy = joystick.Joystick(3)
+                self.joy.init()
+                self.numAxes = self.joy.get_numaxes()
+                self.numButtons = self.joy.get_numbuttons()
+                logger.info('joystick found with ' + str(self.numAxes) + ' axes and ' + str(self.numButtons) + ' buttons')
+            else:
+                logger.warning('no or too many joystick(s) found; only keyboard control possible')
+                raise Exception('no joystick found')
         printhelp()
 
     def read(self):
         pygame.event.get() # must call get() to handle internal queue
 
-        self.car_input.steering = self.joy.get_axis(0) #self.axes[0], returns + for right push, which should make steering angle positive, i.e. CW
-        self.car_input.throttle = (1 + self.joy.get_axis(5)) / 2 # (1+self.axes[5])/2
-        self.car_input.brake = (1+self.joy.get_axis(2))/2 #(1+self.axes[2])/2
-        self.car_input.reset=self.joy.get_button(7) # menu button
-        self.car_input.quit=self.joy.get_button(6) # windows button
-        revPressed=self.joy.get_button(1) # B button
-        if revPressed and not self._rev_was_pressed: # if it was not pressed last time and is pressed now, toggle reverse
-            self.car_input.reverse=not self.car_input.reverse
-        self._rev_was_pressed=revPressed
+        if self.wireless:
+            self.car_input.steering = self.joy.get_axis(0) #self.axes[0], returns + for right push, which should make steering angle positive, i.e. CW
+            self.car_input.throttle = (1 + self.joy.get_axis(5)) / 2 # (1+self.axes[5])/2
+            self.car_input.brake = (1+self.joy.get_axis(2))/2 #(1+self.axes[2])/2
+            self.car_input.reset=self.joy.get_button(7) # menu button
+            self.car_input.quit=self.joy.get_button(6) # windows button
+            revPressed=self.joy.get_button(1) # B button
+            if revPressed and not self._rev_was_pressed: # if it was not pressed last time and is pressed now, toggle reverse
+                self.car_input.reverse=not self.car_input.reverse
+            self._rev_was_pressed=revPressed
+
+        else:
+            self.car_input.steering = self.joy.get_axis(0) #self.axes[0], returns + for right push, which should make steering angle positive, i.e. CW
+            self.car_input.throttle = (1 + self.joy.get_button(7)) / 2  # (1+self.axes[5])/2
+            self.car_input.brake = (1 + self.joy.get_button(6)) / 2  # (1+self.axes[2])/2
+            self.car_input.reset = self.joy.get_button(9)  # menu button
+            self.car_input.quit = self.joy.get_button(8)  # windows button
+            revPressed = self.joy.get_button(1)  # B button
+            if revPressed and not self._rev_was_pressed:  # if it was not pressed last time and is pressed now, toggle reverse
+                self.car_input.reverse = not self.car_input.reverse
+            self._rev_was_pressed = revPressed
 
         # print(self)
         return self.car_input

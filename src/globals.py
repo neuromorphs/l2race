@@ -29,3 +29,7 @@ GAME_FONT_SIZE=16
 
 #server
 DO_NOT_RESET_CAR_WHEN_IT_GOES_OFF_TRACK=True
+
+# Joystick connectivity
+WIRELESS = True
+USB = False
