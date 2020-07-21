@@ -136,12 +136,23 @@ if __name__ == '__main__':
 
 
 # Version of the track based on the extracting contour and loading png
-def get_position_on_map(car_state):
-    x = int(car_state.position_m.x / M_PER_PIXEL)
-    y = int(car_state.position_m.y / M_PER_PIXEL)
+def get_position_on_map(car_state=None, x=None, y=None):
+    if car_state is not None:
+        x_map = int(car_state.position_m.x / M_PER_PIXEL)
+        y_map = int(car_state.position_m.y / M_PER_PIXEL)
+    elif (x is not None) and (y is not None):
+        x_map = int(x / M_PER_PIXEL)
+        y_map = int(y / M_PER_PIXEL)
+    else:
+        print('To little data to calculate car_position. Return None.')
+        return None
 
-    # print('Position on map: ('+str(y)+','+str(x)+')')
-    return x, y
+    return x_map, y_map
+
+
+def closest_node(x, y, x_vector, y_vector):
+    dist_2 = (x_vector - x) ** 2 + (y_vector - y) ** 2
+    return np.argmin(dist_2)
 
 
 class Track:
@@ -149,18 +160,67 @@ class Track:
         self.track = pygame.image.load(media_folder_path + 'track.png')
         self.track_map = np.load(media_folder_path + 'track_map.npy')
         self.TrackInfo = np.load(media_folder_path + 'TrackInfo.npy', allow_pickle='TRUE').item()
+        self.waypoints_x = self.TrackInfo['waypoint_x']
+        self.waypoints_y = self.TrackInfo['waypoint_y']
+        self.waypoints_search_radius = 80
+        self.angle_next_segment_east = self.TrackInfo['AngleNextSegmentEast']
+        self.angle_next_waypoint = self.TrackInfo['AngleNextCheckpointEast']
 
     def draw(self, surface: pygame.surface):
         surface.fill((65, 105, 225))
         # surface.blit(self.track, (SCREEN_WIDTH//2 - car.car_state.position.x, SCREEN_HEIGHT//2 - car.car_state.position.y))
         surface.blit(self.track, (0, 0))
 
-    def get_surface_type(self, car_state):
-        x, y = get_position_on_map(car_state)
-        if x<0 or x>=self.track_map.shape[0] or y<0 or y>self.track_map.shape[1]: return 0
+    def get_surface_type(self, car_state=None, x=None, y=None):
+        x, y = get_position_on_map(car_state=car_state, x=x, y=y)
+        if x < 0 or x >= self.track_map.shape[1] or y < 0 or y > self.track_map.shape[0]:
+            return 0
         return self.track_map[y, x]
 
-    # def get_nearest_checkpoint_idx(self, car_state):
-    #     x, y = get_position_on_map(car_state)
-    #
-    #     # https://codereview.stackexchange.com/questions/28207/finding-the-closest-point-to-a-list-of-points
+    def get_nearest_waypoint_idx(self, car_state=None, x=None, y=None):
+        x_map, y_map = get_position_on_map(car_state=car_state, x=x, y=y)
+
+        # https://codereview.stackexchange.com/questions/28207/finding-the-closest-point-to-a-list-of-points
+        waypoints_idx_considered = np.where((self.waypoints_x > x_map - self.waypoints_search_radius) \
+                                                     & (self.waypoints_x < x_map + self.waypoints_search_radius) \
+                                                     & (self.waypoints_y > y_map - self.waypoints_search_radius) \
+                                                     & (self.waypoints_y < y_map + self.waypoints_search_radius))
+
+        waypoints_idx_considered = np.atleast_1d(np.array(waypoints_idx_considered).squeeze())
+
+        if len(waypoints_idx_considered) == 0:
+            print('Error! No closest waypoints found!')
+            return None
+
+        idx = closest_node(x=x_map,
+                           y=y_map,
+                           x_vector=self.waypoints_x[waypoints_idx_considered],
+                           y_vector=self.waypoints_y[waypoints_idx_considered])
+
+        closest_waypoint = waypoints_idx_considered[idx]
+
+        return closest_waypoint
+
+    def get_current_angle_to_road(self, car_state=None,
+                          angle_car=None,
+                          x=None,
+                          y=None,
+                          nearest_waypoint_idx=None):
+
+        x_map, y_map = get_position_on_map(car_state=car_state, x=x, y=y)
+
+        if nearest_waypoint_idx is None:
+            nearest_waypoint_idx = self.get_nearest_waypoint_idx(car_state=car_state, x=x_map, y=y_map)
+
+        if angle_car is None:
+            if car_state is not None:
+                angle_car = car_state.body_angle_deg
+            else:
+                print("Error! Angle for track.get_current_angle not provided")
+                return None
+
+        angle_car = angle_car-360.0*np.rint(angle_car/360.0)
+
+        angele_to_road = angle_car-self.angle_next_segment_east[nearest_waypoint_idx]
+
+        return angele_to_road

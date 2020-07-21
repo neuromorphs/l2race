@@ -198,7 +198,12 @@ def angle_between(v1, v2):
     """
     v1_u = unit_vector(v1)
     v2_u = unit_vector(v2)
-    return -np.rad2deg(np.arccos(np.clip(np.dot(v1_u, v2_u), -1.0, 1.0)))
+    angle = np.rad2deg(np.arccos(np.clip(np.dot(v1_u, v2_u), -1.0, 1.0)))
+    if v1_u[0]*v2_u[1] - v1_u[1]*v2_u[0] < 0:
+        angle = -angle
+    return angle
+    # return (angle_raw-360.0*np.rint(angle_raw/360.0))  # Shift range and reverse convention
+
 
 
 # Calculate angle to the next checkpoint
@@ -208,6 +213,7 @@ for i in range(len(x)):
     segment = np.array((dx[i], dy[i]))
     angle = angle_between(east, segment)
     angles.append(angle)
+    print(angle)
 angles = np.array(angles)
 
 # Short segment = segment between two consecutive checkpoints
@@ -221,8 +227,10 @@ for i in range(len(x)):
 
     segment_next = np.array((dx[i], dy[i]))
     angle = angle_between(segment_previous, segment_next)
+    print(angle)
     anglesRelative.append(angle)
 anglesRelative = np.array(anglesRelative)
+
 
 print('Max angle single segment')
 print(max(anglesRelative))
@@ -261,13 +269,13 @@ for i in range(len(x)):
     angles2.append(angle)
 angles2 = np.array(angles2)
 
-TrackInfo = {'Checkpoint_x': x,
-             'Checkpoint_y': y,
+TrackInfo = {'waypoint_x': x,
+             'waypoint_y': y,
              'DistNextCheckpoint': sLens,
              'DistTotal': CumSum,
-             'AngleNextCheckpointNorth': angles,
+             'AngleNextCheckpointEast': angles,
              'AngleNextCheckpointRelative': anglesRelative,
-             'AngleNextSegmentNorth': angles2}
+             'AngleNextSegmentEast': angles2}
 
 # Saving all relevant data
 np.save('../media/track_map.npy', im)
@@ -275,18 +283,18 @@ np.save('../media/TrackInfo.npy', TrackInfo)
 
 # Summary
 # We give to the user these track-only dependant information:
-# (1) array with: checkpoints, middle line, boundary of the road and sand (left right), road, sand
-# (2) ordered list of checkpoints, their x,y coordinates (apporx. every 20 pixels) with x[0] being starting/end position
-# (3) list of distances from the current checkpoint to the next checkpoint
-# (4) Cumulative sum - distances from start to the current checkpoint
-# angle of the direction to the next checkpoint
+# (1) array with: waypoints, middle line, boundary of the road and sand (left right), road, sand
+# (2) ordered list of waypoints, their x,y coordinates (apporx. every 20 pixels) with x[0] being starting/end position
+# (3) list of distances from the current waypoint to the next waypoint
+# (4) Cumulative sum - distances from start to the current waypoint
+# angle of the direction to the next waypoint
 #   - (5) related to north
 #   - (6) related to previous segment
 # Def: nearest segment
 #         is for us a segment connecting the next checkpoint before and the next checkpoint after the current checkpoint
 # (7) The angle of the nearest segments with respect to north
 
-# As the bases for competition serves the (1) and car_state of the car
+# As the basis for competition serves the (1) and car_state of the car
 # You are allowed to use (2)-(6) and other dynamically updated information about the car with relation to the track
 # (accessible through the Track class functions)
 # But you are welcome to calculate another metrics as well.

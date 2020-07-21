@@ -188,8 +188,7 @@ class CarModel:
 
         self.cycle_count+=1
 
-        current_surface = self.track.get_surface_type(self.car_state)
-        # print(current_surface)
+        current_surface = self.track.get_surface_type(car_state=self.car_state)
         if not DO_NOT_RESET_CAR_WHEN_IT_GOES_OFF_TRACK and current_surface == 0:
             logger.info("went off track, resetting car")
             self.reset()
