@@ -27,6 +27,8 @@ class Car:
         rotated = pygame.transform.rotate(self.image, -self.car_state.body_angle_deg)
         rect = rotated.get_rect()
         screen.blit(rotated, ((self.car_state.position_m/M_PER_PIXEL) - (int(rect.width / 2), int(rect.height / 2))))
+        # todo drawing steering and throttle commands
+        
 
     def locate(self):
         """ locates car on track and updates in the car_state"""

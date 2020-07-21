@@ -134,6 +134,9 @@ class CarModel:
         else:
             accel=0
 
+        if input.reverse:
+            accel=-accel/4
+
         # go from driver input to commanded steering and acceleration
         commandedSteeringRad = input.steering * self.parameters().steering.max  # commanded steering angle (not velocity of steering) from driver
         steerVelRadPerSec=self.computeSteerVelocityRadPerSec(commandedSteeringRad)

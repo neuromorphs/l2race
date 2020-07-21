@@ -164,6 +164,7 @@ class Game:
                 # self.screen.fill((10, 10, 10))
                 # self.track.get_nearest_waypoint_idx(car_state=self.car.car_state)
                 self.track.get_current_angle_to_road(car_state=self.car.car_state)
+                self.track.get_distance_to_nearest_segment(car_state=self.car.car_state)
                 self.track.draw(self.screen)
                 # print(self.car.car_state.position)
                 self.car.draw(self.screen)

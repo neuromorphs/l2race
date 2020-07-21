@@ -1,6 +1,7 @@
 import logging
 
 import pygame
+import logging
 # import svglib
 # from svglib.svglib import svg2rlg
 import cmath
@@ -144,7 +145,7 @@ def get_position_on_map(car_state=None, x=None, y=None):
         x_map = int(x / M_PER_PIXEL)
         y_map = int(y / M_PER_PIXEL)
     else:
-        print('To little data to calculate car_position. Return None.')
+        logger.info('To little data to calculate car_position. Return None.')
         return None
 
     return x_map, y_map
@@ -182,14 +183,14 @@ class Track:
 
         # https://codereview.stackexchange.com/questions/28207/finding-the-closest-point-to-a-list-of-points
         waypoints_idx_considered = np.where((self.waypoints_x > x_map - self.waypoints_search_radius) \
-                                                     & (self.waypoints_x < x_map + self.waypoints_search_radius) \
-                                                     & (self.waypoints_y > y_map - self.waypoints_search_radius) \
-                                                     & (self.waypoints_y < y_map + self.waypoints_search_radius))
+                                            & (self.waypoints_x < x_map + self.waypoints_search_radius) \
+                                            & (self.waypoints_y > y_map - self.waypoints_search_radius) \
+                                            & (self.waypoints_y < y_map + self.waypoints_search_radius))
 
         waypoints_idx_considered = np.atleast_1d(np.array(waypoints_idx_considered).squeeze())
 
         if len(waypoints_idx_considered) == 0:
-            print('Error! No closest waypoints found!')
+            logger.warning('Error! No closest waypoints found!')
             return None
 
         idx = closest_node(x=x_map,
@@ -202,10 +203,10 @@ class Track:
         return closest_waypoint
 
     def get_current_angle_to_road(self, car_state=None,
-                          angle_car=None,
-                          x=None,
-                          y=None,
-                          nearest_waypoint_idx=None):
+                                  angle_car=None,
+                                  x=None,
+                                  y=None,
+                                  nearest_waypoint_idx=None):
 
         x_map, y_map = get_position_on_map(car_state=car_state, x=x, y=y)
 
@@ -216,11 +217,47 @@ class Track:
             if car_state is not None:
                 angle_car = car_state.body_angle_deg
             else:
-                print("Error! Angle for track.get_current_angle not provided")
+                logger.warning("Error! Car angle for track.get_current_angle not provided")
                 return None
 
-        angle_car = angle_car-360.0*np.rint(angle_car/360.0)
+        angle_car = angle_car - 360.0 * np.rint(angle_car / 360.0)
 
-        angele_to_road = angle_car-self.angle_next_segment_east[nearest_waypoint_idx]
+        angele_to_road = angle_car - self.angle_next_segment_east[nearest_waypoint_idx]
 
+        # logger.info(angele_to_road)
         return angele_to_road
+
+    def get_distance_to_nearest_segment(self,
+                                        car_state=None,
+                                        x_car=None,
+                                        y_car=None,
+                                        nearest_waypoint_idx=None):
+        x_map, y_map = get_position_on_map(car_state=car_state, x=x_car, y=y_car)
+
+        if nearest_waypoint_idx is None:
+            nearest_waypoint_idx = self.get_nearest_waypoint_idx(car_state=car_state, x=x_map, y=y_map)
+
+        p_car = np.array((x_map, y_map))
+        if nearest_waypoint_idx == 0:
+            p1 = np.array((self.waypoints_x[-1], self.waypoints_y[-1]))
+        else:
+            p1 = np.array((self.waypoints_x[nearest_waypoint_idx - 1], self.waypoints_y[nearest_waypoint_idx - 1]))
+
+        if nearest_waypoint_idx == len(self.waypoints_x) - 1:
+            p2 = np.array((self.waypoints_x[0], self.waypoints_y[0]))
+        else:
+            p2 = np.array((self.waypoints_x[nearest_waypoint_idx + 1], self.waypoints_y[nearest_waypoint_idx + 1]))
+
+        d = np.linalg.norm(np.cross(p2 - p1, p1 - p_car)) / np.linalg.norm(p2 - p1)
+
+        d = d * M_PER_PIXEL
+
+        v1 = (p_car-p1)/np.linalg.norm(p_car-p1)
+        v2 = (p2-p1)/np.linalg.norm(p2-p1)
+
+        if v1[0] * v2[1] - v1[1] * v2[0] > 0:
+            d = -d
+
+        # logger.info(d)
+
+        return d

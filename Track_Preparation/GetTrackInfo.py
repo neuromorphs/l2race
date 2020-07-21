@@ -291,7 +291,7 @@ np.save('../media/TrackInfo.npy', TrackInfo)
 #   - (5) related to north
 #   - (6) related to previous segment
 # Def: nearest segment
-#         is for us a segment connecting the next checkpoint before and the next checkpoint after the current checkpoint
+#         is for us a segment connecting the next waypoint before and the next waypoint after the nearest waypoint
 # (7) The angle of the nearest segments with respect to north
 
 # As the basis for competition serves the (1) and car_state of the car
