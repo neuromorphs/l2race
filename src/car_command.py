@@ -1,6 +1,6 @@
 # structure to hold driver control input
-class car_input:
-    """ Car control input from software agent or human driver
+class car_command:
+    """ Car control commands from software agent or human driver
     """
 
     def __init__(self):
@@ -12,4 +12,4 @@ class car_input:
         self.quit=False # quit input from controller, mapped to ESC for keyboard and menu button for xbox controller
 
     def __str__(self):
-        return 'steering={:.2f}, throttle={:.2f}, brake={:.2f}'.format(self.steering, self.throttle, self.brake)
+        return 'steering={:.2f}, throttle={:.2f}, brake={:.2f} reverse={}'.format(self.steering, self.throttle, self.brake,self.reverse)
