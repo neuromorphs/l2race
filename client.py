@@ -196,5 +196,6 @@ if __name__ == '__main__':
     SERVER_HOST = args.host
     SERVER_PORT = args.port
     FPS = args.fps
+    JOYSTICK_NUMBER=args.joystick
     game = Game()
     game.run()

@@ -10,7 +10,8 @@ from src.car_command import car_command
 from src.my_logger import my_logger
 
 import platform
-from src.globals import XBOX_ONE_BLUETOOTH_JOYSTICK, JOY_NUMBER
+from src.globals import JOYSTICK_NUMBER
+
 
 logger = my_logger(__name__)
 
@@ -25,64 +26,58 @@ def printhelp():
 
 
 class my_joystick:
+    XBOX_ONE_BLUETOOTH_JOYSTICK = 'Xbox One S Controller'
+    XBOX_WIRED = 'TODO' # todo find name of xbox wired controller
 
     def __init__(self):
-        self.joy=None
+        self.joy:joystick.Joystick=None
         self.car_input=car_command()
         self.numAxes=None
         self.numButtons=None
         self.axes=None
         self.buttons=None
+        self.name=None
 
         self._rev_was_pressed=False # to go to reverse mode or toggle out of it
-
-        self.wireless = XBOX_ONE_BLUETOOTH_JOYSTICK
 
         pygame.init()
         joystick.init()
         count = joystick.get_count()
-        if count == 1:
-            self.joy = joystick.Joystick(0)
-            self.joy.init()
-            self.numAxes = self.joy.get_numaxes()
-            self.numButtons = self.joy.get_numbuttons()
-            logger.info('joystick found with ' + str(self.numAxes) + ' axes and ' + str(self.numButtons) + ' buttons')
-        else:
-            if platform.system() == 'Linux':
-                self.joy = joystick.Joystick(4 - JOY_NUMBER)
-                self.joy.init()
-                self.numAxes = self.joy.get_numaxes()
-                self.numButtons = self.joy.get_numbuttons()
-                logger.info('joystick found with ' + str(self.numAxes) + ' axes and ' + str(self.numButtons) + ' buttons')
-            else:
-                logger.warning('no or too many joystick(s) found; only keyboard control possible')
-                raise Exception('no joystick found')
+        if count<1:
+            logger.warning('no joystick(s) found; only keyboard control possible')
+            raise Exception('no joystick found')
+
+        self.joy = joystick.Joystick(JOYSTICK_NUMBER)
+        self.joy.init()
+        self.numAxes = self.joy.get_numaxes()
+        self.numButtons = self.joy.get_numbuttons()
+        self.name=self.joy.get_name()
+        if not self.name==my_joystick.XBOX_ONE_BLUETOOTH_JOYSTICK and not self.name==my_joystick.XBOX_WIRED:
+            logger.warning('unknown joystick type {} found: add code to correctly map inputs by running my_joystick as main'.format(self.name))
+            raise Exception('unknown joystick type {} found'.format(self.name))
+        logger.info('joystick named "{}" found with {} axes and {} buttons'.format(self.name, self.numAxes, self.numButtons))
         printhelp()
 
     def read(self):
         pygame.event.get() # must call get() to handle internal queue
 
-        if self.wireless:
+        revPressed = self.joy.get_button(1)  # B button
+        if revPressed and not self._rev_was_pressed:  # if it was not pressed last time and is pressed now, toggle reverse
+            self.car_input.reverse = not self.car_input.reverse
+        self._rev_was_pressed = revPressed
+        if self.name==my_joystick.XBOX_ONE_BLUETOOTH_JOYSTICK:
             self.car_input.steering = self.joy.get_axis(0) #self.axes[0], returns + for right push, which should make steering angle positive, i.e. CW
             self.car_input.throttle = (1 + self.joy.get_axis(5)) / 2 # (1+self.axes[5])/2
             self.car_input.brake = (1+self.joy.get_axis(2))/2 #(1+self.axes[2])/2
             self.car_input.reset=self.joy.get_button(7) # menu button
             self.car_input.quit=self.joy.get_button(6) # windows button
-            revPressed=self.joy.get_button(1) # B button
-            if revPressed and not self._rev_was_pressed: # if it was not pressed last time and is pressed now, toggle reverse
-                self.car_input.reverse=not self.car_input.reverse
-            self._rev_was_pressed=revPressed
 
-        else:
+        elif self.name==my_joystick.XBOX_WIRED:
             self.car_input.steering = self.joy.get_axis(0) #self.axes[0], returns + for right push, which should make steering angle positive, i.e. CW
             self.car_input.throttle = (1 + self.joy.get_button(7)) / 2  # (1+self.axes[5])/2
             self.car_input.brake = (1 + self.joy.get_button(6)) / 2  # (1+self.axes[2])/2
             self.car_input.reset = self.joy.get_button(9)  # menu button
             self.car_input.quit = self.joy.get_button(8)  # windows button
-            revPressed = self.joy.get_button(1)  # B button
-            if revPressed and not self._rev_was_pressed:  # if it was not pressed last time and is pressed now, toggle reverse
-                self.car_input.reverse = not self.car_input.reverse
-            self._rev_was_pressed = revPressed
 
         # print(self)
         return self.car_input

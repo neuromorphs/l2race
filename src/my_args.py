@@ -10,13 +10,10 @@ def client_args(parser):
 
     # general arguments for output folder, overwriting, etc
     clientGroup = parser.add_argument_group('Client arguments:')
-    clientGroup.add_argument(
-        "--host", type=str, default=SERVER_HOST,
-        help="host IP of model server.")
-    clientGroup.add_argument(
-        "--port", type=int, default=SERVER_PORT,
-        help="server port address for initiating connections")
-    clientGroup.add_argument("--fps", type=int, default=FPS)
+    clientGroup.add_argument("--host", type=str, default=SERVER_HOST, help="Sost IP of model server.")
+    clientGroup.add_argument("--port", type=int, default=SERVER_PORT, help="Server port address for initiating connections.")
+    clientGroup.add_argument("--fps", type=int, default=FPS, help="Frame rate on client side (server always sets time to real time")
+    clientGroup.add_argument("--joystick", type=int, default=JOYSTICK_NUMBER, help="Desired joystick number")
 
     return parser
 

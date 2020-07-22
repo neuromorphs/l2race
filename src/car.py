@@ -28,7 +28,7 @@ class car:
         rotated = pygame.transform.rotate(self.image, -self.car_state.body_angle_deg)
         rect = rotated.get_rect()
         screen.blit(rotated, ((self.car_state.position_m/M_PER_PIXEL) - (int(rect.width / 2), int(rect.height / 2))))
-        # draw throttle command
+        # draw acceleration
         len=self.car_state.command.throttle*self.car_state.length*2
         body_rad=radians(self.car_state.body_angle_deg)
         tv=(len*cos(body_rad),len*sin(body_rad))
