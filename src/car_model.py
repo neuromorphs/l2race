@@ -90,8 +90,8 @@ class CarModel:
         # select car with next line
         self.parameters=parameters_drifter
 
-        self.car_state.width=self.parameters().w
-        self.car_state.length=self.parameters().l
+        self.car_state.width_m=self.parameters().w
+        self.car_state.length_m=self.parameters().l
         # set car accel and braking based on car type (not in parameters from commonroad-vehicle-models)
         self.accel_max=self.zeroTo60mpsTimeToAccelG(4) * G # 5 second 0-60 mph, very quick car is default
         self.brake_max=.9*G
@@ -183,6 +183,9 @@ class CarModel:
             self.car_state.drift_angle_deg=degrees(self.model_state[ISLIPANGLE])
         self.car_state.velocity_m_per_sec.x= self.car_state.speed_m_per_sec * cos(radians(self.car_state.body_angle_deg))
         self.car_state.velocity_m_per_sec.y= self.car_state.speed_m_per_sec * sin(radians(self.car_state.body_angle_deg))
+        self.car_state.accel_m_per_sec_2.x=accel
+        self.car_state.accel_m_per_sec_2.y=0 # todo, for now and with KS/ST model
+
 
         # self.constrain_to_map()
         self.locate() # todo is this where we localize ourselves on map?

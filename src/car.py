@@ -8,7 +8,7 @@ from src.my_logger import my_logger
 from src.track import track
 
 from src.car_state import car_state
-from src.globals import SCREEN_WIDTH_PIXELS, SCREEN_HEIGHT_PIXELS, M_PER_PIXEL
+from src.globals import SCREEN_WIDTH_PIXELS, SCREEN_HEIGHT_PIXELS, M_PER_PIXEL, G
 
 logger = my_logger(__name__)
 
@@ -29,12 +29,12 @@ class car:
         rect = rotated.get_rect()
         screen.blit(rotated, ((self.car_state.position_m/M_PER_PIXEL) - (int(rect.width / 2), int(rect.height / 2))))
         # draw acceleration
-        len=self.car_state.command.throttle*self.car_state.length*2
+        len=(self.car_state.accel_m_per_sec_2.x/G)*(self.car_state.length_m * 2) # self.car_state.command.throttle*self.car_state.length*2 # todo fix when accel include lateral component
         body_rad=radians(self.car_state.body_angle_deg)
-        tv=(len*cos(body_rad),len*sin(body_rad))
-        pygame.draw.line(screen, [255,50,50],self.car_state.position_m/M_PER_PIXEL, (self.car_state.position_m+tv)/M_PER_PIXEL,1)
+        body_vec=(len*cos(body_rad),len*sin(body_rad))
+        pygame.draw.line(screen, [255,50,50],self.car_state.position_m/M_PER_PIXEL, (self.car_state.position_m+body_vec)/M_PER_PIXEL,1)
         # draw steering command
-        str_len=self.car_state.length/2
+        str_len= self.car_state.length_m / 2
         str_orig=self.car_state.position_m+(cos(body_rad)*str_len,sin(body_rad)*str_len)
         str_rad=radians(self.car_state.body_angle_deg+self.car_state.steering_angle_deg)
         str_vec=(str_len*cos(str_rad),str_len*sin(str_rad))
@@ -61,7 +61,7 @@ class car:
         # scale it to its length in pixels (all units are in pixels which are meters)
         # TODO use global scale of M_PER_PIXEL correctly here
         rect = self.image.get_rect()
-        sc = self.car_state.length/(M_PER_PIXEL*rect.width)
+        sc = self.car_state.length_m / (M_PER_PIXEL * rect.width)
         self.image = pygame.transform.scale(self.image, (int(sc * rect.width), int(sc * rect.height)))
 
     def reset(self):
