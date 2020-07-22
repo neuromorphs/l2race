@@ -131,10 +131,6 @@ https://stackoverflow.com/questions/27161533/find-the-shortest-distance-between-
     return np.hypot(h, c)
 
 
-if __name__ == '__main__':
-    track = Track('../media/testCourse.svg')
-    track.findClosestSegment(pygame.Vector2(0, 0))
-
 
 # Version of the track based on the extracting contour and loading png
 def get_position_on_map(car_state=None, x=None, y=None):
@@ -156,9 +152,9 @@ def closest_node(x, y, x_vector, y_vector):
     return np.argmin(dist_2)
 
 
-class Track:
+class track:
     def __init__(self, media_folder_path='./media/'):
-        self.track = pygame.image.load(media_folder_path + 'track.png')
+        self.track_image = pygame.image.load(media_folder_path + 'track.png')
         self.track_map = np.load(media_folder_path + 'track_map.npy')
         self.TrackInfo = np.load(media_folder_path + 'TrackInfo.npy', allow_pickle='TRUE').item()
         self.waypoints_x = self.TrackInfo['waypoint_x']
@@ -170,7 +166,7 @@ class Track:
     def draw(self, surface: pygame.surface):
         surface.fill((65, 105, 225))
         # surface.blit(self.track, (SCREEN_WIDTH//2 - car.car_state.position.x, SCREEN_HEIGHT//2 - car.car_state.position.y))
-        surface.blit(self.track, (0, 0))
+        surface.blit(self.track_image, (0, 0))
 
     def get_surface_type(self, car_state=None, x=None, y=None):
         x, y = get_position_on_map(car_state=car_state, x=x, y=y)
@@ -261,3 +257,8 @@ class Track:
         # logger.info(d)
 
         return d
+
+if __name__ == '__main__':
+    t = track('../media/testCourse.svg')
+    t.findClosestSegment(pygame.Vector2(0, 0))
+

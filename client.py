@@ -20,7 +20,7 @@ import pygame
 from src.globals import *
 from src.my_joystick import my_joystick
 from src.my_keyboard import my_keyboard
-from src.track import Track
+from src.track import track
 from src.car import car
 from src.my_args import client_args
 from src.my_logger import my_logger
@@ -61,7 +61,7 @@ class Game:
         self.exit = False
         self.input=None
 
-        self.track=Track()
+        self.track=track()
         self.car = None # will make it later after we get info from server about car
         try:
             self.input=my_joystick()

@@ -8,7 +8,7 @@ from src.car_command import car_command
 from src.car_state import car_state
 from src.globals import *
 from src.my_logger import my_logger
-from src.track import Track
+from src.track import track
 
 logger = my_logger(__name__)
 logger.setLevel(logging.DEBUG)
@@ -68,7 +68,7 @@ class CarModel:
     """
     Car model, hidden from participants, updated on server
     """
-    def __init__(self, track:Track=None):
+    def __init__(self, track:track=None):
         # self.model=vehicleDynamics_ST()
         self.car_state=car_state()
         self.track=track

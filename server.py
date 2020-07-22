@@ -8,7 +8,7 @@ from src.my_args import server_args
 from src.car_model import CarModel
 from src.car import car
 from src.globals import *
-from src.track import Track
+from src.track import track
 # may only apply to windows
 from src.my_logger import my_logger
 logger=my_logger(__name__)
@@ -88,7 +88,7 @@ if __name__ == '__main__':
     sock.bind(('', SERVER_PORT)) # bind to empty host, so we can receive from anyone on this port
     logger.info("waiting on {}".format(str(sock)))
     clients = dict()
-    track=Track()
+    track=track()
 
     while True:
         data, clientAddr = sock.recvfrom(1024)  # buffer size is 1024 bytes
