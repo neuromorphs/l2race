@@ -77,6 +77,8 @@ class CarModel:
     def __init__(self, track:track=None):
         # self.model=vehicleDynamics_ST()
         self.car_state=car_state()
+        self.passed_anti_cheat_rect = True  # Prohibiting (significant) cutoff
+        self.round_num = 0 # Counts the rounds
         self.track=track
         # change MODEL_TYPE to select vehicle model type
         self.model_type = MODEL_TYPE # 'KS' 'ST' 'MB' # model type KS: kinematic single track, ST: single track (with slip), MB: fancy multibody
@@ -254,7 +256,7 @@ class CarModel:
     def reset(self):
         logger.info('resetting car')
         self.__init__(self.track)
-        pass # todo reset to starting line
+        pass
 
     def constrain_to_map(self):
 

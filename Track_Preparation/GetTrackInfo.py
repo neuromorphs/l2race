@@ -121,10 +121,10 @@ im_start[im_start > 0] = 100
 
 # find the boundary to the right
 (Y, X) = np.where(im_start > 0)
-X_right_idx = np.where(X == max(X))
+X_left_idx = np.where(X == min(X))
 
-Y = Y[X_right_idx]
-X = X[X_right_idx]
+Y = Y[X_left_idx]
+X = X[X_left_idx]
 
 for i in range(len(X)):
     im_start[Y[i], X[i]] = 200

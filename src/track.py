@@ -8,6 +8,7 @@ import cmath
 import numpy as np
 from svgpathtools import svg2paths
 from src.globals import SCREEN_WIDTH_PIXELS, SCREEN_HEIGHT_PIXELS, M_PER_PIXEL
+from timeit import default_timer as timer
 
 logger = logging.getLogger(__name__)
 
@@ -39,14 +40,15 @@ class track:
         self.TrackInfo = np.load(media_folder_path + 'TrackInfo.npy', allow_pickle='TRUE').item()
         self.waypoints_x = self.TrackInfo['waypoint_x']
         self.waypoints_y = self.TrackInfo['waypoint_y']
+        self.num_waypoints = len(self.waypoints_x)
         self.waypoints_search_radius = 80
         self.angle_next_segment_east = self.TrackInfo['AngleNextSegmentEast']
         self.angle_next_waypoint = self.TrackInfo['AngleNextCheckpointEast']
-        dy = 5200
+        dy = 70
         self.starting_line_rect = pygame.Rect(self.waypoints_x[0], self.waypoints_y[0]-dy, 100, 2*dy)
         # This is a pygame rectangle to automatically check if you passed the starting line
         # take for it +/-dy = 52 in map units
-        self.anti_cheat_rect = None
+        self.anti_cheat_rect = pygame.Rect(self.waypoints_x[self.num_waypoints//2], self.waypoints_y[self.num_waypoints//2]-60, 120, 120)
 
     def draw(self, surface: pygame.surface):
         surface.fill((65, 105, 225))
@@ -143,11 +145,32 @@ class track:
 
         return d
 
-    def car_passed(self, car_state):
-        x_map = int(car_state.position_m.x / M_PER_PIXEL)
-        y_map = int(car_state.position_m.y / M_PER_PIXEL)
-        #
-        # if self.starting_line_rect.collidepoint(x_map, y_map):
-        #     print("On start!")
-        # else:
-        #     print("Where is car?")
+    def car_completed_round(self, car_model):
+        x_map = int(car_model.car_state.position_m.x / M_PER_PIXEL)
+        y_map = int(car_model.car_state.position_m.y / M_PER_PIXEL)
+
+        if self.anti_cheat_rect.collidepoint(x_map, y_map):
+            car_model.passed_anti_cheat_rect = True
+
+        if self.starting_line_rect.collidepoint(x_map, y_map):
+            if car_model.passed_anti_cheat_rect:
+
+                car_model.passed_anti_cheat_rect = False
+                current_time = timer()
+                car_model.car_state.time_results.append(current_time)
+                if car_model.round_num == 0:
+                    logger.info('Start!')
+                elif car_model.round_num == 1:
+                    logger.info('Completed ' + str(car_model.round_num) + ' round!')
+                    s = 'Your time in the last round was  {:.2f}s'\
+                        .format(current_time-car_model.car_state.time_results[car_model.round_num-1])
+                    logger.info(s)
+                else:
+                    logger.info('Completed ' + str(car_model.round_num) + ' rounds!')
+                    s = 'Your time in the last round was  {:.2f}s'\
+                        .format(current_time-car_model.car_state.time_results[car_model.round_num-1])
+                    logger.info(s)
+                car_model.round_num += 1
+
+        else:
+            pass

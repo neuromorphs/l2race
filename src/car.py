@@ -66,7 +66,7 @@ class car:
         sc = self.car_state.length_m / (M_PER_PIXEL * rect.width)
         self.image = pygame.transform.scale(self.image, (int(sc * rect.width), int(sc * rect.height)))
 
-    def reset(self):
+    def reset(self): # TODO (Marcin): Is this function used at all? If not delete. track has not attribute vertices..
         """ reset car to starting position"""
         self.car_state.reset()
         x = 0
@@ -75,12 +75,3 @@ class car:
             x = self.track.vertices[0][0]
             y = self.track.vertices[0][0]
         self.car_state.position_m = Vector2(x, y) # todo reset to start line of track
-
-    # def is_passing_start(self, track):
-    #     #logger.info("On start?")
-    #     if self.rect.collidepoint(track.waypoints_x[0], track.waypoints_y[0]):
-    #         logger.info('Compleated a round!')
-    #         return True
-    #
-    # def is_colliding_another_car(self):
-    #     pass

@@ -172,7 +172,6 @@ class Game:
                 self.render_multi_line(str(self.car.car_state), 10, 10)
                 # self.game_font.render_to(self.screen, (10, 10), str(self.car.car_state), (255, 255, 255))
                 pygame.display.flip()
-                # self.track.car_passed(self.car.car_state)
                 self.clock.tick(self.ticks) # limit runtime to self.ticks Hz update rate
 
 

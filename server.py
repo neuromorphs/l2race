@@ -61,6 +61,7 @@ class ServerCarThread(threading.Thread):
             dtSec = now-lastT # compute local real timestep, done on server to prevent accelerated real time cheating
             lastT=now
             self.car_model.update(dtSec=dtSec, command=command)
+            self.track.car_completed_round(self.car_model)
             self.car.car_state=self.car_model.car_state
             # self.car.car_state.update(self.car_model) # update user observed car state from model
             # logger.info('sending car_state={}'.format(car.car_state))

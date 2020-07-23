@@ -6,6 +6,8 @@ from src.my_logger import my_logger
 logger = my_logger(__name__)
 from src.globals import SCREEN_WIDTH_PIXELS, SCREEN_HEIGHT_PIXELS, M_PER_PIXEL
 
+
+
 class car_state:
     """
     Complete state of car. Updated by hidden model based on control input.
@@ -31,13 +33,15 @@ class car_state:
         # current commanded control input
         self.command=car_command()
 
-        # track
-        self.track_file = None
-        self.next_track_vertex_idx = None
-        self.distance_from_track_center = 0
-        self.track_width_here = self.width_m * 4
-        self.lap_fraction = 0
-        self.angle_to_track_deg = 0
+        # track - (Marcin) I suggest we give car_state as an input of the track class' methods. These methods locate car on the track
+        self.track_file = None # Done as a method of track class
+        self.next_track_vertex_idx = None # Done as a method of track class
+        self.distance_from_track_center = 0 # # Done in as a method of track class (distance to nearest segment)
+        self.track_width_here = self.width_m * 4 # I think not really interesting - I am interested in track widht in front of me, not now
+        self.lap_fraction = 0 # what is it?
+        self.angle_to_track_deg = 0 # Done as a method of track class
+
+        self.time_results = []
 
         # other car(s) # todo add structure to send other car states to client for rendering
 
