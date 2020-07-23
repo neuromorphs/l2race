@@ -5,6 +5,8 @@ from .vehicleDynamics_KS import vehicleDynamics_KS
 from . import tireModel
 import math
 
+# from numba import jit
+# @jit()
 def vehicleDynamics_MB(x,uInit,p):
     # vehicleDynamics_MB - multi-body vehicle dynamics based on the DOT 
     # (department of transportation) vehicle dynamics

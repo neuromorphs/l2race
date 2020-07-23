@@ -23,6 +23,8 @@ class car:
         self.track=track # TODO for now just use default track TODO check if Track should be field of Car()
         # TODO change color of car to be unique, add name of car
         self.name = 'car' # TODO make part of constructor?
+        self.loadAndScaleCarImage()
+        # self.rect = self.image.get_rect()
 
     def draw(self, screen):
         rotated = pygame.transform.rotate(self.image, -self.car_state.body_angle_deg)
@@ -67,9 +69,18 @@ class car:
     def reset(self):
         """ reset car to starting position"""
         self.car_state.reset()
-        x=0
-        y=0
+        x = 0
+        y = 0
         if self.track:
-            x=self.track.vertices[0][0]
-            y=self.track.vertices[0][0]
+            x = self.track.vertices[0][0]
+            y = self.track.vertices[0][0]
         self.car_state.position_m = Vector2(x, y) # todo reset to start line of track
+
+    # def is_passing_start(self, track):
+    #     #logger.info("On start?")
+    #     if self.rect.collidepoint(track.waypoints_x[0], track.waypoints_y[0]):
+    #         logger.info('Compleated a round!')
+    #         return True
+    #
+    # def is_colliding_another_car(self):
+    #     pass

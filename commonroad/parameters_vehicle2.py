@@ -1,6 +1,8 @@
 from .unitConversions import unitConversion
 from .vehicleParameters import VehicleParameters
-
+# from numba import jit
+#
+# @jit
 def parameters_vehicle2():
     # parameters_vehicle2 - parameter set of the multi-body vehicle dynamics 
     # based on the DOT (department of transportation) vehicle dynamics 

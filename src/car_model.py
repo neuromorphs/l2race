@@ -2,7 +2,7 @@
 # TODO move to separate repo to hide from participants
 import logging
 from math import sin, radians, degrees, cos, copysign
-from scipy.integrate import solve_ivp, odeint
+from scipy.integrate import RK23, RK45
 
 from src.car_command import car_command
 from src.car_state import car_state
@@ -28,7 +28,13 @@ from commonroad.vehicleDynamics_KS import vehicleDynamics_KS # kinematic single 
 from commonroad.vehicleDynamics_ST import vehicleDynamics_ST # single track bicycle with slip
 from commonroad.vehicleDynamics_MB import vehicleDynamics_MB # fancy multibody model
 from timeit import default_timer as timer
-LOGGING_INTERVAL_CYCLES=20 # log output only this often
+
+LOGGING_INTERVAL_CYCLES=1000 # log output only this often
+MODEL_TYPE='ST' # 'KS', 'ST'
+SOLVER=RK23 # faster, no overhead but no checking
+PARAMETERS=parameters_vehicle2
+RTOL=1e-3
+ATOL=1e-6
 
 # indexes into model state
 # states
@@ -73,7 +79,7 @@ class CarModel:
         self.car_state=car_state()
         self.track=track
         # change MODEL_TYPE to select vehicle model type
-        self.model_type = 'ST' # 'KS' 'ST' 'MB' # model type KS: kinematic single track, ST: single track (with slip), MB: fancy multibody
+        self.model_type = MODEL_TYPE # 'KS' 'ST' 'MB' # model type KS: kinematic single track, ST: single track (with slip), MB: fancy multibody
         if self.model_type== 'KS':
             self.model=vehicleDynamics_KS
             self.model_init=init_KS
@@ -88,7 +94,7 @@ class CarModel:
             self.model_func=func_MB
 
         # select car with next line
-        self.parameters=parameters_drifter
+        self.parameters=PARAMETERS
 
         self.car_state.width_m=self.parameters().w
         self.car_state.length_m=self.parameters().l
@@ -118,6 +124,12 @@ class CarModel:
             self.model_state = self.model_init(initialState)  # initial state
         self.cycle_count=0
         self.time=0
+        self.atol=ATOL
+        self.rtol=RTOL
+        self.u=[0,0]
+
+        self.solver = None
+        self.first_step=True
 
     def zeroTo60mpsTimeToAccelG(self,time):
         return (60*0.447)/time/G
@@ -126,6 +138,7 @@ class CarModel:
         if command.reset:
             self.reset()
 
+        self.car_state.server_msg = ''
         self.car_state.command=command
 
         # compute commanded longitudinal acceleration from throttle and brake input
@@ -145,23 +158,42 @@ class CarModel:
 
         # u0 = steering angle velocity of front wheels
         # u1 = longitudinal acceleration
-        u=[steerVelRadPerSec,accel]
-
-
-        tSpan=[self.time,self.time+dtSec]
-        self.time+=dtSec
+        self.u=[steerVelRadPerSec,accel]
 
         start=timer()
-        sol= solve_ivp(fun=self.model_func, t_span=tSpan,
-                       y0=self.model_state,
-                       args=(u, self.parameters()),
-                       first_step=min(dtSec/2,0.05))
+        if self.first_step:
+            def u_func():
+                return self.u
+
+            def model_func(t, y):
+                f = self.model_func(t, y, u_func(), self.parameters())
+                return f
+
+            self.solver=SOLVER(fun=model_func, t0=0, t_bound=1e99,
+                        y0=self.model_state,
+                        first_step=0.01, max_step=0.1, atol=ATOL, rtol=RTOL)
+            self.first_step=False
+
+        self.solver.t=self.time
+
+        if dtSec>0.1:
+            s='bounded real dtSec={:.1f}ms to 0.1s'.format(dtSec*1000)
+            logger.info(s)
+            self.car_state.server_msg=s
+            dtSec=0.1
+
+        self.solver.bound=self.time+dtSec
+        while self.solver.t<self.time+dtSec:
+            self.solver.step()
+        self.time+=dtSec
+        self.model_state = self.solver.y
         end=timer()
+
         dtSolveSec=end-start
-        if not sol.success:
-            logger.warning('solver failed: {}'.format(sol.message))
-        self.model_state = sol.y[:,-1].ravel()
-        # # compute derivatives of model state from input
+        if dtSolveSec>dtSec/2:
+            s='It took {:.1f}ms to solve timestep for timestep of {:.1f}ms'.format(dtSolveSec*1000, dtSec*1000)
+            logger.warning(s)
+            self.car_state.server_msg+='\n'+s
         # dfdt=self.model(x=self.model_state, uInit=u, p=self.parameters())
         # print('derivatives of state: '+str(dfdt))
         #

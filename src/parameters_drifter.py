@@ -17,20 +17,20 @@ def parameters_drifter():
     #steering constraints
     p.steering.min = -1.023  #minimum steering angle [rad]
     p.steering.max = 1.023  #maximum steering angle [rad]
-    p.steering.v_min = -1.  #minimum steering velocity [rad/s]
-    p.steering.v_max = 1.  #maximum steering velocity [rad/s]
+    p.steering.v_min = -3.  #minimum steering velocity [rad/s] # increased from 1 to make easier to drive
+    p.steering.v_max = 3.  #maximum steering velocity [rad/s]
 
     #longitudinal constraints
-    p.longitudinal.v_min = -3.  #minimum velocity [m/s]
-    p.longitudinal.v_max = 100.  #minimum velocity [m/s]
-    p.longitudinal.v_switch = 1.  #switching velocity [m/s]
-    p.longitudinal.a_max = 15.  #maximum absolute acceleration [m/s^2]
+    p.longitudinal.v_min = -10.  #minimum velocity [m/s]
+    p.longitudinal.v_max = 100.  #max velocity [m/s] 100m/s is 360km/h, pretty fast!
+    p.longitudinal.v_switch = 3.  #switching velocity [m/s] # switch from kinematic to slipping model at this m/s
+    p.longitudinal.a_max = 11.5  #maximum absolute acceleration [m/s^2] # left at default
 
-    #masses
+    #masses # tobi actually in units of 100kg, e.g. 101 is 1000 kg
     p.m = unitConversion.lb_sec2_ft_IN_kg(101.3367)  #vehicle mass [kg]  MASS
     p.m_s = unitConversion.lb_sec2_ft_IN_kg(90.21635)  #sprung mass [kg]  SMASS
     p.m_uf = unitConversion.lb_sec2_ft_IN_kg(5.56015)  #unsprung mass front [kg]  UMASSF
-    p.m_ur = unitConversion.lb_sec2_ft_IN_kg(1.56015)  #unsprung mass rear [kg]  UMASSR
+    p.m_ur = unitConversion.lb_sec2_ft_IN_kg(5.56015)  #unsprung mass rear [kg]  UMASSR
 
     #axes distances
     p.a = unitConversion.ft_IN_m(3.775563)  #distance from spring mass center of gravity to front axle [m]  LENA
@@ -84,8 +84,9 @@ def parameters_drifter():
 
     #tire parameters from ADAMS handbook
     #longitudinal coefficients
+    fric_factor=.3
     p.tire.p_cx1 = 1.6411  #Shape factor Cfx for longitudinal force
-    p.tire.p_dx1 = 1.1739  #Longitudinal friction Mux at Fznom
+    p.tire.p_dx1 = fric_factor* 1.1739  #Longitudinal friction Mux at Fznom
     p.tire.p_dx3 = 0  #Variation of friction Mux with camber
     p.tire.p_ex1 = 0.46403  #Longitudinal curvature Efx at Fznom
     p.tire.p_kx1 = 22.303  #Longitudinal slip stiffness Kfx/Fz at Fznom
@@ -99,7 +100,7 @@ def parameters_drifter():
 
     #lateral coefficients
     p.tire.p_cy1 = 1.3507  #Shape factor Cfy for lateral forces
-    p.tire.p_dy1 = 1.0489  #Lateral friction Muy
+    p.tire.p_dy1 = fric_factor* 1.0489  #Lateral friction Muy
     p.tire.p_dy3 = -2.8821  #Variation of friction Muy with squared camber
     p.tire.p_ey1 = -0.0074722  #Lateral curvature Efy at Fznom
     p.tire.p_ky1 = -21.92  #Maximum value of stiffness Kfy/Fznom

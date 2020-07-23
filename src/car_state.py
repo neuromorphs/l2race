@@ -49,7 +49,7 @@ class car_state:
         pass
 
     def __str__(self):
-        s='{}\npos=({:4.1f},{:4.1f})m vel=({:5.1f},{:5.1f})m/s, speed={:6.2f}m/s accel={:6.2f}m/s^2\nsteering_angle={:4.1f}deg body_angle={:4.1f}deg\nyaw_rate={:4.1f}deg/s drift_angle={:4.1f}'\
+        s='{}\npos=({:4.1f},{:4.1f})m vel=({:5.1f},{:5.1f})m/s, speed={:6.2f}m/s accel={:6.2f}m/s^2\nsteering_angle={:4.1f}deg body_angle={:4.1f}deg\nyaw_rate={:4.1f}deg/s drift_angle={:4.1f}\nmsg: {}'\
             .format(str(self.command),
                     self.position_m.x,
                     self.position_m.y,
@@ -60,7 +60,8 @@ class car_state:
                     self.steering_angle_deg,
                     self.body_angle_deg,
                     self.yaw_rate_deg_per_sec,
-                    self.drift_angle_deg)
+                    self.drift_angle_deg,
+                    self.server_msg)
         return s
 
 

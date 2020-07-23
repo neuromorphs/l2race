@@ -1,9 +1,4 @@
 """ global parameters"""
-# all distances are in units of pixels on the playing surface, which we take as meters
-# i.e. velocity is pix/s, acceleration is pix/s/s etc
-
-# TODO if car is 4m long, then that would be 4 pixels with M_PER_PIXEL=1, which is very tiny on screen
-import scipy.constants
 
 SERVER_PORT = 50000
 # SERVER_HOST='192.168.0.206' # tobi home internal lan ip
@@ -18,17 +13,18 @@ SCREEN_HEIGHT_PIXELS= 768 # pixels
 # increase M_PER_PIXEL to make cars smaller relative to track
 M_PER_PIXEL=0.15
 
-SOCKET_TIMEOUT_SEC=.1 # timeout for UDP socket reads
+SOCKET_TIMEOUT_SEC=.5 # timeout for UDP socket reads
+import scipy.constants
 G=scipy.constants.value('standard acceleration of gravity')
 
 # client
 FPS=30 # frames per second for simulation and animation
-CHECK_FOR_JOYSTICK_INTERVAL = 100 # check for missing joystick every this many cycles
 GAME_FONT_NAME='Consolas'
 GAME_FONT_SIZE=16
 # Joystick connectivity
+CHECK_FOR_JOYSTICK_INTERVAL = 100 # check for missing joystick every this many cycles
 JOYSTICK_NUMBER = 0 # todo in case multiple joysticks, use this to set the desired one, starts from zero
 
 #server
-DO_NOT_RESET_CAR_WHEN_IT_GOES_OFF_TRACK = True
+DO_NOT_RESET_CAR_WHEN_IT_GOES_OFF_TRACK = True # set true for testing dynamics of car
 

@@ -74,8 +74,6 @@ class Game:
         for i, l in enumerate(lines):
             self.game_font.render_to(self.screen, (x, y + GAME_FONT_SIZE * i), l, [255,255,255]),
 
-    # self.game_font.render_to(self.screen, (10, 10), str(self.car.car_state), (255, 255, 255))
-
     def run(self):
         iterationCounter=0
         serverSock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM) # UDP
@@ -126,8 +124,6 @@ class Game:
                     except:
                         pass
 
-                dt = self.clock.get_time() / 1000 # todo move dt to server, which is in charge of dynamics
-
                 # Event queue
                 for event in pygame.event.get():
                     if event.type == pygame.QUIT:
@@ -155,6 +151,7 @@ class Game:
                     (dt,cs)=pickle.loads(data) # todo do something with dt to set animation rate
                     self.car.car_state=cs
                 except socket.timeout:
+                    # the problem is that if we get a timeout, the next solution will take even longer since the step will be even larger, so we get into spiral
                     logger.warning('Timeout on socket receive from server, using previous car state. check server to make sure it is still running')
                 except ConnectionResetError:
                     logger.warning('Connection to {} was reset, will look for server again'.format(gameSockAddr))
@@ -175,7 +172,7 @@ class Game:
                 self.render_multi_line(str(self.car.car_state), 10, 10)
                 # self.game_font.render_to(self.screen, (10, 10), str(self.car.car_state), (255, 255, 255))
                 pygame.display.flip()
-
+                # self.track.car_passed(self.car.car_state)
                 self.clock.tick(self.ticks) # limit runtime to self.ticks Hz update rate
 
 
