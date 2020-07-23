@@ -30,11 +30,11 @@ from commonroad.vehicleDynamics_MB import vehicleDynamics_MB # fancy multibody m
 from timeit import default_timer as timer
 
 LOGGING_INTERVAL_CYCLES=1000 # log output only this often
-MODEL_TYPE='ST' # 'KS', 'ST'
+MODEL_TYPE='MB' # 'KS', 'ST'
 SOLVER=RK23 # faster, no overhead but no checking
 PARAMETERS=parameters_vehicle2
-RTOL=1e-3
-ATOL=1e-6
+RTOL=1e-2
+ATOL=1e-4
 
 # indexes into model state
 # states
@@ -169,19 +169,19 @@ class CarModel:
                 f = self.model_func(t, y, u_func(), self.parameters())
                 return f
 
-            self.solver=SOLVER(fun=model_func, t0=0, t_bound=1e99,
+            self.solver=SOLVER(fun=model_func, t0=self.time, t_bound=1e99,
                         y0=self.model_state,
-                        first_step=0.01, max_step=0.1, atol=ATOL, rtol=RTOL)
+                        first_step=0.01, max_step=0.01, atol=ATOL, rtol=RTOL)
             self.first_step=False
-
-        self.solver.t=self.time
 
         if dtSec>0.1:
             s='bounded real dtSec={:.1f}ms to 0.1s'.format(dtSec*1000)
             logger.info(s)
-            self.car_state.server_msg=s
+            self.car_state.server_msg+=s
             dtSec=0.1
 
+        self.solver.t=self.time
+        self.solver.t_old=self.solver.t
         self.solver.bound=self.time+dtSec
         while self.solver.t<self.time+dtSec:
             self.solver.step()
