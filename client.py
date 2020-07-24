@@ -48,7 +48,7 @@ def get_args():
 
 
 class Game:
-    def __init__(self, server_host=SERVER_HOST, server_port=SERVER_PORT, joystick_number=JOYSTICK_NUMBER, fps=FPS, widthPixels=SCREEN_WIDTH_PIXELS, heightPixels=SCREEN_HEIGHT_PIXELS):
+    def __init__(self, track_name='track', game_mode=1, server_host=SERVER_HOST, server_port=SERVER_PORT, joystick_number=JOYSTICK_NUMBER, fps=FPS, widthPixels=SCREEN_WIDTH_PIXELS, heightPixels=SCREEN_HEIGHT_PIXELS):
         pygame.init()
         logger.info('using pygame version {}'.format(pygame.version.ver))
         pygame.display.set_caption("l2race")
@@ -63,7 +63,9 @@ class Game:
         self.server_host=server_host
         self.server_port=server_port
 
-        self.track=track()
+        self.track_name = track_name
+        self.game_mode = game_mode
+        self.track = track(track_name=track_name)
         self.car = None # will make it later after we get info from server about car
         try:
             self.input=my_joystick(joystick_number)
@@ -97,15 +99,17 @@ class Game:
             if command.quit:
                 logger.info('startup aborted before connecting to server')
                 pygame.quit()
-            cmd='newcar'
-            p=pickle.dumps(cmd)
-            logger.info('sending cmd={} to server initial address {}, waiting for server'.format(cmd,serverAddr))
-            serverSock.sendto(p,serverAddr)
+            cmd = 'newcar'
+            data = (cmd, self.track_name, self.game_mode)
+            p = pickle.dumps(data)
+            logger.info('sending cmd={} to server initial address {}, waiting for server'.format(cmd, serverAddr))
+            serverSock.sendto(p, serverAddr)
             try:
-                data,gameSockAddr=serverSock.recvfrom(4096) # todo add timeout for flaky connection
-                gotServer=True
-                self.car = car(track=self.track, name='car')
-                self.car.car_state=pickle.loads(data) # server sends initial state of car
+                p, gameSockAddr = serverSock.recvfrom(4096) # todo add timeout for flaky connection
+                (car_state, car_name) = pickle.loads(p)
+                gotServer = True
+                self.car = car(car_name=car_name)
+                self.car.car_state = car_state  # server sends initial state of car
                 self.car.loadAndScaleCarImage()
                 logger.info('received car server response and initial car state; will use {} for communicating with l2race model server'.format(gameSockAddr))
                 logger.info('initial car state is '+str(self.car.car_state))
@@ -167,15 +171,9 @@ class Game:
                     continue
 
                 # Drawing
-                # self.screen.fill((10, 10, 10))
-                # self.track.get_nearest_waypoint_idx(car_state=self.car.car_state)
-                # self.track.get_current_angle_to_road(car_state=self.car.car_state)
-                # self.track.get_distance_to_nearest_segment(car_state=self.car.car_state)
                 self.track.draw(self.screen)
-                # print(self.car.car_state.position)
                 self.car.draw(self.screen)
                 self.render_multi_line(str(self.car.car_state), 10, 10)
-                # self.game_font.render_to(self.screen, (10, 10), str(self.car.car_state), (255, 255, 255))
                 pygame.display.flip()
                 self.clock.tick(self.fps) # limit runtime to self.ticks Hz update rate
 
@@ -194,5 +192,5 @@ if __name__ == '__main__':
                        'You can try to install with "pip install Gooey"')
     args = get_args()
 
-    game = Game(server_host=args.host, server_port=args.port, joystick_number=args.joystick, fps=args.fps)
+    game = Game(track_name='track', game_mode=1, server_host=args.host, server_port=args.port, joystick_number=args.joystick, fps=args.fps)
     game.run()

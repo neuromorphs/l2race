@@ -76,12 +76,17 @@ class CarModel:
     """
     Car model, hidden from participants, updated on server
     """
-    def __init__(self, track:track=None, ignore_off_track=DO_NOT_RESET_CAR_WHEN_IT_GOES_OFF_TRACK):
+    def __init__(self, track:track=None, car_name=None, ignore_off_track=DO_NOT_RESET_CAR_WHEN_IT_GOES_OFF_TRACK):
         # self.model=vehicleDynamics_ST()
-        self.car_state=car_state()
+        self.track = track
+        self.car_name = car_name
+        if self.car_name == 'car_1':
+            (x_start, y_start) = self.track.start_position_car1*M_PER_PIXEL
+        else:
+            (x_start, y_start) = self.track.start_position_car2*M_PER_PIXEL
+        self.car_state=car_state(x=x_start, y=y_start)
         self.passed_anti_cheat_rect = True  # Prohibiting (significant) cutoff
-        self.round_num = 0 # Counts the rounds
-        self.track=track
+        self.round_num = 0  # Counts the rounds
         # change MODEL_TYPE to select vehicle model type
         self.model_type = MODEL_TYPE # 'KS' 'ST' 'MB' # model type KS: kinematic single track, ST: single track (with slip), MB: fancy multibody
         if self.model_type== 'KS':
@@ -233,10 +238,6 @@ class CarModel:
         self.car_state.accel_m_per_sec_2.y=0 # todo, for now and with KS/ST model
 
 
-        # self.constrain_to_map()
-        self.locate() # todo is this where we localize ourselves on map?
-        # logger.info(self.car_state)
-
         if self.cycle_count%LOGGING_INTERVAL_CYCLES==0:
             print('\rcar_model.py: cycle {}, dt={:.2f}ms, soln_time={:.3f}ms: {}'.format(self.cycle_count, dtSec * 1e3,dtSolveSec * 1e3,  str(self.car_state)), end='')
 
@@ -260,10 +261,6 @@ class CarModel:
         else:
             steerVel=0
         return steerVel
-
-    def locate(self):
-        # todo locate ourselves on self.track
-        pass
 
     def reset(self):
         logger.info('resetting car')

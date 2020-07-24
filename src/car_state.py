@@ -14,15 +14,16 @@ class car_state:
 
     """
 
-    def __init__(self, track=None, x=M_PER_PIXEL * 490, y=M_PER_PIXEL * 615, body_angle_deg=0.0, length_m=4.5, width_m=2.0, max_steering=40, max_acceleration=100.0): # TODO car dimensions are not part of dynamic state, fix
+    def __init__(self, x=M_PER_PIXEL * 490, y=M_PER_PIXEL * 615, body_angle_deg=0.0, length_m=4.5, width_m=2.0, max_steering=40, max_acceleration=100.0): # TODO car dimensions are not part of dynamic state, fix
         # todo constructor should put car at starting line, not middle of screen
         # intrinsic state
         # Screen coordinate system is computer vision standard, 0,0 is UL corner and y increases *downwards*.
         # It causes some confusion about angles.
-        # (x, y) = tuple(track.start_car1*M_PER_PIXEL)
+        # (x, y) = tuple starting coordinates in m
+
         self.position_m = Vector2(x, y) # x increases to right, y increases downwards
         self.velocity_m_per_sec = Vector2(0.0, 0.0) # vx and vy, with y increasing downwards, i.e. vy>0 means car is moving down the screen
-        self.speed_m_per_sec=0.0 # length of velocity vector in track coordinates
+        self.speed_m_per_sec=0.0 # length of velocity vector
         self.accel_m_per_sec_2 = Vector2(0.0, 0.0) # ax and ay *in frame of car*, *along* car body, i.e. ax>0 means car accelerating forwards. ay>0 means rightward acceleration on car body.
         self.steering_angle_deg = 0.0 # degrees of front wheel steering, increases CW/right with zero straight ahead
         self.body_angle_deg = body_angle_deg # degrees, increases CW (on screen!) with zero pointing to right/east
@@ -32,15 +33,7 @@ class car_state:
         self.width_m = width_m # width in meters
 
         # current commanded control input
-        self.command=car_command()
-
-        # track - (Marcin) I suggest we give car_state as an input of the track class' methods. These methods locate car on the track
-        self.track_file = None # Done as a method of track class
-        self.next_track_vertex_idx = None # Done as a method of track class
-        self.distance_from_track_center = 0 # # Done in as a method of track class (distance to nearest segment)
-        self.track_width_here = self.width_m * 4 # I think not really interesting - I am interested in track widht in front of me, not now
-        self.lap_fraction = 0 # what is it?
-        self.angle_to_track_deg = 0 # Done as a method of track class
+        self.command = car_command()
 
         self.time_results = []
 

@@ -18,11 +18,11 @@ class car:
     Local model of car. It has CarState() that is updated by remote server, and methods for drawing car and other static information related to car that is not transmitted over socket.
     """
 
-    def __init__(self, track:track=None, name='car'): # TODO initialize at starting line with correct angle; this is job of model server
-        self.car_state = car_state(track=track) # TODO change to init to starting line of track
+    def __init__(self, car_name='car_1'): # TODO initialize at starting line with correct angle; this is job of model server
+        self.car_state = car_state() # TODO change to init to starting line of track
         self.track=track # TODO for now just use default track TODO check if Track should be field of Car()
         # TODO change color of car to be unique, add name of car
-        self.name = name # TODO make part of constructor?
+        self.car_name = car_name # TODO make part of constructor?
         self.loadAndScaleCarImage()
         # self.rect = self.image.get_rect()
 
@@ -44,20 +44,13 @@ class car:
         str_pos2=str_orig+str_vec
         pygame.draw.line(screen, [50,250,250],str_pos1/M_PER_PIXEL, str_pos2/M_PER_PIXEL,2)
 
-    def locate(self):
-        """ locates car on track and updates in the car_state"""
-        # vs=self.track.vertices
-        # minDist=None if self.closestTrackVertex==None else minDist=(self.closestTrackVertex-Vector2(vs[]))
-        # for p in :
-
-        pass
 
     def loadAndScaleCarImage(self):
         """ loads image for car and scales it to its actual length.
         Call only after car_state is filled by server
         """
         current_dir = os.path.dirname(os.path.abspath(__file__))
-        image_path = os.path.join(current_dir, "../media/"+self.name+".png") # todo name of car and file should come from server
+        image_path = os.path.join(current_dir, "../media/"+self.car_name+".png") # todo name of car and file should come from server
         self.image = pygame.image.load(image_path)  # load image of car
 
         # scale it to its length in pixels (all units are in pixels which are meters)
@@ -66,12 +59,13 @@ class car:
         sc = self.car_state.length_m / (M_PER_PIXEL * rect.width)
         self.image = pygame.transform.scale(self.image, (int(sc * rect.width), int(sc * rect.height)))
 
-    def reset(self): # TODO (Marcin): Is this function used at all? If not delete. track has not attribute vertices..
-        """ reset car to starting position"""
-        self.car_state.reset()
-        x = 0
-        y = 0
-        if self.track:
-            x = self.track.vertices[0][0]
-            y = self.track.vertices[0][0]
-        self.car_state.position_m = Vector2(x, y) # todo reset to start line of track
+    # I think we do not use this function. Almost sure but tired today so I leave it commented
+    # def reset(self): # TODO (Marcin): Is this function used at all? If not delete. track has not attribute vertices..
+    #     """ reset car to starting position"""
+    #     self.car_state.reset()
+    #     x = 0
+    #     y = 0
+    #     if self.track:
+    #         x = self.track.vertices[0][0]
+    #         y = self.track.vertices[0][0]
+    #     self.car_state.position_m = Vector2(x, y) # todo reset to start line of track

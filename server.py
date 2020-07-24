@@ -19,6 +19,8 @@ except Exception:
     logger.warning('Gooey GUI builder not available, will use command line arguments.\n'
                    'Install with "pip install Gooey". See README')
 
+import random
+
 def get_args():
     parser = argparse.ArgumentParser(
         description='l2race client: run this if you are a racer.',
@@ -34,10 +36,12 @@ def get_args():
 class ServerCarThread(threading.Thread):
     def __init__(self, addr, track,ignore_off_track=DO_NOT_RESET_CAR_WHEN_IT_GOES_OFF_TRACK):
         threading.Thread.__init__(self)
-        self.clientAddr=addr
-        self.track=track
-        self.car = car(track=track, name='car')
-        self.car_model=CarModel(track=track,ignore_off_track=ignore_off_track)
+        self.clientAddr = addr
+        self.track = track
+        car_names = ['car_1', 'car_2']
+        self.car_name = random.choice(car_names)
+        self.car = car(car_name=self.car_name)
+        self.car_model = CarModel(track=track, car_name=self.car_name, ignore_off_track=ignore_off_track)
 
     def run(self):
         logger.info("Starting car thread for "+str(self.clientAddr))
@@ -45,10 +49,11 @@ class ServerCarThread(threading.Thread):
         clientSock.bind(('', 0)) # bind to port 0 to get a random free port
         gameAddr=clientSock.getsockname() # get the port info for our local port
         logger.info('found free local UDP port address {}, sending initial CarState to client at {}'.format(gameAddr,self.clientAddr))
-        p = pickle.dumps(self.car_model.car_state) # tobi measured about 600 bytes
-        clientSock.sendto(p,self.clientAddr)
+        data = (self.car_model.car_state, self.car_name)
+        p = pickle.dumps(data)  # tobi measured about 600 bytes, without car_name
+        clientSock.sendto(p, self.clientAddr)
         logger.info('starting control/state loop (waiting for initial client control')
-        lastT=timer()
+        lastT = timer()
         while True:
             data,clientAddr = clientSock.recvfrom(1024) # get control input
             command = pickle.loads(data)
@@ -87,17 +92,17 @@ if __name__ == '__main__':
     sock.bind(('', SERVER_PORT)) # bind to empty host, so we can receive from anyone on this port
     logger.info("waiting on {}".format(str(sock)))
     clients = dict()
-    track=track()
 
     while True:
         data, clientAddr = sock.recvfrom(1024)  # buffer size is 1024 bytes
-        cmd=pickle.loads(data)
+        (cmd, track_name, game_mode) = pickle.loads(data)
         logger.info('received message: "{}" from {}'.format(cmd, clientAddr))
 
-        if cmd=='newcar': # todo add arguments with newcar like driver/car name
+        if cmd == 'newcar': # todo add arguments with newcar like driver/car name
+            current_track = track(track_name=track_name)
             logger.info('model server starting a new ServerCarThread for client at {}'.format(clientAddr))
-            carThread=ServerCarThread(clientAddr, track=track, ignore_off_track=args.ignore_off_track)
-            clients[clientAddr]=carThread
+            carThread = ServerCarThread(clientAddr, track=current_track, ignore_off_track=args.ignore_off_track)
+            clients[clientAddr] = carThread
             carThread.start()
         else:
             logger.warning('model server received unknown cmd={}'.format(cmd))
