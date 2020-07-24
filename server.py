@@ -32,12 +32,12 @@ def get_args():
 
 
 class ServerCarThread(threading.Thread):
-    def __init__(self, addr, track):
+    def __init__(self, addr, track,ignore_off_track=DO_NOT_RESET_CAR_WHEN_IT_GOES_OFF_TRACK):
         threading.Thread.__init__(self)
         self.clientAddr=addr
         self.track=track
         self.car = car(track=track, name='car')
-        self.car_model=CarModel(track=track)
+        self.car_model=CarModel(track=track,ignore_off_track=ignore_off_track)
 
     def run(self):
         logger.info("Starting car thread for "+str(self.clientAddr))
@@ -83,8 +83,6 @@ if __name__ == '__main__':
                        'You can try to install with "pip install Gooey"')
     args = get_args()
 
-    DO_NOT_RESET_CAR_WHEN_IT_GOES_OFF_TRACK=args.ignore_off_track
-
     sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
     sock.bind(('', SERVER_PORT)) # bind to empty host, so we can receive from anyone on this port
     logger.info("waiting on {}".format(str(sock)))
@@ -98,7 +96,7 @@ if __name__ == '__main__':
 
         if cmd=='newcar': # todo add arguments with newcar like driver/car name
             logger.info('model server starting a new ServerCarThread for client at {}'.format(clientAddr))
-            carThread=ServerCarThread(clientAddr, track)
+            carThread=ServerCarThread(clientAddr, track=track, ignore_off_track=args.ignore_off_track)
             clients[clientAddr]=carThread
             carThread.start()
         else:

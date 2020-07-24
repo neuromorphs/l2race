@@ -13,7 +13,7 @@ SCREEN_HEIGHT_PIXELS= 768 # pixels
 # increase M_PER_PIXEL to make cars smaller relative to track
 M_PER_PIXEL=0.15
 
-SOCKET_TIMEOUT_SEC=.5 # timeout for UDP socket reads
+SOCKET_TIMEOUT_SEC=0.2 # timeout for UDP socket reads
 import scipy.constants
 G=scipy.constants.value('standard acceleration of gravity')
 
@@ -25,6 +25,8 @@ GAME_FONT_SIZE=16
 CHECK_FOR_JOYSTICK_INTERVAL = 100 # check for missing joystick every this many cycles
 JOYSTICK_NUMBER = 0 # todo in case multiple joysticks, use this to set the desired one, starts from zero
 
-#server
+#server and model settings. Client cannot affect these model server settings
 DO_NOT_RESET_CAR_WHEN_IT_GOES_OFF_TRACK = True # set true for testing dynamics of car
+FRICTION_FACTOR = .3 # overall friction parameter multiplier for some models
+
 

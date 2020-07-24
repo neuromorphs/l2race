@@ -1,3 +1,5 @@
+import logging
+
 from .steeringConstraints import steeringConstraints
 from .accelerationConstraints import accelerationConstraints
 from .vehicleDynamics_KS import vehicleDynamics_KS
@@ -6,6 +8,16 @@ from . import tireModel
 import math
 from typing import *
 # from .vehicleParameters import VehicleParameters, vehicle_params_type
+from src.my_logger import my_logger
+logger = my_logger(__name__)
+logger.setLevel(logging.DEBUG)
+
+
+import cython
+if cython.compiled:
+    logger.info("Yep, I'm compiled.")
+else:
+    logger.warning("I'm still just a slowly interpreted script.")
 
 from numba import jit, float64, deferred_type
 import numba as nb

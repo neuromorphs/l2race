@@ -48,7 +48,7 @@ def get_args():
 
 
 class Game:
-    def __init__(self, widthPixels=SCREEN_WIDTH_PIXELS, heightPixels=SCREEN_HEIGHT_PIXELS):
+    def __init__(self, server_host=SERVER_HOST, server_port=SERVER_PORT, joystick_number=JOYSTICK_NUMBER, fps=FPS, widthPixels=SCREEN_WIDTH_PIXELS, heightPixels=SCREEN_HEIGHT_PIXELS):
         pygame.init()
         logger.info('using pygame version {}'.format(pygame.version.ver))
         pygame.display.set_caption("l2race")
@@ -57,14 +57,16 @@ class Game:
         self.screen = pygame.display.set_mode(size=(self.widthPixels, self.heightPixels), flags=0)
         self.game_font = pygame.freetype.SysFont(GAME_FONT_NAME, GAME_FONT_SIZE)
         self.clock = pygame.time.Clock()
-        self.ticks = FPS # frame/animation/simulation rate of client (but dt is computed on server real time)
         self.exit = False
         self.input=None
+        self.fps=fps
+        self.server_host=server_host
+        self.server_port=server_port
 
         self.track=track()
         self.car = None # will make it later after we get info from server about car
         try:
-            self.input=my_joystick()
+            self.input=my_joystick(joystick_number)
         except:
             self.input=my_keyboard()
         # self.track=Track() # TODO for now just use default track # (Marcin) I think this line is redundant here
@@ -172,7 +174,7 @@ class Game:
                 self.render_multi_line(str(self.car.car_state), 10, 10)
                 # self.game_font.render_to(self.screen, (10, 10), str(self.car.car_state), (255, 255, 255))
                 pygame.display.flip()
-                self.clock.tick(self.ticks) # limit runtime to self.ticks Hz update rate
+                self.clock.tick(self.fps) # limit runtime to self.ticks Hz update rate
 
 
         logger.info('quitting')
@@ -189,9 +191,5 @@ if __name__ == '__main__':
                        'You can try to install with "pip install Gooey"')
     args = get_args()
 
-    SERVER_HOST = args.host
-    SERVER_PORT = args.port
-    FPS = args.fps
-    JOYSTICK_NUMBER=args.joystick
-    game = Game()
+    game = Game(server_host=args.host, server_port=args.port, joystick_number=args.joystick, fps=args.fps)
     game.run()

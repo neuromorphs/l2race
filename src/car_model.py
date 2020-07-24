@@ -10,6 +10,8 @@ from src.globals import *
 from src.my_logger import my_logger
 from src.track import track
 
+MAX_TIMESTEP = 0.1
+
 logger = my_logger(__name__)
 logger.setLevel(logging.DEBUG)
 
@@ -30,11 +32,11 @@ from commonroad.vehicleDynamics_MB import vehicleDynamics_MB # fancy multibody m
 from timeit import default_timer as timer
 
 LOGGING_INTERVAL_CYCLES=1000 # log output only this often
-MODEL_TYPE='ST' # 'KS', 'ST'
-SOLVER=RK23 # faster, no overhead but no checking
-PARAMETERS=parameters_vehicle2
-RTOL=1e-2
-ATOL=1e-4
+MODEL_TYPE='MB' # 'KS', 'ST' 'MB'
+SOLVER=RK45 # RK23 # faster, no overhead but no checking
+PARAMETERS=parameters_vehicle3
+RTOL=1e-1
+ATOL=1e-2
 
 # indexes into model state
 # states
@@ -74,7 +76,7 @@ class CarModel:
     """
     Car model, hidden from participants, updated on server
     """
-    def __init__(self, track:track=None):
+    def __init__(self, track:track=None, ignore_off_track=DO_NOT_RESET_CAR_WHEN_IT_GOES_OFF_TRACK):
         # self.model=vehicleDynamics_ST()
         self.car_state=car_state()
         self.passed_anti_cheat_rect = True  # Prohibiting (significant) cutoff
@@ -133,6 +135,8 @@ class CarModel:
         self.solver = None
         self.first_step=True
 
+        self.ignore_off_track=ignore_off_track
+
     def zeroTo60mpsTimeToAccelG(self,time):
         return (60*0.447)/time/G
 
@@ -172,28 +176,37 @@ class CarModel:
 
             self.solver=SOLVER(fun=model_func, t0=self.time, t_bound=1e99,
                         y0=self.model_state,
-                        first_step=0.01, max_step=0.01, atol=ATOL, rtol=RTOL)
+                        first_step=0.0001, max_step=0.1, atol=ATOL, rtol=RTOL)
             self.first_step=False
 
-        if dtSec>0.1:
-            s='bounded real dtSec={:.1f}ms to 0.1s'.format(dtSec*1000)
+        if dtSec> MAX_TIMESTEP:
+            s='bounded real dtSec={:.1f}ms to {:.2f}ms'.format(dtSec * 1000, MAX_TIMESTEP*1000)
             logger.info(s)
             self.car_state.server_msg+=s
-            dtSec=0.1
+            dtSec=MAX_TIMESTEP
 
-        self.solver.t=self.time
-        self.solver.t_old=self.solver.t
-        self.solver.bound=self.time+dtSec
-        while self.solver.t<self.time+dtSec:
+        # self.solver.t_bound=self.solver.t+dtSec
+        tstart=self.solver.t
+        tlast=tstart
+        it=0
+        while self.solver.t<tstart+dtSec:
             self.solver.step()
-        self.time+=dtSec
+            tnow=self.solver.t
+            dt=tnow-tlast
+            tlast=tnow
+            it+=1
+        tend=self.solver.t
+        tsimulated=tend-tstart
+
+        self.time=self.solver.t
+        self.solver.dense_output() # interpolate
         self.model_state = self.solver.y
         end=timer()
 
         dtSolveSec=end-start
         if dtSolveSec>dtSec/2:
             s='It took {:.1f}ms to solve timestep for timestep of {:.1f}ms'.format(dtSolveSec*1000, dtSec*1000)
-            logger.warning(s)
+            # logger.warning(s)
             self.car_state.server_msg+='\n'+s
         # dfdt=self.model(x=self.model_state, uInit=u, p=self.parameters)
         # print('derivatives of state: '+str(dfdt))
@@ -230,7 +243,7 @@ class CarModel:
         self.cycle_count+=1
 
         current_surface = self.track.get_surface_type(car_state=self.car_state)
-        if not DO_NOT_RESET_CAR_WHEN_IT_GOES_OFF_TRACK and current_surface == 0:
+        if not self.ignore_off_track and current_surface == 0:
             logger.info("went off track, resetting car")
             self.reset()
 

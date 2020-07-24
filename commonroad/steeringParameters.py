@@ -7,7 +7,7 @@ spec = [
     ('v_min', float64),
     ('v_max', float64),
 ]
-@jitclass(spec)
+# @jitclass(spec)
 class SteeringParameters():
     def __init__(self):
         #constraints regarding steering

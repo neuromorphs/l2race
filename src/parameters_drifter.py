@@ -1,5 +1,7 @@
 from commonroad.unitConversions import unitConversion
 from commonroad.vehicleParameters import VehicleParameters
+from globals import FRICTION_FACTOR
+
 
 def parameters_drifter():
     # parameters_drifter - parameter set for low traction drifting car
@@ -84,9 +86,8 @@ def parameters_drifter():
 
     #tire parameters from ADAMS handbook
     #longitudinal coefficients
-    fric_factor=.3
     p.tire.p_cx1 = 1.6411  #Shape factor Cfx for longitudinal force
-    p.tire.p_dx1 = fric_factor* 1.1739  #Longitudinal friction Mux at Fznom
+    p.tire.p_dx1 = FRICTION_FACTOR * 1.1739  #Longitudinal friction Mux at Fznom
     p.tire.p_dx3 = 0  #Variation of friction Mux with camber
     p.tire.p_ex1 = 0.46403  #Longitudinal curvature Efx at Fznom
     p.tire.p_kx1 = 22.303  #Longitudinal slip stiffness Kfx/Fz at Fznom
@@ -100,7 +101,7 @@ def parameters_drifter():
 
     #lateral coefficients
     p.tire.p_cy1 = 1.3507  #Shape factor Cfy for lateral forces
-    p.tire.p_dy1 = fric_factor* 1.0489  #Lateral friction Muy
+    p.tire.p_dy1 = FRICTION_FACTOR * 1.0489  #Lateral friction Muy
     p.tire.p_dy3 = -2.8821  #Variation of friction Muy with squared camber
     p.tire.p_ey1 = -0.0074722  #Lateral curvature Efy at Fznom
     p.tire.p_ky1 = -21.92  #Maximum value of stiffness Kfy/Fznom
