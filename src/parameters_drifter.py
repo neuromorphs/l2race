@@ -1,6 +1,6 @@
 from commonroad.unitConversions import unitConversion
 from commonroad.vehicleParameters import VehicleParameters
-from globals import FRICTION_FACTOR
+from .globals import FRICTION_FACTOR
 
 
 def parameters_drifter():
