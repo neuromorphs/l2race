@@ -18,11 +18,11 @@ class car:
     Local model of car. It has CarState() that is updated by remote server, and methods for drawing car and other static information related to car that is not transmitted over socket.
     """
 
-    def __init__(self, track:track=None): # TODO initialize at starting line with correct angle; this is job of model server
-        self.car_state = car_state() # TODO change to init to starting line of track
+    def __init__(self, track:track=None, name='car'): # TODO initialize at starting line with correct angle; this is job of model server
+        self.car_state = car_state(track=track) # TODO change to init to starting line of track
         self.track=track # TODO for now just use default track TODO check if Track should be field of Car()
         # TODO change color of car to be unique, add name of car
-        self.name = 'car' # TODO make part of constructor?
+        self.name = name # TODO make part of constructor?
         self.loadAndScaleCarImage()
         # self.rect = self.image.get_rect()
 

@@ -34,10 +34,11 @@ def closest_node(x, y, x_vector, y_vector):
 
 
 class track:
-    def __init__(self, media_folder_path='./media/'):
-        self.track_image = pygame.image.load(media_folder_path + 'track.png')
-        self.track_map = np.load(media_folder_path + 'track_map.npy')
-        self.TrackInfo = np.load(media_folder_path + 'TrackInfo.npy', allow_pickle='TRUE').item()
+    def __init__(self, name='track', media_folder_path='./media/'):
+        self.name = name
+        self.track_image = pygame.image.load(media_folder_path + name + '.png')
+        self.track_map = np.load(media_folder_path + name + '_map.npy')
+        self.TrackInfo = np.load(media_folder_path + name + 'Info.npy', allow_pickle='TRUE').item()
         self.waypoints_x = self.TrackInfo['waypoint_x']
         self.waypoints_y = self.TrackInfo['waypoint_y']
         self.num_waypoints = len(self.waypoints_x)
@@ -49,6 +50,9 @@ class track:
         # This is a pygame rectangle to automatically check if you passed the starting line
         # take for it +/-dy = 52 in map units
         self.anti_cheat_rect = pygame.Rect(self.waypoints_x[self.num_waypoints//2], self.waypoints_y[self.num_waypoints//2]-60, 120, 120)
+
+        if name == 'track':
+            self.start_car1 = np.array((self.waypoints_x[0], self.waypoints_y[0]))
 
     def draw(self, surface: pygame.surface):
         surface.fill((65, 105, 225))

@@ -100,7 +100,7 @@ class Game:
             try:
                 data,gameSockAddr=serverSock.recvfrom(4096) # todo add timeout for flaky connection
                 gotServer=True
-                self.car = car(track=self.track)
+                self.car = car(track=self.track, name='car')
                 self.car.car_state=pickle.loads(data) # server sends initial state of car
                 self.car.loadAndScaleCarImage()
                 logger.info('received car server response and initial car state; will use {} for communicating with l2race model server'.format(gameSockAddr))

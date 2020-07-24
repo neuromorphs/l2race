@@ -1,3 +1,14 @@
+# from .vehicleParameters import longitudinal_type
+from .longitudinalParameters import LongitudinalParameters
+
+from numba import jit, float64, deferred_type
+
+import numba as nb
+from numba import jit
+#https://stackoverflow.com/questions/53900084/problem-with-reflected-list-signature-in-numba
+f=nb.float64
+
+# @jit(f(f, f, longitudinal_type),nopython=True)
 def accelerationConstraints(velocity,acceleration,p):
     # accelerationConstraints - adjusts the acceleration based on acceleration
     # constraints

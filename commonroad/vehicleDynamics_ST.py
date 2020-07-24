@@ -1,9 +1,18 @@
 from .steeringConstraints import steeringConstraints
 from .accelerationConstraints import accelerationConstraints
 from .vehicleDynamics_KS import vehicleDynamics_KS
+# from .vehicleParameters import VehicleParameters, vehicle_params_type
 
 import math
+from . import vehicleParameters
 
+# from typing import *
+
+from numba import jit, float64, deferred_type
+import numba as nb
+fa=nb.types.List(nb.float64, reflected=False) # define numba type of list of float
+
+# @jit(fa(fa, fa, vehicle_params_type))
 def vehicleDynamics_ST(x,uInit,p):
     # vehicleDynamics_ST - single-track vehicle dynamics 
     #
@@ -60,10 +69,10 @@ def vehicleDynamics_ST(x,uInit,p):
     #u2 = longitudinal acceleration
 
     #consider steering constraints
-    u = []
-    u.append(steeringConstraints(x[2],uInit[0],p.steering)) # different name uInit/u due to side effects of u
-    #consider acceleration constraints
-    u.append(accelerationConstraints(x[3],uInit[1],p.longitudinal)) # different name uInit/u due to side effects of u
+    u = [
+        steeringConstraints(x[2],uInit[0],p.steering),
+        accelerationConstraints(x[3],uInit[1],p.longitudinal)
+    ]
 
     # switch to kinematic model for small velocities
     if x[3]<0 or abs(x[3]) < 1: # tobi added for reverse gear and increased to 1m/s to reduce numerical instability at low speed by /speed - hint from matthias

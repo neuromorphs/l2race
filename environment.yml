@@ -110,6 +110,7 @@ dependencies:
   - zipp=3.1.0=py_0
   - zlib=1.2.11=h2fa13f4_1006
   - zstd=1.4.4=h9f78265_3
+  - opencv-python
   - pip:
     - numpy==1.19.0
     - pygame==2.0.0.dev10

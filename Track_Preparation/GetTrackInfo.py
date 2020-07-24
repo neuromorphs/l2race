@@ -149,7 +149,6 @@ idx_start = np.array(np.where((x == X) & (y == Y))).squeeze()
 x = np.hstack((x[idx_start:], x[:idx_start]))
 y = np.hstack((y[idx_start:], y[:idx_start]))
 
-
 # Choose points on the middle line to make checkpoints
 x = x[::20]
 y = y[::20]
@@ -160,6 +159,16 @@ for i in range(len(x)):
         im[y[i], x[i]] = 40
     else:
         print('Error while making checkpoints')
+
+
+from matplotlib import colors
+cmap = colors.ListedColormap(['blue', 'orange', 'yellow', 'peru', 'lightcoral', 'magenta', 'rosybrown', 'red', 'maroon'])
+bounds=[0,7,9,11,17,19,21,27,33,40]
+norm = colors.BoundaryNorm(bounds, cmap.N)
+
+plt.matshow(im[520:-100,770:-100], cmap=cmap, norm=norm)
+
+plt.show()
 
 
 # Calculate additional information for a user
@@ -279,7 +288,7 @@ TrackInfo = {'waypoint_x': x,
 
 # Saving all relevant data
 np.save('../media/track_map.npy', im)
-np.save('../media/TrackInfo.npy', TrackInfo)
+np.save('../media/trackInfo.npy', TrackInfo)
 
 # Summary
 # We give to the user these track-only dependant information:

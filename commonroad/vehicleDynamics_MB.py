@@ -1,12 +1,17 @@
 from .steeringConstraints import steeringConstraints
 from .accelerationConstraints import accelerationConstraints
 from .vehicleDynamics_KS import vehicleDynamics_KS
-
+from . import vehicleParameters
 from . import tireModel
 import math
+from typing import *
+# from .vehicleParameters import VehicleParameters, vehicle_params_type
 
-# from numba import jit
-# @jit()
+from numba import jit, float64, deferred_type
+import numba as nb
+fa=nb.types.List(nb.float64, reflected=False) # define numba type of list of float
+
+# @jit(fa(fa, fa, vehicle_params_type))
 def vehicleDynamics_MB(x,uInit,p):
     # vehicleDynamics_MB - multi-body vehicle dynamics based on the DOT 
     # (department of transportation) vehicle dynamics
@@ -76,10 +81,10 @@ def vehicleDynamics_MB(x,uInit,p):
     #u2 = acceleration
 
     #consider steering constraints
-    u = []
-    u.append(steeringConstraints(x[2],uInit[0],p.steering)) # different name uInit/u due to side effects of u
-    #consider acceleration constraints
-    u.append(accelerationConstraints(x[3],uInit[1],p.longitudinal)) # different name uInit/u due to side effects of u
+    u = [
+        steeringConstraints(x[2],uInit[0],p.steering),
+        accelerationConstraints(x[3],uInit[1],p.longitudinal)
+    ]
 
     #compute slip angle at cg
     #switch to kinematic model for small velocities

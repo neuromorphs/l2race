@@ -1,3 +1,10 @@
+# from .vehicleParameters import steering_type
+import numba as nb
+from numba import jit
+#https://stackoverflow.com/questions/53900084/problem-with-reflected-list-signature-in-numba
+f=nb.float64
+
+# @jit(f(f, f, steering_type),nopython=True)
 def steeringConstraints(steeringAngle,steeringVelocity,p):
     # steeringConstraints - adjusts the steering velocity based on steering
     # constraints

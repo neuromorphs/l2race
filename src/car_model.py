@@ -30,7 +30,7 @@ from commonroad.vehicleDynamics_MB import vehicleDynamics_MB # fancy multibody m
 from timeit import default_timer as timer
 
 LOGGING_INTERVAL_CYCLES=1000 # log output only this often
-MODEL_TYPE='MB' # 'KS', 'ST'
+MODEL_TYPE='ST' # 'KS', 'ST'
 SOLVER=RK23 # faster, no overhead but no checking
 PARAMETERS=parameters_vehicle2
 RTOL=1e-2
@@ -96,20 +96,20 @@ class CarModel:
             self.model_func=func_MB
 
         # select car with next line
-        self.parameters=PARAMETERS
+        self.parameters=PARAMETERS()
 
-        self.car_state.width_m=self.parameters().w
-        self.car_state.length_m=self.parameters().l
+        self.car_state.width_m=self.parameters.w
+        self.car_state.length_m=self.parameters.l
         # set car accel and braking based on car type (not in parameters from commonroad-vehicle-models)
         self.accel_max=self.zeroTo60mpsTimeToAccelG(4) * G # 5 second 0-60 mph, very quick car is default
         self.brake_max=.9*G
-        if self.parameters==parameters_vehicle1:
+        if PARAMETERS==parameters_vehicle1:
             self.accel_max= self.zeroTo60mpsTimeToAccelG(10.6) * G #1992 ford escort https://www.automobile-catalog.com/car/1992/879800/ford_escort_gt_automatic.html
             self.brake_max=.9*G
-        elif self.parameters==parameters_vehicle2: # BMW 320i
+        elif PARAMETERS==parameters_vehicle2: # BMW 320i
             self.accel_max=self.zeroTo60mpsTimeToAccelG(9.5)*G
             self.brake_max=.95*G
-        elif self.parameters==parameters_vehicle3: # VW vanagon
+        elif PARAMETERS==parameters_vehicle3: # VW vanagon
             self.accel_max=self.zeroTo60mpsTimeToAccelG(17.9)*G
             self.brake_max=.8*G
         sx0 = self.car_state.position_m.x
@@ -121,7 +121,7 @@ class CarModel:
         beta0 = 0
         initialState = [sx0, sy0, delta0, vel0, Psi0, dotPsi0, beta0]  # initial state for simulation
         if self.model_type== 'MB':
-            self.model_state = self.model_init(initialState,self.parameters())  # initial state for MB needs params too
+            self.model_state = self.model_init(initialState,self.parameters)  # initial state for MB needs params too
         else:
             self.model_state = self.model_init(initialState)  # initial state
         self.cycle_count=0
@@ -152,23 +152,22 @@ class CarModel:
             accel=0
 
         if command.reverse:
-            accel=-accel/4
+            accel=-accel/4.
 
         # go from driver input to commanded steering and acceleration
-        commandedSteeringRad = command.steering * self.parameters().steering.max  # commanded steering angle (not velocity of steering) from driver
+        commandedSteeringRad = command.steering * self.parameters.steering.max  # commanded steering angle (not velocity of steering) from driver
         steerVelRadPerSec=self.computeSteerVelocityRadPerSec(commandedSteeringRad)
 
         # u0 = steering angle velocity of front wheels
         # u1 = longitudinal acceleration
-        self.u=[steerVelRadPerSec,accel]
-
+        self.u=[float(steerVelRadPerSec),float(accel)]
         start=timer()
         if self.first_step:
             def u_func():
                 return self.u
 
             def model_func(t, y):
-                f = self.model_func(t, y, u_func(), self.parameters())
+                f = self.model_func(t, y, u_func(), self.parameters)
                 return f
 
             self.solver=SOLVER(fun=model_func, t0=self.time, t_bound=1e99,
@@ -196,7 +195,7 @@ class CarModel:
             s='It took {:.1f}ms to solve timestep for timestep of {:.1f}ms'.format(dtSolveSec*1000, dtSec*1000)
             logger.warning(s)
             self.car_state.server_msg+='\n'+s
-        # dfdt=self.model(x=self.model_state, uInit=u, p=self.parameters())
+        # dfdt=self.model(x=self.model_state, uInit=u, p=self.parameters)
         # print('derivatives of state: '+str(dfdt))
         #
         # # Euler step model
@@ -240,11 +239,11 @@ class CarModel:
         diff=commandedSteering-self.model_state[ISTEERANGLE]
         if abs(diff)>radians(.1):
             # bang/bang control: Sets the steering speed to max value in direction to make difference smaller
-            steerVel=copysign(self.parameters().steering.v_max,diff)
+            steerVel=copysign(self.parameters.steering.v_max,diff)
 
             # proportional control: Sets the steering speed to in direction to
             # make difference smaller that is proportional to diff/max_steer
-            # steerVel=diff/self.parameters().steering.max
+            # steerVel=diff/self.parameters.steering.max
         else:
             steerVel=0
         return steerVel

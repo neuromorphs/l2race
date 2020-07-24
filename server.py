@@ -36,7 +36,7 @@ class ServerCarThread(threading.Thread):
         threading.Thread.__init__(self)
         self.clientAddr=addr
         self.track=track
-        self.car = car(track=track)
+        self.car = car(track=track, name='car')
         self.car_model=CarModel(track=track)
 
     def run(self):

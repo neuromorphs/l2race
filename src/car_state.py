@@ -14,11 +14,12 @@ class car_state:
 
     """
 
-    def __init__(self, x=M_PER_PIXEL * 490, y=M_PER_PIXEL * 615, body_angle_deg=0.0, length_m=4.5, width_m=2.0, max_steering=40, max_acceleration=100.0): # TODO car dimensions are not part of dynamic state, fix
+    def __init__(self, track=None, x=M_PER_PIXEL * 490, y=M_PER_PIXEL * 615, body_angle_deg=0.0, length_m=4.5, width_m=2.0, max_steering=40, max_acceleration=100.0): # TODO car dimensions are not part of dynamic state, fix
         # todo constructor should put car at starting line, not middle of screen
         # intrinsic state
         # Screen coordinate system is computer vision standard, 0,0 is UL corner and y increases *downwards*.
         # It causes some confusion about angles.
+        # (x, y) = tuple(track.start_car1*M_PER_PIXEL)
         self.position_m = Vector2(x, y) # x increases to right, y increases downwards
         self.velocity_m_per_sec = Vector2(0.0, 0.0) # vx and vy, with y increasing downwards, i.e. vy>0 means car is moving down the screen
         self.speed_m_per_sec=0.0 # length of velocity vector in track coordinates
