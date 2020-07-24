@@ -4,7 +4,7 @@ services:
     l2race-server:
         build: .
         ports:
-            - "20000-63000/udp"
+            - "50000-63000/udp"
         volumes:
             - .:/app
 
