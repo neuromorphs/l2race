@@ -8,3 +8,4 @@ argparse
 argcomplete
 opencv-python
 numba
+cython

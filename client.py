@@ -86,7 +86,9 @@ class Game:
         logger.info('connecting to l2race model server at '+str(serverAddr))
 
         gotServer=False
+        ntries=0
         while not gotServer :
+            ntries+=1
             # Event queue
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:
@@ -108,12 +110,13 @@ class Game:
                 logger.info('received car server response and initial car state; will use {} for communicating with l2race model server'.format(gameSockAddr))
                 logger.info('initial car state is '+str(self.car.car_state))
             except OSError as err:
-                s='{}:\n error for response from {}; will try again...'.format(err,serverAddr)
+                s='{}:\n error for response from {}; will try again in {}s ...[{}]'.format(err,serverAddr, SERVER_PING_INTERVAL_S,ntries)
                 logger.warning(s)
+                self.screen.fill([0,0,0])
                 self.render_multi_line(s, 10, 10)
                 pygame.display.flip()
 
-                time.sleep(1)
+                time.sleep(SERVER_PING_INTERVAL_S)
                 continue
 
 

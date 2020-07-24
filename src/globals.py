@@ -13,6 +13,7 @@ SCREEN_HEIGHT_PIXELS= 768 # pixels
 # increase M_PER_PIXEL to make cars smaller relative to track
 M_PER_PIXEL=0.15
 
+SERVER_PING_INTERVAL_S=1 # interval between trying for server
 SOCKET_TIMEOUT_SEC=0.2 # timeout for UDP socket reads
 import scipy.constants
 G=scipy.constants.value('standard acceleration of gravity')
