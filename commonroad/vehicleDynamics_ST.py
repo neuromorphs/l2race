@@ -75,7 +75,7 @@ def vehicleDynamics_ST(x,uInit,p):
     ]
 
     # switch to kinematic model for small velocities
-    if x[3]<0 or abs(x[3]) < 1: # tobi added for reverse gear and increased to 1m/s to reduce numerical instability at low speed by /speed - hint from matthias
+    if x[3]<0 or abs(x[3]) < 2.0: # tobi added for reverse gear and increased to 1m/s to reduce numerical instability at low speed by /speed - hint from matthias
         #wheelbase
         lwb = p.a + p.b
         

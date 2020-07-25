@@ -1,0 +1,58 @@
+# from .vehicleParameters import longitudinal_type
+from .longitudinalParameters import LongitudinalParameters
+
+from numba import jit, float64, deferred_type
+
+import numba as nb
+from numba import jit
+#https://stackoverflow.com/questions/53900084/problem-with-reflected-list-signature-in-numba
+f=nb.float64
+
+# @jit(f(f, f, longitudinal_type),nopython=True)
+cpdef double accelerationConstraints(double velocity,double acceleration,object p):
+    # accelerationConstraints - adjusts the acceleration based on acceleration
+    # constraints
+    #
+    # Syntax:  
+    #    accelerationConstraints(velocity,acceleration,p)
+    #
+    # Inputs:
+    #    acceleration - acceleration in driving direction
+    #    velocity - velocity in driving direction
+    #    p - longitudinal parameter structure
+    #
+    # Outputs:
+    #    acceleration - acceleration in driving direction
+    #
+    # Example: 
+    #
+    # Other m-files required: none
+    # Subfunctions: none
+    # MAT-files required: none
+    #
+    # See also: ---
+
+    # Author:       Matthias Althoff
+    # Written:      15-December-2017
+    # Last update:  ---
+    # Last revision:---
+
+    #------------- BEGIN CODE --------------
+
+    #positive acceleration limit
+    if velocity>p.v_switch:
+        posLimit = p.a_max*p.v_switch/velocity
+    else:
+        posLimit = p.a_max
+
+    #acceleration limit reached?
+    if (velocity<=p.v_min and acceleration<=0) or (velocity>=p.v_max and acceleration>=0):
+        acceleration = 0
+    elif acceleration<=-p.a_max:
+        acceleration = -p.a_max
+    elif acceleration>=posLimit:
+        acceleration = posLimit 
+    
+    return acceleration
+
+    #------------- END OF CODE --------------

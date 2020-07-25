@@ -5,12 +5,12 @@ import numpy as np
 from . import vehicleParameters
 # from .vehicleParameters import VehicleParameters, vehicle_params_type
 
-import numba as nb
-from numba import float64 as f64 # use f64 to type explictly for list elements to tell numba it is just scalar value
-from numba import jit, deferred_type
-
-#https://stackoverflow.com/questions/53900084/problem-with-reflected-list-signature-in-numba
-fa=nb.types.List(nb.float64, reflected=False) # define numba type of list of float
+# import numba as nb
+# from numba import float64 as f64 # use f64 to type explictly for list elements to tell numba it is just scalar value
+# from numba import jit, deferred_type
+#
+# #https://stackoverflow.com/questions/53900084/problem-with-reflected-list-signature-in-numba
+# fa=nb.types.List(nb.float64, reflected=False) # define numba type of list of float
 
 # @jit(fa(fa, fa, vehicle_params_type), nopython=True)
 def vehicleDynamics_KS(x,uInit,p):
@@ -43,7 +43,7 @@ def vehicleDynamics_KS(x,uInit,p):
     #------------- BEGIN CODE --------------
 
     #create equivalent kinematic single-track parameters
-    l = f64(p.a + p.b)
+    l = (p.a + p.b)
 
     #states
     #x1 = x-position in a global coordinate system
@@ -61,15 +61,15 @@ def vehicleDynamics_KS(x,uInit,p):
     x3=x[3]
     u1=uInit[1]
     a=accelerationConstraints(x3,u1,pl)
-    s=steeringConstraints(f64(x[2]),f64(uInit[0]),ps)
+    s=steeringConstraints((x[2]),(uInit[0]),ps)
     u = [s,a]
 
     #system dynamics
-    f = [f64(x[3])*np.cos(f64(x[4])),
-        f64(x[3])*np.sin(f64(x[4])),
-        f64(u[0]),
-        f64(u[1]),
-        f64(x[3])/l*np.tan(f64(x[2]))] # every element is an f64
+    f = [(x[3])*np.cos((x[4])),
+        (x[3])*np.sin((x[4])),
+        (u[0]),
+        (u[1]),
+        (x[3])/l*np.tan((x[2]))] # every element is an f64
     
     return f
 

@@ -2,6 +2,7 @@
 # TODO move to separate repo to hide from participants
 import logging
 from math import sin, radians, degrees, cos, copysign
+import numpy as np
 from scipy.integrate import RK23, RK45
 
 from src.car_command import car_command
@@ -34,8 +35,8 @@ from timeit import default_timer as timer
 LOGGING_INTERVAL_CYCLES=1000 # log output only this often
 MODEL_TYPE='MB' # 'KS', 'ST' 'MB'
 SOLVER=RK45 # RK23 # faster, no overhead but no checking
-PARAMETERS=parameters_vehicle3
-RTOL=1e-1
+PARAMETERS=parameters_vehicle2
+RTOL=1e-4
 ATOL=1e-2
 
 # indexes into model state
@@ -169,7 +170,7 @@ class CarModel:
 
         # u0 = steering angle velocity of front wheels
         # u1 = longitudinal acceleration
-        self.u=[float(steerVelRadPerSec),float(accel)]
+        self.u=np.array([float(steerVelRadPerSec),float(accel)],dtype='double')
         start=timer()
         if self.first_step:
             def u_func():
@@ -209,8 +210,8 @@ class CarModel:
         end=timer()
 
         dtSolveSec=end-start
-        if dtSolveSec>dtSec/2:
-            s='It took {:.1f}ms to solve timestep for timestep of {:.1f}ms'.format(dtSolveSec*1000, dtSec*1000)
+        if dtSolveSec>0.001:
+            s='Soln took {:.1f}ms for timestep of {:.1f}ms'.format(dtSolveSec*1000, dtSec*1000)
             # logger.warning(s)
             self.car_state.server_msg+='\n'+s
         # dfdt=self.model(x=self.model_state, uInit=u, p=self.parameters)

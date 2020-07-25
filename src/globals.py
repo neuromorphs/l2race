@@ -28,6 +28,6 @@ JOYSTICK_NUMBER = 0 # todo in case multiple joysticks, use this to set the desir
 
 #server and model settings. Client cannot affect these model server settings
 DO_NOT_RESET_CAR_WHEN_IT_GOES_OFF_TRACK = True # set true for testing dynamics of car
-FRICTION_FACTOR = .3 # overall friction parameter multiplier for some models
+FRICTION_FACTOR = .5 # overall friction parameter multiplier for some models
 
 

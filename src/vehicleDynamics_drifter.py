@@ -1,10 +1,10 @@
 import logging
 
-from .steeringConstraints import steeringConstraints
-from .accelerationConstraints import accelerationConstraints
-from .vehicleDynamics_KS import vehicleDynamics_KS
-from . import vehicleParameters
-from . import tireModel
+from commonroad.steeringConstraints import steeringConstraints
+from commonroad.accelerationConstraints import accelerationConstraints
+from commonroad.vehicleDynamics_KS import vehicleDynamics_KS
+from commonroad import vehicleParameters
+from commonroad import tireModel
 import math
 from typing import *
 # from .vehicleParameters import VehicleParameters, vehicle_params_type
@@ -25,9 +25,9 @@ import numba as nb
 fa=nb.types.List(nb.float64, reflected=False) # define numba type of list of float
 
 # @jit(fa(fa, fa, vehicle_params_type))
-def vehicleDynamics_MB(x,uInit,p):
-    # vehicleDynamics_MB - multi-body vehicle dynamics based on the DOT 
-    # (department of transportation) vehicle dynamics
+def vehicleDynamics_drifter(x,uInit,p):
+    # vehicleDynamics_drifter - drifter model from
+    # Goh, Jonathan Y., Tushar Goel, and J. Christian Gerdes. 2020. “Toward Automated Vehicle Control Beyond the Stability Limits: Drifting Along a General Path.” Journal of Dynamic Systems, Measurement, and Control 142 (2). https://doi.org/10.1115/1.4045320.
     #
     # Syntax:  
     #    f = vehicleDynamics_MB(t,x,u,p)
@@ -44,10 +44,8 @@ def vehicleDynamics_MB(x,uInit,p):
     #
     # See also: ---
 
-    # Author:       Matthias Althoff
-    # Written:      05-January-2017
-    # Last update:17-December-2017
-    # Last revision:---
+    # Author:       from paper, by Tobi Delbruck
+    # Written:      25 July 2020
 
     #------------- BEGIN CODE --------------
 
@@ -58,37 +56,14 @@ def vehicleDynamics_MB(x,uInit,p):
     #x1 = x-position in a global coordinate system
     #x2 = y-position in a global coordinate system
     #x3 = steering angle of front wheels
-    #x4 = velocity in x-direction
+    #x4 = speed along body axis
     #x5 = yaw angle
     #x6 = yaw rate
 
-    #x7 = roll angle
-    #x8 = roll rate
-    #x9 = pitch angle
-    #x10 = pitch rate
     #x11 = velocity in y-direction
     #x12 = z-position
     #x13 = velocity in z-direction
 
-    #x14 = roll angle front
-    #x15 = roll rate front
-    #x16 = velocity in y-direction front
-    #x17 = z-position front
-    #x18 = velocity in z-direction front
-
-    #x19 = roll angle rear
-    #x20 = roll rate rear
-    #x21 = velocity in y-direction rear
-    #x22 = z-position rear
-    #x23 = velocity in z-direction rear
-
-    #x24 = left front wheel angular speed
-    #x25 = right front wheel angular speed
-    #x26 = left rear wheel angular speed
-    #x27 = right rear wheel angular speed
-
-    #x28 = delta_y_f
-    #x29 = delta_y_r
 
     #u1 = steering angle velocity of front wheels
     #u2 = acceleration
@@ -99,13 +74,24 @@ def vehicleDynamics_MB(x,uInit,p):
         accelerationConstraints(x[3],uInit[1],p.longitudinal)
     ]
 
+
     #compute slip angle at cg
     #switch to kinematic model for small velocities
-    if x[3]<0 or abs(x[3]) < KS_SWITCH_SPEED:
-        beta = 0
-    else:
-        beta = math.atan(x[10]/x[3]) 
-    vel = math.sqrt(x[3]**2 + x[10]**2) 
+    # switch to kinematic model for small velocities
+    if x[3] < 0 or abs(x[3]) < KS_SWITCH_SPEED:  # tobi added for reverse gear and increased to 2m/s to reduce numerical instability at low speed by /speed - hint from matthias
+        # wheelbase
+        lwb = p.a + p.b
+
+        # system dynamics
+        x_ks = [x[0], x[1], x[2], x[3], x[4]]
+        f_ks = vehicleDynamics_KS(x_ks, u, p)
+        f = [f_ks[0], f_ks[1], f_ks[2], f_ks[3], f_ks[4],
+             u[1] / lwb * math.tan(x[2]) + x[3] / (lwb * math.cos(x[2]) ** 2) * u[0],
+             0]
+
+        return f
+
+    vel = math.sqrt(x[3]**2 + x[10]**2)
 
     #vertical tire forces
     F_z_LF = (x[16] + p.R_w*(math.cos(x[13]) - 1) - 0.5*p.T_f*math.sin(x[13]))*p.K_zt 
