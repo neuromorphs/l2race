@@ -154,6 +154,7 @@ class Game:
 
                 if command.reset_car:
                     # car state reset handled on server side, here just put in forward gear
+                    logger.info('sending message to reset car state to server, putting in foward gear on client')
                     self.input.car_input.reverse=False
 
                 if command.restart_client:
