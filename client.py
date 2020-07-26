@@ -48,7 +48,7 @@ def get_args():
 
 
 class Game:
-    def __init__(self, track_name='track', game_mode=1, server_host=SERVER_HOST, server_port=SERVER_PORT, joystick_number=JOYSTICK_NUMBER, fps=FPS, widthPixels=SCREEN_WIDTH_PIXELS, heightPixels=SCREEN_HEIGHT_PIXELS):
+    def __init__(self, track_name='track', game_mode=1, server_host=SERVER_HOST, server_port=SERVER_PORT, joystick_number=JOYSTICK_NUMBER, fps=FPS, widthPixels=SCREEN_WIDTH_PIXELS, heightPixels=SCREEN_HEIGHT_PIXELS, timeout_ms=SOCKET_TIMEOUT_SEC):
         pygame.init()
         logger.info('using pygame version {}'.format(pygame.version.ver))
         pygame.display.set_caption("l2race")
@@ -62,6 +62,7 @@ class Game:
         self.fps=fps
         self.server_host=server_host
         self.server_port=server_port
+        self.socket_timeout_ms=timeout_ms
 
         self.track_name = track_name
         self.game_mode = game_mode
@@ -81,8 +82,8 @@ class Game:
     def run(self):
         iterationCounter=0
         serverSock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM) # UDP
-        serverAddr=(SERVER_HOST, SERVER_PORT)
-        serverSock.settimeout(SOCKET_TIMEOUT_SEC)
+        serverAddr=(self.server_host, self.server_port)
+        serverSock.settimeout(self.socket_timeout_ms)
         serverSock.bind(('',0)) # bind to receive on any port from server - seems to cause 'ConnectionResetError: [WinError 10054] An existing connection was forcibly closed by the remote host'
 
         logger.info('connecting to l2race model server at '+str(serverAddr))
@@ -95,6 +96,7 @@ class Game:
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:
                     self.exit = True # TODO clean up, seems redundant. what sets pygame.QUIT?
+                    break
             command = self.input.read()
             if command.quit:
                 logger.info('startup aborted before connecting to server')
@@ -102,7 +104,11 @@ class Game:
             cmd = 'newcar'
             data = (cmd, self.track_name, self.game_mode)
             p = pickle.dumps(data)
-            logger.info('sending cmd={} to server initial address {}, waiting for server'.format(cmd, serverAddr))
+            s='sending cmd={} to server initial address {}, waiting for server...[{}]'.format(cmd, serverAddr,ntries)
+            logger.info(s)
+            self.screen.fill([0, 0, 0])
+            self.render_multi_line(s, 10, 10)
+            pygame.display.flip()
             serverSock.sendto(p, serverAddr)
             try:
                 p, gameSockAddr = serverSock.recvfrom(4096) # todo add timeout for flaky connection
@@ -144,6 +150,7 @@ class Game:
                 if command.quit:
                     logger.info('quit recieved, ending main loop')
                     self.exit=True
+                    break
 
                 if command.reset:
                     # car state reset handled on server side, here just put in forward gear
@@ -177,8 +184,10 @@ class Game:
                 pygame.display.flip()
                 self.clock.tick(self.fps) # limit runtime to self.ticks Hz update rate
 
-
-        logger.info('quitting')
+        if serverSock:
+            logger.info('closing socket')
+            serverSock.close()
+        logger.info('quitting pygame')
         pygame.quit()
         quit()
 
@@ -192,5 +201,5 @@ if __name__ == '__main__':
                        'You can try to install with "pip install Gooey"')
     args = get_args()
 
-    game = Game(track_name='track', game_mode=1, server_host=args.host, server_port=args.port, joystick_number=args.joystick, fps=args.fps)
+    game = Game(track_name='track', game_mode=1, server_host=args.host, server_port=args.port, joystick_number=args.joystick, fps=args.fps, timeout_ms=args.timeout_ms)
     game.run()

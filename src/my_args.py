@@ -14,6 +14,7 @@ def client_args(parser):
     clientGroup.add_argument("--port", type=int, default=SERVER_PORT, help="Server port address for initiating connections.")
     clientGroup.add_argument("--fps", type=int, default=FPS, help="Frame rate on client side (server always sets time to real time).")
     clientGroup.add_argument("--joystick", type=int, default=JOYSTICK_NUMBER, help="Desired joystick number, starting with 0.")
+    clientGroup.add_argument("--timeout_ms", type=int, default=int(SOCKET_TIMEOUT_SEC*1000), help="Socket timeout in ms for communication with model server.")
 
     return parser
 

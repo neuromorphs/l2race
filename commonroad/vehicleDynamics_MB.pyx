@@ -136,7 +136,7 @@ cpdef double[:] vehicleDynamics_MB(double[:] x,double[:] uInit,object p):
     #switch to kinematic model for small velocities
     cdef float     alpha_LF
     cdef float     alpha_RF
-    cdef float    alpha_LR
+    cdef float     alpha_LR
     cdef float     alpha_RR
     if abs(x[3]) < KS_SWITCH_SPEED:
         alpha_LF = 0
@@ -280,12 +280,7 @@ cpdef double[:] vehicleDynamics_MB(double[:] x,double[:] uInit,object p):
     if abs(x[3]) < KS_SWITCH_SPEED:
         #wheelbase
         lwb = p.a + p.b
-        
-        #system dynamics
-        x_ks= [x[0],  x[1],  x[2],  x[3],  x[4]]
-        f_ks= vehicleDynamics_KS(x_ks,u,p)
-        f.extend(f_ks)
-        f.append(u[1]*lwb*math.tan(x[2]) + x[3]/(lwb*math.cos(x[2])**2)*u[0])
+
     #states
     #x1 = x-position in a global coordinate system
     #x2 = y-position in a global coordinate system
@@ -293,16 +288,13 @@ cpdef double[:] vehicleDynamics_MB(double[:] x,double[:] uInit,object p):
     #x4 = velocity in x-direction
     #x5 = yaw angle
     #x6 = yaw rate
-
     #x7 = roll angle
-    #x8 = roll rate
-    #x9 = pitch angle
-    #x10 = pitch rate
-    #x11 = velocity in y-direction
-    #x12 = z-position
-    #x13 = velocity in z-direction
 
-
+        #system dynamics
+        x_ks= [x[0],  x[1],  x[2],  x[3],  x[4]]
+        f_ks= vehicleDynamics_KS(x_ks,u,p)
+        f.extend(f_ks)
+        f.append(u[1]*lwb*math.tan(x[2]) + x[3]/(lwb*math.cos(x[2])**2)*u[0])
 
     else:
         f.append(math.cos(beta + x[4])*speed)
@@ -312,6 +304,12 @@ cpdef double[:] vehicleDynamics_MB(double[:] x,double[:] uInit,object p):
         f.append(x[5])
         f.append(1/(p.I_z - (p.I_xz_s)**2/p.I_Phi_s)*(sumN + p.I_xz_s/p.I_Phi_s*sumL))
 
+    #x8 = roll rate
+    #x9 = pitch angle
+    #x10 = pitch rate
+    #x11 = velocity in y-direction
+    #x12 = z-position
+    #x13 = velocity in z-direction
 
     # remaining sprung mass dynamics
     f.append(x[7])

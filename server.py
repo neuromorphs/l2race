@@ -46,7 +46,7 @@ class ServerCarThread(threading.Thread):
     def run(self):
         logger.info("Starting car thread for "+str(self.clientAddr))
         clientSock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM) # make a new datagram socket
-        clientSock.bind(('', 0)) # bind to port 0 to get a random free port
+        clientSock.bind(('0.0.0.0', 0)) # bind to port 0 to get a random free port
         gameAddr=clientSock.getsockname() # get the port info for our local port
         logger.info('found free local UDP port address {}, sending initial CarState to client at {}'.format(gameAddr,self.clientAddr))
         data = (self.car_model.car_state, self.car_name)
