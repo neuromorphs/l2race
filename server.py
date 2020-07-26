@@ -34,7 +34,7 @@ def get_args():
 
 
 class ServerCarThread(threading.Thread):
-    def __init__(self, addr, track,ignore_off_track=DO_NOT_RESET_CAR_WHEN_IT_GOES_OFF_TRACK):
+    def __init__(self, addr, track, ignore_off_track=DO_NOT_RESET_CAR_WHEN_IT_GOES_OFF_TRACK, timeout_s=CLIENT_TIMEOUT_SEC):
         threading.Thread.__init__(self)
         self.clientAddr = addr
         self.track = track
@@ -42,26 +42,36 @@ class ServerCarThread(threading.Thread):
         self.car_name = random.choice(car_names)
         self.car = car(car_name=self.car_name)
         self.car_model = CarModel(track=track, car_name=self.car_name, ignore_off_track=ignore_off_track)
+        self.timeout_s=timeout_s
 
     def run(self):
         logger.info("Starting car thread for "+str(self.clientAddr))
         clientSock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM) # make a new datagram socket
+        if self.timeout_s>0: clientSock.settimeout(self.timeout_s)
         clientSock.bind(('0.0.0.0', 0)) # bind to port 0 to get a random free port
         gameAddr=clientSock.getsockname() # get the port info for our local port
         logger.info('found free local UDP port address {}, sending initial CarState to client at {}'.format(gameAddr,self.clientAddr))
         data = (self.car_model.car_state, self.car_name)
         p = pickle.dumps(data)  # tobi measured about 600 bytes, without car_name
         clientSock.sendto(p, self.clientAddr)
-        logger.info('starting control/state loop (waiting for initial client control')
+        logger.info('starting control/state loop (waiting for initial client control from {})'.format(self.clientAddr))
         lastT = timer()
+        first_control_msg_received=False
         while True:
-            data,clientAddr = clientSock.recvfrom(1024) # get control input
-            command = pickle.loads(data)
-            if command.quit:
-                logger.info('quit recieved from {}, ending control loop'.format(self.clientAddr))
+            try:
+                data,lastClientAddr = clientSock.recvfrom(1024) # get control input TODO add timeout and better dead client handling
+                command = pickle.loads(data)
+                if command.quit:
+                    logger.info('quit recieved from {}, ending control loop'.format(lastClientAddr))
+                    break
+                if command.reset:
+                    logger.info('reset recieved from {}, resetting car'.format(lastClientAddr))
+            except OSError as oserror:
+                logger.warning('{}: garbled command or timeout, ending control loop thread'.format(oserror))
                 break
-            if command.reset:
-                logger.info('reset recieved from {}, resetting car'.format(self.clientAddr))
+            if not first_control_msg_received:
+                logger.info('got first command from client at {}'.format(lastClientAddr))
+                first_control_msg_received=True
             now=timer()
             dtSec = now-lastT # compute local real timestep, done on server to prevent accelerated real time cheating
             lastT=now
@@ -72,9 +82,9 @@ class ServerCarThread(threading.Thread):
             # logger.info('sending car_state={}'.format(car.car_state))
             data=(dtSec, carThread.car.car_state) # send (dt,car_state) to client # todo instrument to see how big is data in bytes
             p=pickle.dumps(data) # about 840 bytes
-            clientSock.sendto(p,clientAddr)
+            clientSock.sendto(p,lastClientAddr)
 
-        logger.info('closing client socket')
+        logger.info('closing client socket, ending thread (server main thread waiting for new connection)')
         clientSock.close()
 
 
@@ -101,7 +111,7 @@ if __name__ == '__main__':
         if cmd == 'newcar': # todo add arguments with newcar like driver/car name
             current_track = track(track_name=track_name)
             logger.info('model server starting a new ServerCarThread for client at {}'.format(clientAddr))
-            carThread = ServerCarThread(clientAddr, track=current_track, ignore_off_track=args.ignore_off_track)
+            carThread = ServerCarThread(clientAddr, track=current_track, ignore_off_track=args.ignore_off_track, timeout_s=args.timeout_s)
             clients[clientAddr] = carThread
             carThread.start()
         else:

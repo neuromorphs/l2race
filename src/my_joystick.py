@@ -29,7 +29,7 @@ class my_joystick:
     XBOX_ONE_BLUETOOTH_JOYSTICK = 'Xbox One S Controller'
     XBOX_WIRED = 'Xbox 360 Wireless Receiver' #Although in the name the word 'Wireless' appears, the controller is wired
 
-    def __init__(self):
+    def __init__(self, joystick_number=JOYSTICK_NUMBER):
         self.joy:joystick.Joystick=None
         self.car_input=car_command()
         self.numAxes=None
@@ -37,6 +37,7 @@ class my_joystick:
         self.axes=None
         self.buttons=None
         self.name=None
+        self.joystick_number=joystick_number
 
         self._rev_was_pressed=False # to go to reverse mode or toggle out of it
 
@@ -47,10 +48,8 @@ class my_joystick:
             logger.warning('no joystick(s) found; only keyboard control possible')
             raise Exception('no joystick found')
 
-        if platform.system() == 'Linux':
-            self.joy = joystick.Joystick(4-JOYSTICK_NUMBER)
-        else:
-            self.joy = joystick.Joystick(JOYSTICK_NUMBER)
+
+        self.joy = joystick.Joystick(self.joystick_number)
         self.joy.init()
         self.numAxes = self.joy.get_numaxes()
         self.numButtons = self.joy.get_numbuttons()

@@ -48,7 +48,7 @@ def get_args():
 
 
 class Game:
-    def __init__(self, track_name='track', game_mode=1, server_host=SERVER_HOST, server_port=SERVER_PORT, joystick_number=JOYSTICK_NUMBER, fps=FPS, widthPixels=SCREEN_WIDTH_PIXELS, heightPixels=SCREEN_HEIGHT_PIXELS, timeout_ms=SOCKET_TIMEOUT_SEC):
+    def __init__(self, track_name='track', game_mode=1, server_host=SERVER_HOST, server_port=SERVER_PORT, joystick_number=JOYSTICK_NUMBER, fps=FPS, widthPixels=SCREEN_WIDTH_PIXELS, heightPixels=SCREEN_HEIGHT_PIXELS, timeout_s=SERVER_TIMEOUT_SEC):
         pygame.init()
         logger.info('using pygame version {}'.format(pygame.version.ver))
         pygame.display.set_caption("l2race")
@@ -62,7 +62,7 @@ class Game:
         self.fps=fps
         self.server_host=server_host
         self.server_port=server_port
-        self.socket_timeout_ms=timeout_ms
+        self.server_timeout_s=timeout_s
 
         self.track_name = track_name
         self.game_mode = game_mode
@@ -83,7 +83,7 @@ class Game:
         iterationCounter=0
         serverSock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM) # UDP
         serverAddr=(self.server_host, self.server_port)
-        serverSock.settimeout(self.socket_timeout_ms)
+        serverSock.settimeout(self.server_timeout_s)
         serverSock.bind(('',0)) # bind to receive on any port from server - seems to cause 'ConnectionResetError: [WinError 10054] An existing connection was forcibly closed by the remote host'
 
         logger.info('connecting to l2race model server at '+str(serverAddr))
@@ -201,5 +201,5 @@ if __name__ == '__main__':
                        'You can try to install with "pip install Gooey"')
     args = get_args()
 
-    game = Game(track_name='track', game_mode=1, server_host=args.host, server_port=args.port, joystick_number=args.joystick, fps=args.fps, timeout_ms=args.timeout_ms)
+    game = Game(track_name='track', game_mode=1, server_host=args.host, server_port=args.port, joystick_number=args.joystick, fps=args.fps, timeout_s=args.timeout_s)
     game.run()

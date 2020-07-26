@@ -14,7 +14,7 @@ SCREEN_HEIGHT_PIXELS= 768 # pixels
 M_PER_PIXEL=0.15
 
 SERVER_PING_INTERVAL_S=1 # interval between trying for server
-SOCKET_TIMEOUT_SEC=0.2 # timeout for UDP socket reads
+SERVER_TIMEOUT_SEC=0.2 # timeout in seconds for UDP socket reads during game running
 import scipy.constants
 G=scipy.constants.value('standard acceleration of gravity')
 
@@ -29,5 +29,6 @@ JOYSTICK_NUMBER = 0 # todo in case multiple joysticks, use this to set the desir
 #server and model settings. Client cannot affect these model server settings
 DO_NOT_RESET_CAR_WHEN_IT_GOES_OFF_TRACK = True # set true for testing dynamics of car
 FRICTION_FACTOR = .5 # overall friction parameter multiplier for some models
+CLIENT_TIMEOUT_SEC=1 # server timeout in seconds before it ends thread for handling a car model
 
 

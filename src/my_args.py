@@ -14,7 +14,7 @@ def client_args(parser):
     clientGroup.add_argument("--port", type=int, default=SERVER_PORT, help="Server port address for initiating connections.")
     clientGroup.add_argument("--fps", type=int, default=FPS, help="Frame rate on client side (server always sets time to real time).")
     clientGroup.add_argument("--joystick", type=int, default=JOYSTICK_NUMBER, help="Desired joystick number, starting with 0.")
-    clientGroup.add_argument("--timeout_ms", type=int, default=int(SOCKET_TIMEOUT_SEC*1000), help="Socket timeout in ms for communication with model server.")
+    clientGroup.add_argument("--timeout_s", type=int, default=SERVER_TIMEOUT_SEC, help="Socket timeout in seconds for communication with model server.")
 
     return parser
 
@@ -22,9 +22,8 @@ def server_args(parser):
     # check and add prefix if running script in subfolder
 
     serverGroup = parser.add_argument_group('Server arguments:')
-    serverGroup.add_argument(
-        "--ignore_off_track", action='store_true',
-        help="ignore when car goes off track (for testing car dynamics more easily)")
+    serverGroup.add_argument("--ignore_off_track", action='store_true', help="ignore when car goes off track (for testing car dynamics more easily)")
+    serverGroup.add_argument("--timeout_s", type=int, default=CLIENT_TIMEOUT_SEC, help="server timeout in seconds before it ends thread for handling a car model")
 
     return parser
 
