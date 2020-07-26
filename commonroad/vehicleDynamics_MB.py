@@ -12,7 +12,7 @@ from src.my_logger import my_logger
 logger = my_logger(__name__)
 logger.setLevel(logging.DEBUG)
 
-KS_SWITCH_SPEED=2.0
+KS_SWITCH_SPEED=0.25
 
 import cython
 if cython.compiled:
@@ -50,7 +50,6 @@ def vehicleDynamics_MB(x,uInit,p):
     # Last revision:---
 
     #------------- BEGIN CODE --------------
-
     # set gravity constant
     g = 9.81  #[m/s^2]
 

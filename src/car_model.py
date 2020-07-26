@@ -3,15 +3,13 @@
 import logging
 from math import sin, radians, degrees, cos, copysign
 import numpy as np
-from scipy.integrate import RK23, RK45
+from scipy.integrate import RK23, RK45, LSODA, BDF, DOP853
 
 from src.car_command import car_command
 from src.car_state import car_state
 from src.globals import *
 from src.my_logger import my_logger
 from src.track import track
-
-MAX_TIMESTEP = 0.1
 
 logger = my_logger(__name__)
 logger.setLevel(logging.DEBUG)
@@ -33,11 +31,12 @@ from commonroad.vehicleDynamics_MB import vehicleDynamics_MB # fancy multibody m
 from timeit import default_timer as timer
 
 LOGGING_INTERVAL_CYCLES=1000 # log output only this often
-MODEL_TYPE='MB' # 'KS', 'ST' 'MB'
-SOLVER=RK45 # RK23 # faster, no overhead but no checking
+MODEL=vehicleDynamics_MB # vehicleDynamics_KS vehicleDynamics_ST vehicleDynamics_MB
+MAX_TIMESTEP = 0.1
+SOLVER=RK45 # DOP853 LSODA BDF RK45 RK23 # faster, no overhead but no checking
 PARAMETERS=parameters_vehicle2
-RTOL=1e-4
-ATOL=1e-2
+RTOL=1e-2
+ATOL=1e-4
 
 # indexes into model state
 # states
@@ -57,23 +56,26 @@ IYAW = 4
 IYAWRATE = 5
 ISLIPANGLE=6
 
-
 def func_KS(t, x , u, p):
     f = vehicleDynamics_KS(x, u, p)
+    CarModel.neval+=1
     return f
 
 
 def func_ST(t, x , u, p):
     f = vehicleDynamics_ST(x, u, p)
+    CarModel.neval+=1
     return f
 
 
 def func_MB(t, x , u, p):
     f = vehicleDynamics_MB(x, u, p)
+    CarModel.neval+=1
     return f
 
 
 class CarModel:
+    neval=0
     """
     Car model, hidden from participants, updated on server
     """
@@ -89,17 +91,14 @@ class CarModel:
         self.passed_anti_cheat_rect = True  # Prohibiting (significant) cutoff
         self.round_num = 0  # Counts the rounds
         # change MODEL_TYPE to select vehicle model type
-        self.model_type = MODEL_TYPE # 'KS' 'ST' 'MB' # model type KS: kinematic single track, ST: single track (with slip), MB: fancy multibody
-        if self.model_type== 'KS':
-            self.model=vehicleDynamics_KS
+        self.model = MODEL # 'KS' 'ST' 'MB' # model type KS: kinematic single track, ST: single track (with slip), MB: fancy multibody
+        if self.model== vehicleDynamics_KS:
             self.model_init=init_KS
             self.model_func=func_KS
-        elif self.model_type== 'ST':
-            self.model=vehicleDynamics_ST
+        elif self.model== vehicleDynamics_ST:
             self.model_init=init_ST
             self.model_func=func_ST
-        elif self.model_type== 'MB':
-            self.model=vehicleDynamics_MB
+        elif self.model== vehicleDynamics_MB:
             self.model_init=init_MB
             self.model_func=func_MB
 
@@ -128,7 +127,7 @@ class CarModel:
         dotPsi0 = 0
         beta0 = 0
         initialState = [sx0, sy0, delta0, vel0, Psi0, dotPsi0, beta0]  # initial state for simulation
-        if self.model_type== 'MB':
+        if self.model== vehicleDynamics_MB:
             self.model_state = self.model_init(initialState,self.parameters)  # initial state for MB needs params too
         else:
             self.model_state = self.model_init(initialState)  # initial state
@@ -142,6 +141,8 @@ class CarModel:
         self.first_step=True
 
         self.ignore_off_track=ignore_off_track
+
+        self.atol=self.atol*np.ones(30)
 
     def zeroTo60mpsTimeToAccelG(self,time):
         return (60*0.447)/time/G
@@ -182,7 +183,7 @@ class CarModel:
 
             self.solver=SOLVER(fun=model_func, t0=self.time, t_bound=1e99,
                         y0=self.model_state,
-                        first_step=0.0001, max_step=0.1, atol=ATOL, rtol=RTOL)
+                        first_step=0.00001, max_step=0.01, atol=ATOL, rtol=RTOL)
             self.first_step=False
 
         if dtSec> MAX_TIMESTEP:
@@ -192,27 +193,34 @@ class CarModel:
             dtSec=MAX_TIMESTEP
 
         # self.solver.t_bound=self.solver.t+dtSec
+        neval_before=CarModel.neval
         tstart=self.solver.t
         tlast=tstart
         it=0
-        while self.solver.t<tstart+dtSec:
+        too_slow=False
+        while self.solver.t<tstart+dtSec and not too_slow:
             self.solver.step()
             tnow=self.solver.t
             dt=tnow-tlast
             tlast=tnow
-            it+=1
+            too_slow=timer() > start + 0.8*dtSec
         tend=self.solver.t
         tsimulated=tend-tstart
 
         self.time=self.solver.t
-        self.solver.dense_output() # interpolate
+        try:
+            self.solver.dense_output() # interpolate
+        except RuntimeError:
+            pass
         self.model_state = self.solver.y
         end=timer()
 
         dtSolveSec=end-start
-        if dtSolveSec>0.001:
-            s='Soln took {:.1f}ms for timestep of {:.1f}ms'.format(dtSolveSec*1000, dtSec*1000)
+        if dtSolveSec>0.0001:
             # logger.warning(s)
+            neval_after=CarModel.neval
+            neval_diff=neval_after-neval_before
+            s='{} took {} evals in {:.1f}ms for timestep {:.1f}ms to advance {:.1f}ms {}'.format(self.model.__name__, neval_diff, dtSolveSec*1000, dtSec*1000,tsimulated*1000, ('(too_slow)' if too_slow else ''))
             self.car_state.server_msg+='\n'+s
         # dfdt=self.model(x=self.model_state, uInit=u, p=self.parameters)
         # print('derivatives of state: '+str(dfdt))
@@ -230,9 +238,12 @@ class CarModel:
         self.car_state.speed_m_per_sec=self.model_state[ISPEED]
         self.car_state.steering_angle_deg=degrees(self.model_state[ISTEERANGLE])
         self.car_state.body_angle_deg=degrees(self.model_state[IYAW])
-        if self.model_type=='ST':
+        if self.model==vehicleDynamics_ST:
             self.car_state.yaw_rate_deg_per_sec=degrees(self.model_state[IYAWRATE])
             self.car_state.drift_angle_deg=degrees(self.model_state[ISLIPANGLE])
+        elif self.model==vehicleDynamics_MB:
+            self.car_state.yaw_rate_deg_per_sec=degrees(self.model_state[IYAWRATE])
+
         self.car_state.velocity_m_per_sec.x= self.car_state.speed_m_per_sec * cos(radians(self.car_state.body_angle_deg))
         self.car_state.velocity_m_per_sec.y= self.car_state.speed_m_per_sec * sin(radians(self.car_state.body_angle_deg))
         self.car_state.accel_m_per_sec_2.x=accel

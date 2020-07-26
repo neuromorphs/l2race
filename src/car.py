@@ -31,7 +31,7 @@ class car:
         rect = rotated.get_rect()
         screen.blit(rotated, ((self.car_state.position_m/M_PER_PIXEL) - (int(rect.width / 2), int(rect.height / 2))))
         # draw acceleration
-        len=(self.car_state.accel_m_per_sec_2.x/G)*(self.car_state.length_m * 2) # self.car_state.command.throttle*self.car_state.length*2 # todo fix when accel include lateral component
+        len=(self.car_state.accel_m_per_sec_2.x/G)*(self.car_state.length_m * 6) # self.car_state.command.throttle*self.car_state.length*2 # todo fix when accel include lateral component
         body_rad=radians(self.car_state.body_angle_deg)
         body_vec=(len*cos(body_rad),len*sin(body_rad))
         pygame.draw.line(screen, [255,50,50],self.car_state.position_m/M_PER_PIXEL, (self.car_state.position_m+body_vec)/M_PER_PIXEL,1)

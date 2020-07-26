@@ -14,7 +14,7 @@ import array
 logger = my_logger(__name__)
 logger.setLevel(logging.DEBUG)
 
-cdef float KS_SWITCH_SPEED=2.0
+cdef float KS_SWITCH_SPEED=0.1
 
 import cython
 if cython.compiled:
@@ -47,7 +47,6 @@ cpdef double[:] vehicleDynamics_MB(double[:] x,double[:] uInit,object p):
     # Last revision:---
 
     #------------- BEGIN CODE --------------
-
     # set gravity constant
     cdef float g = 9.81  #[m/s^2]
 
@@ -101,7 +100,7 @@ cpdef double[:] vehicleDynamics_MB(double[:] x,double[:] uInit,object p):
         beta = 0
     else:
         beta = math.atan(x[10]/x[3]) 
-    cdef float vel = math.sqrt(x[3]**2 + x[10]**2)
+    cdef float speed = math.sqrt(x[3]**2 + x[10]**2)
 
     #vertical tire forces
     cdef float F_z_LF = (x[16] + p.R_w*(math.cos(x[13]) - 1) - 0.5*p.T_f*math.sin(x[13]))*p.K_zt
@@ -287,10 +286,27 @@ cpdef double[:] vehicleDynamics_MB(double[:] x,double[:] uInit,object p):
         f_ks= vehicleDynamics_KS(x_ks,u,p)
         f.extend(f_ks)
         f.append(u[1]*lwb*math.tan(x[2]) + x[3]/(lwb*math.cos(x[2])**2)*u[0])
+    #states
+    #x1 = x-position in a global coordinate system
+    #x2 = y-position in a global coordinate system
+    #x3 = steering angle of front wheels
+    #x4 = velocity in x-direction
+    #x5 = yaw angle
+    #x6 = yaw rate
+
+    #x7 = roll angle
+    #x8 = roll rate
+    #x9 = pitch angle
+    #x10 = pitch rate
+    #x11 = velocity in y-direction
+    #x12 = z-position
+    #x13 = velocity in z-direction
+
+
 
     else:
-        f.append(math.cos(beta + x[4])*vel)
-        f.append(math.sin(beta + x[4])*vel)
+        f.append(math.cos(beta + x[4])*speed)
+        f.append(math.sin(beta + x[4])*speed)
         f.append(u[0])
         f.append(1/p.m*sumX + x[5]*x[10])
         f.append(x[5])
@@ -346,6 +362,5 @@ cpdef double[:] vehicleDynamics_MB(double[:] x,double[:] uInit,object p):
     f.append(dot_delta_y_r)
 
     return f
-
 
     #------------- END OF CODE --------------

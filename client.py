@@ -76,7 +76,7 @@ class Game:
     def render_multi_line(self, text, x, y): # todo clean up
         lines = text.splitlines()
         for i, l in enumerate(lines):
-            self.game_font.render_to(self.screen, (x, y + GAME_FONT_SIZE * i), l, [255,255,255]),
+            self.game_font.render_to(self.screen, (x, y + GAME_FONT_SIZE * i), l, [200,200,200]),
 
     def run(self):
         iterationCounter=0
