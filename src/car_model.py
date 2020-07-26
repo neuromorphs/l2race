@@ -148,7 +148,7 @@ class CarModel:
         return (60*0.447)/time/G
 
     def update(self, dtSec, command:car_command):
-        if command.reset:
+        if command.reset_car:
             self.reset()
 
         self.car_state.server_msg = ''

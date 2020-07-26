@@ -21,6 +21,7 @@ def printhelp():
           'throttle is right paddle, brake is left paddle\n'
           'B toggles reverse gear\n'
           'Menu button resets car\n'
+          'X R restarts client from scratch (if server went down)\n'
           'Windows button quits\n'
           )
 
@@ -63,6 +64,7 @@ class my_joystick:
     def read(self):
         pygame.event.get() # must call get() to handle internal queue
 
+        self.car_input.restart_client=self.joy.get_button(2) # X button
         revPressed = self.joy.get_button(1)  # B button
         if revPressed and not self._rev_was_pressed:  # if it was not pressed last time and is pressed now, toggle reverse
             self.car_input.reverse = not self.car_input.reverse
@@ -71,14 +73,14 @@ class my_joystick:
             self.car_input.steering = self.joy.get_axis(0) #self.axes[0], returns + for right push, which should make steering angle positive, i.e. CW
             self.car_input.throttle = (1 + self.joy.get_axis(5)) / 2. # (1+self.axes[5])/2
             self.car_input.brake = (1+self.joy.get_axis(2))/2. #(1+self.axes[2])/2
-            self.car_input.reset=self.joy.get_button(7) # menu button
+            self.car_input.reset_car=self.joy.get_button(7) # menu button
             self.car_input.quit=self.joy.get_button(6) # windows button
 
         elif self.name==my_joystick.XBOX_WIRED:
             self.car_input.steering = self.joy.get_axis(0) #self.axes[0], returns + for right push, which should make steering angle positive, i.e. CW
             self.car_input.throttle = (1 + self.joy.get_button(7)) / 2.  # (1+self.axes[5])/2
             self.car_input.brake = (1 + self.joy.get_button(6)) / 2.  # (1+self.axes[2])/2
-            self.car_input.reset = self.joy.get_button(9)  # menu button
+            self.car_input.reset_car = self.joy.get_button(9)  # menu button
             self.car_input.quit = self.joy.get_button(8)  # windows button
 
         # print(self)

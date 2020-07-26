@@ -131,7 +131,7 @@ class Game:
 
 
             logger.info('starting main loop')
-            while not self.exit:
+            while not self.exit and gotServer:
                 iterationCounter+=1
                 if iterationCounter%CHECK_FOR_JOYSTICK_INTERVAL==0 and not isinstance(self.input, my_joystick):
                     try:
@@ -152,9 +152,14 @@ class Game:
                     self.exit=True
                     break
 
-                if command.reset:
+                if command.reset_car:
                     # car state reset handled on server side, here just put in forward gear
                     self.input.car_input.reverse=False
+
+                if command.restart_client:
+                    logger.info('restarting client')
+                    gotServer=False
+                    break
 
                 # send control to server
                 data=command # todo add general command structure to msg

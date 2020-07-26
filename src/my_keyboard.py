@@ -9,6 +9,7 @@ def printhelp():
     print('Keyboard commands:\n'
           'drive with LEFT/UP/RIGHT/DOWN or AWDS keys\n'
           'r resets car\n'
+          'R restarts client from scratch (if server went down)\n'
           'ESC quits\n'
           'h|? shows this help')
 class my_keyboard:
@@ -24,7 +25,8 @@ class my_keyboard:
         self.car_input.throttle = 0.
         self.car_input.brake = 0.
         self.car_input.steering = 0.
-        self.car_input.reset=False
+        self.car_input.reset_car=False
+        self.car_input.restart_client=False
 
         if not any(pressed):
             return self.car_input
@@ -47,7 +49,9 @@ class my_keyboard:
         elif pressed[pygame.K_ESCAPE]:
             self.car_input.quit = True
         elif pressed[pygame.K_r]:
-            self.car_input.reset =True
+            self.car_input.reset_car =True
+        elif pressed[pygame.K_r] and pressed[pygame.KMOD_SHIFT]:
+            self.car_input.restart_client =True
         elif pressed[pygame.K_QUESTION] or pressed[pygame.K_h]:
             printhelp()
         else:

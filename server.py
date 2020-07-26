@@ -64,7 +64,7 @@ class ServerCarThread(threading.Thread):
                 if command.quit:
                     logger.info('quit recieved from {}, ending control loop'.format(lastClientAddr))
                     break
-                if command.reset:
+                if command.reset_car:
                     logger.info('reset recieved from {}, resetting car'.format(lastClientAddr))
             except OSError as oserror:
                 logger.warning('{}: garbled command or timeout, ending control loop thread'.format(oserror))

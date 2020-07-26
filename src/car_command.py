@@ -8,7 +8,8 @@ class car_command:
         self.throttle=0  # bounded to 0-1 from 0 to maximum possible, acts on car longitudinal acceleration according to hidden car and its motor dynamics
         self.brake=0  # bounded from 0-1
         self.reverse=False # boolean reverse gear
-        self.reset=False # in debugging mode, restarts car at starting line
+        self.reset_car=False # in debugging mode, restarts car at starting line
+        self.restart_client=False # abort current run (server went down?) and restart from scratch
         self.quit=False # quit input from controller, mapped to ESC for keyboard and menu button for xbox controller
 
     def __str__(self):
