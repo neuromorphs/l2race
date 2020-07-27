@@ -8,6 +8,7 @@ logger = my_logger(__name__)
 def printhelp():
     print('Keyboard commands:\n'
           'drive with LEFT/UP/RIGHT/DOWN or AWDS keys\n'
+          'BACKSPACE toggles reverse gear\n'
           'r resets car\n'
           'R restarts client from scratch (if server went down)\n'
           'ESC quits\n'
@@ -18,6 +19,7 @@ class my_keyboard:
         pygame.init()
         self.car_input = car_command()
         printhelp()
+        self.backspace_down=False
 
     def read(self):
         pressed = pygame.key.get_pressed()
@@ -45,13 +47,19 @@ class my_keyboard:
         elif pressed[pygame.K_LEFT] or pressed[pygame.K_a]:
             self.car_input.steering = -1. # steer in positive angle, i.e. CCW
         elif pressed[pygame.K_BACKSPACE]:
-            self.car_input.reverse = not self.car_input.reverse
+            if not self.backspace_down:
+                self.car_input.reverse = not self.car_input.reverse
+                self.backspace_down=True
+            else:
+                self.backspace_down=False
+
         elif pressed[pygame.K_ESCAPE]:
             self.car_input.quit = True
         elif pressed[pygame.K_r]:
-            self.car_input.reset_car =True
-        elif pressed[pygame.K_r] and pressed[pygame.KMOD_SHIFT]:
-            self.car_input.restart_client =True
+            if (pygame.key.get_mods() & pygame.KMOD_LSHIFT):
+                self.car_input.restart_client =True
+            else:
+                self.car_input.reset_car =True
         elif pressed[pygame.K_QUESTION] or pressed[pygame.K_h]:
             printhelp()
         else:

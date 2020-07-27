@@ -12,6 +12,15 @@ from numba import jit, float64, deferred_type
 import numba as nb
 fa=nb.types.List(nb.float64, reflected=False) # define numba type of list of float
 
+# Moritz Klischat: limit the steering angle based on the current velocity and/or acceleration input. Then it should at least not be possible to turn at any speed
+def friction_steering_constraint(acceleration, yaw_rate, steering_velocity, velocity, steering_angle, p):
+    yaw_rate_max = (p.longitudinal.a_max ** 2 - acceleration ** 2) / (velocity ** 2)
+    if yaw_rate ** 2 >= yaw_rate_max and steering_velocity * steering_angle > 0:
+        steering_velocity = 0
+    return steering_velocity
+
+
+
 # @jit(fa(fa, fa, vehicle_params_type))
 def vehicleDynamics_ST(x,uInit,p):
     # vehicleDynamics_ST - single-track vehicle dynamics 
@@ -71,11 +80,14 @@ def vehicleDynamics_ST(x,uInit,p):
     #consider steering constraints
     u = [
         steeringConstraints(x[2],uInit[0],p.steering),
+        # accelerationConstraints(x[3],uInit[1],p.longitudinal)
         accelerationConstraints(x[3],uInit[1],p.longitudinal)
     ]
 
+    u[0] = friction_steering_constraint(u[1], x[5], u[0], x[3], x[4], p)
+
     # switch to kinematic model for small velocities
-    if x[3]<0 or abs(x[3]) < 2.0: # tobi added for reverse gear and increased to 1m/s to reduce numerical instability at low speed by /speed - hint from matthias
+    if abs(x[3]) < 2.0: # tobi added for reverse gear and increased to 1m/s to reduce numerical instability at low speed by /speed - hint from matthias
         #wheelbase
         lwb = p.a + p.b
         

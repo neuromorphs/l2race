@@ -8,3 +8,4 @@ argcomplete
 opencv-python
 numba
 cython
+scipy

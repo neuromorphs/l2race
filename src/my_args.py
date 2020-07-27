@@ -1,5 +1,7 @@
 # arguments for l2race client and server
 import os
+
+import src.car_model
 from src.globals import *
 import logging
 
@@ -24,6 +26,7 @@ def server_args(parser):
     serverGroup = parser.add_argument_group('Server arguments:')
     serverGroup.add_argument("--ignore_off_track", action='store_true', help="ignore when car goes off track (for testing car dynamics more easily)")
     serverGroup.add_argument("--timeout_s", type=int, default=CLIENT_TIMEOUT_SEC, help="server timeout in seconds before it ends thread for handling a car model")
+    # serverGroup.add_argument("--model", type=str, default=src.car_model.MODEL, help="server timeout in seconds before it ends thread for handling a car model")
 
     return parser
 
