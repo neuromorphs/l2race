@@ -63,5 +63,58 @@ class car_state:
                     self.server_msg)
         return s
 
+    def headers(self):
+        h=[
+            'time',
+            'cmd.steering',
+            'cmd.throttle',
+            'cmd.brake',
+            'cmd.reverse',
+            'pos.x',
+            'pos.y',
+            'vel.x',
+            'vel.y',
+            'speed',
+            'accel.x',
+            'accel.y',
+            'steering_angle',
+            'body_angle',
+            'yaw_rate',
+            'drift_angle',
+            'length',
+            'width',
+        ]
+        s=''
+        for i in h[:-1]:
+            s=s+i+','
+        s=s+h[-1]
+        return s
+
+    def csvrow(self):
+        l=[
+            self.time,
+            self.command.steering,
+            self.command.throttle,
+            self.command.brake,
+            1 if self.command.reverse else 0,
+            self.position_m.x,
+            self.position_m.y,
+            self.velocity_m_per_sec.x,
+            self.velocity_m_per_sec.y,
+            self.speed_m_per_sec,
+            self.accel_m_per_sec_2.x,
+            self.accel_m_per_sec_2.y,
+            self.steering_angle_deg,
+            self.body_angle_deg,
+            self.yaw_rate_deg_per_sec,
+            self.drift_angle_deg,
+            self.length_m,
+            self.width_m,
+        ]
+        s=''
+        for v in l[:-1]:
+            s=s+('{},'.format(v))
+        s=s+('{:f}'.format(l[-1]))
+        return s
 
 

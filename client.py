@@ -18,6 +18,7 @@ import socket
 import time
 import pygame
 
+from src.data_recorder import data_recorder
 from src.l2race_utils import bind_socket_to_range, open_ports
 from src.globals import *
 from src.my_joystick import my_joystick
@@ -50,7 +51,7 @@ def get_args():
 
 
 class Game:
-    def __init__(self, track_name='track', game_mode=1, server_host=SERVER_HOST, server_port=SERVER_PORT, joystick_number=JOYSTICK_NUMBER, fps=FPS, widthPixels=SCREEN_WIDTH_PIXELS, heightPixels=SCREEN_HEIGHT_PIXELS, timeout_s=SERVER_TIMEOUT_SEC):
+    def __init__(self, track_name='track', game_mode=1, server_host=SERVER_HOST, server_port=SERVER_PORT, joystick_number=JOYSTICK_NUMBER, fps=FPS, widthPixels=SCREEN_WIDTH_PIXELS, heightPixels=SCREEN_HEIGHT_PIXELS, timeout_s=SERVER_TIMEOUT_SEC, record=DATA_FILENAME_BASE):
         pygame.init()
         logger.info('using pygame version {}'.format(pygame.version.ver))
         pygame.display.set_caption("l2race")
@@ -65,6 +66,8 @@ class Game:
         self.server_host=server_host
         self.server_port=server_port
         self.server_timeout_s=timeout_s
+        self.record=record
+        self.recorder=None
 
         self.track_name = track_name
         self.game_mode = game_mode
@@ -122,6 +125,11 @@ class Game:
                 gotServer = True
                 self.car = car(car_name=car_name)
                 self.car.car_state = car_state  # server sends initial state of car
+                if self.record :
+                    if self.recorder==None:
+                        self.recorder=data_recorder(car=self.car)
+                    self.recorder.open()
+
                 self.car.loadAndScaleCarImage()
                 logger.info('received car server response and initial car state; will use {} for communicating with l2race model server'.format(gameSockAddr))
                 logger.info('initial car state is '+str(self.car.car_state))
@@ -166,6 +174,8 @@ class Game:
                 if command.restart_client:
                     logger.info('restarting client')
                     gotServer=False
+                    if self.recorder:
+                        self.recorder.close()
                     break
 
                 # send control to server
@@ -189,6 +199,8 @@ class Game:
                     logger.warning(str(te)+": ignoring and waiting for next state")
                     continue
 
+                if self.recorder:
+                    self.recorder.write_sample()
                 # Drawing
                 self.track.draw(self.screen)
                 self.car.draw(self.screen)
@@ -214,5 +226,5 @@ if __name__ == '__main__':
                     'Ignore this warning if you do not want a GUI.')
     args = get_args()
 
-    game = Game(track_name='track', game_mode=1, server_host=args.host, server_port=args.port, joystick_number=args.joystick, fps=args.fps, timeout_s=args.timeout_s)
+    game = Game(track_name='track', game_mode=1, server_host=args.host, server_port=args.port, joystick_number=args.joystick, fps=args.fps, timeout_s=args.timeout_s, record=args.record)
     game.run()
