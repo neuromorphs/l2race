@@ -52,7 +52,18 @@ def get_args():
 
 
 class Game:
-    def __init__(self, track_name='track', game_mode=1, server_host=SERVER_HOST, server_port=SERVER_PORT, joystick_number=JOYSTICK_NUMBER, fps=FPS, widthPixels=SCREEN_WIDTH_PIXELS, heightPixels=SCREEN_HEIGHT_PIXELS, timeout_s=SERVER_TIMEOUT_SEC, record=DATA_FILENAME_BASE):
+    def __init__(self,
+                 track_name='track',
+                 game_mode=GAME_MODE,
+                 car_name=CAR_NAME,
+                 server_host=SERVER_HOST,
+                 server_port=SERVER_PORT,
+                 joystick_number=JOYSTICK_NUMBER,
+                 fps=FPS,
+                 widthPixels=SCREEN_WIDTH_PIXELS,
+                 heightPixels=SCREEN_HEIGHT_PIXELS,
+                 timeout_s=SERVER_TIMEOUT_SEC,
+                 record=DATA_FILENAME_BASE):
         pygame.init()
         logger.info('using pygame version {}'.format(pygame.version.ver))
         pygame.display.set_caption("l2race")
@@ -73,6 +84,7 @@ class Game:
         self.track_name = track_name
         self.game_mode = game_mode
         self.track = track(track_name=track_name)
+        self.car_name=car_name
         self.car = None # will make it later after we get info from server about car
         try:
             self.input=my_joystick(joystick_number)
@@ -113,9 +125,10 @@ class Game:
                 logger.info('startup aborted before connecting to server')
                 pygame.quit()
             cmd = 'newcar'
-            data = (cmd, self.track_name, self.game_mode)
+            payload=(self.track_name, self.game_mode, self.car_name)
+            data = (cmd, payload)
             p = pickle.dumps(data)
-            s='sending cmd={} to server initial address {}, waiting for server...[{}]'.format(cmd, serverAddr,ntries)
+            s='sending cmd={} with payload {} to server initial address {}, waiting for server...[{}]'.format(cmd, payload, serverAddr,ntries)
             logger.info(s)
             self.screen.fill([0, 0, 0])
             self.render_multi_line(s, 10, 10)
@@ -123,9 +136,9 @@ class Game:
             serverSock.sendto(p, serverAddr)
             try:
                 p, gameSockAddr = serverSock.recvfrom(4096) # todo add timeout for flaky connection
-                (car_state, car_name) = pickle.loads(p)
+                car_state = pickle.loads(p)
                 gotServer = True
-                self.car = car(car_name=car_name)
+                self.car = car(name=self.car_name)
                 self.car.car_state = car_state  # server sends initial state of car
                 if self.record :
                     if self.recorder==None:
@@ -231,5 +244,13 @@ if __name__ == '__main__':
                     'Ignore this warning if you do not want a GUI.')
     args = get_args()
 
-    game = Game(track_name='track', game_mode=1, server_host=args.host, server_port=args.port, joystick_number=args.joystick, fps=args.fps, timeout_s=args.timeout_s, record=args.record)
+    game = Game(track_name='track',
+                game_mode='multi' if args.multi else 'solo',
+                car_name=args.car_name,
+                server_host=args.host,
+                server_port=args.port,
+                joystick_number=args.joystick,
+                fps=args.fps,
+                timeout_s=args.timeout_s,
+                record=args.record)
     game.run()

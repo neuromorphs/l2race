@@ -8,7 +8,7 @@ from src.my_logger import my_logger
 from src.track import track
 
 from src.car_state import car_state
-from src.globals import SCREEN_WIDTH_PIXELS, SCREEN_HEIGHT_PIXELS, M_PER_PIXEL, G
+from src.globals import M_PER_PIXEL, G, CAR_NAME, GAME_FONT_NAME, GAME_FONT_SIZE
 
 logger = my_logger(__name__)
 
@@ -18,23 +18,29 @@ class car:
     Local model of car. It has CarState() that is updated by remote server, and methods for drawing car and other static information related to car that is not transmitted over socket.
     """
 
-    def __init__(self, car_name='car_1'): # TODO initialize at starting line with correct angle; this is job of model server
+    def __init__(self,name=CAR_NAME, image_name='car_1'): # TODO initialize at starting line with correct angle; this is job of model server
         self.car_state = car_state() # TODO change to init to starting line of track
         self.track=track # TODO for now just use default track TODO check if Track should be field of Car()
         # TODO change color of car to be unique, add name of car
-        self.car_name = car_name # TODO make part of constructor?
+        self.image_name = image_name # TODO make part of constructor?
         self.loadAndScaleCarImage()
+        self.name=name
+        self.game_font = pygame.freetype.SysFont(GAME_FONT_NAME, GAME_FONT_SIZE)
         # self.rect = self.image.get_rect()
 
     def draw(self, screen):
         rotated = pygame.transform.rotate(self.image, -self.car_state.body_angle_deg)
         rect = rotated.get_rect()
         screen.blit(rotated, ((self.car_state.position_m/M_PER_PIXEL) - (int(rect.width / 2), int(rect.height / 2))))
+        # label name
+        self.game_font.render_to(screen, (self.car_state.position_m.x/M_PER_PIXEL, self.car_state.position_m.y/M_PER_PIXEL), self.name, [200,200,200]),
+
         # draw acceleration
         len=(self.car_state.accel_m_per_sec_2.x/G)*(self.car_state.length_m * 6) # self.car_state.command.throttle*self.car_state.length*2 # todo fix when accel include lateral component
         body_rad=radians(self.car_state.body_angle_deg)
         body_vec=(len*cos(body_rad),len*sin(body_rad))
         pygame.draw.line(screen, [255,50,50],self.car_state.position_m/M_PER_PIXEL, (self.car_state.position_m+body_vec)/M_PER_PIXEL,1)
+
         # draw steering command
         str_len= self.car_state.length_m / 2
         str_orig=self.car_state.position_m+(cos(body_rad)*str_len,sin(body_rad)*str_len)
@@ -50,7 +56,7 @@ class car:
         Call only after car_state is filled by server
         """
         current_dir = os.path.dirname(os.path.abspath(__file__))
-        image_path = os.path.join(current_dir, "../media/"+self.car_name+".png") # todo name of car and file should come from server
+        image_path = os.path.join(current_dir, "../media/" + self.image_name + ".png") # todo name of car and file should come from server
         self.image = pygame.image.load(image_path)  # load image of car
 
         # scale it to its length in pixels (all units are in pixels which are meters)

@@ -39,7 +39,7 @@ class data_recorder:
 
         try:
             self.file=open(self.filename,'w')
-            print(self.car.car_state.headers(),file=self.file)
+            print(self.car.car_state.get_record_headers(), file=self.file)
             atexit.register(self.close)
             self.num_records=0
             self.first_record_written=False
@@ -58,7 +58,7 @@ class data_recorder:
         if self.file==None:
             logger.warning('there is no output file open to record to')
             return
-        print(self.car.car_state.csvrow(),file=self.file)
+        print(self.car.car_state.get_record_csvrow(), file=self.file)
         self.first_record_written=True
         self.num_records+=1
 
