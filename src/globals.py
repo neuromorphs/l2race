@@ -1,9 +1,10 @@
 """ global parameters"""
 
-SERVER_PORT = 50000
-# SERVER_HOST='192.168.0.206' # tobi home internal lan ip
-# SERVER_HOST='178.82.113.207' # tobi home external lan ip
+# SERVER_HOST='telluridevm.iniforum.ch' # metanet 16-core model server
 SERVER_HOST='localhost'
+SERVER_PORT = 50000 # client starts game on this port on the SERVER_HOST
+CLIENT_PORT_RANGE='50010-50020' # range of ports used for client that server uses for game
+# client needs to open this port range for receiving state from server and sending commands to server
 
 # DO NOT CHANGE UNLESS you change on server too
 # define screen area, track is scaled to fill this area, note 4:3 aspect ratio
@@ -25,6 +26,10 @@ GAME_FONT_SIZE=16
 # Joystick connectivity
 CHECK_FOR_JOYSTICK_INTERVAL = 100 # check for missing joystick every this many cycles
 JOYSTICK_NUMBER = 0 # todo in case multiple joysticks, use this to set the desired one, starts from zero
+
+# recording data
+DATA_FILENAME_BASE= 'l2race'
+DATA_FOLDER_NAME= 'data'
 
 #server and model settings. Client cannot affect these model server settings
 DO_NOT_RESET_CAR_WHEN_IT_GOES_OFF_TRACK = True # set true for testing dynamics of car

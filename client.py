@@ -204,7 +204,8 @@ if __name__ == '__main__':
         ga()
     except:
         logger.warning('Gooey GUI not available, using command line arguments. \n'
-                       'You can try to install with "pip install Gooey"')
+                       'You can try to install with "pip install Gooey".\n'
+                    'Ignore this warning if you do not want a GUI.')
     args = get_args()
 
     game = Game(track_name='track', game_mode=1, server_host=args.host, server_port=args.port, joystick_number=args.joystick, fps=args.fps, timeout_s=args.timeout_s)

@@ -21,6 +21,7 @@ class car_state:
         # It causes some confusion about angles.
         # (x, y) = tuple starting coordinates in m
 
+        self.time=0
         self.position_m = Vector2(x, y) # x increases to right, y increases downwards
         self.velocity_m_per_sec = Vector2(0.0, 0.0) # vx and vy, with y increasing downwards, i.e. vy>0 means car is moving down the screen
         self.speed_m_per_sec=0.0 # length of velocity vector

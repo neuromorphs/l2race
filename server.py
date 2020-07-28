@@ -48,7 +48,23 @@ class ServerCarThread(threading.Thread):
         logger.info("Starting car thread for "+str(self.clientAddr))
         clientSock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM) # make a new datagram socket
         if self.timeout_s>0: clientSock.settimeout(self.timeout_s)
-        clientSock.bind(('0.0.0.0', 0)) # bind to port 0 to get a random free port
+        # find range of ports we can try to open for client to connect to
+        s=CLIENT_PORT_RANGE.split('-')
+        if len(s)!=2:
+            raise RuntimeError('client port range {} should be of form start-end, e.g. 50100-50200'.format(CLIENT_PORT_RANGE))
+        start_port=int(s[0])
+        end_port=int(s[1])
+        isbound=False
+        for p in range(start_port, end_port):
+            try:
+                clientSock.bind(('0.0.0.0', p)) # bind to port 0 to get a random free port
+                logger.info('bound to socket {}'.format(clientSock))
+                isbound=True
+                break
+            except:
+                logger.warning('could not bind to port {}'.format(p))
+        if not isbound:
+            raise RuntimeError('could not bind to any port in range {}'.format(CLIENT_PORT_RANGE))
         gameAddr=clientSock.getsockname() # get the port info for our local port
         logger.info('found free local UDP port address {}, sending initial CarState to client at {}'.format(gameAddr,self.clientAddr))
         data = (self.car_model.car_state, self.car_name)
@@ -107,6 +123,7 @@ if __name__ == '__main__':
         data, clientAddr = sock.recvfrom(1024)  # buffer size is 1024 bytes
         (cmd, track_name, game_mode) = pickle.loads(data)
         logger.info('received message: "{}" from {}'.format(cmd, clientAddr))
+        # todo handle multiple cars on one track, provide option for unique track for testing single car
 
         if cmd == 'newcar': # todo add arguments with newcar like driver/car name
             current_track = track(track_name=track_name)

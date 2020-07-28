@@ -233,6 +233,7 @@ class CarModel:
 
         # update driver's observed state from model
         # set l2race driver observed car_state from car model
+        self.car_state.time+=dtSec
         self.car_state.position_m.x=self.model_state[IXPOS]
         self.car_state.position_m.y=self.model_state[IYPOS]
         self.car_state.speed_m_per_sec=self.model_state[ISPEED]
