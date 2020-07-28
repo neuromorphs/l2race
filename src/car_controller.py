@@ -10,7 +10,7 @@ class car_controller:
     """
     car controller: gets state and provides control signal
     """
-    def __init__(self, my_car: car):
+    def __init__(self, my_car: car = None):
         """
         :type my_car: car object
         :param car: All car info: car_state and track
@@ -46,7 +46,7 @@ class car_controller:
                                                                            y_car=self.car.car_state.position_m.y)
         self.__update_steering_error(cte=waypoint_distance)
         self.__update_throttle_error(cte=abs(waypoint_distance))
-        self.car_command.throttle = 0.1 #self.output_throttle(1.5)
+        self.car_command.throttle = self.output_throttle(1.5)
         self.car_command.steering = self.output_steering_angle()
         return self.car_command
 

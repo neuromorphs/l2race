@@ -49,8 +49,10 @@ class my_joystick:
             logger.warning('no joystick(s) found; only keyboard control possible')
             raise Exception('no joystick found')
 
-
-        self.joy = joystick.Joystick(self.joystick_number)
+        if platform.system() == 'Linux':
+            self.joy = joystick.Joystick(4-self.joystick_number)
+        else:
+            self.joy = joystick.Joystick(self.joystick_number)
         self.joy.init()
         self.numAxes = self.joy.get_numaxes()
         self.numButtons = self.joy.get_numbuttons()
@@ -66,6 +68,9 @@ class my_joystick:
 
         self.car_input.restart_client=self.joy.get_button(2) # X button
         revPressed = self.joy.get_button(1)  # B button
+        toggle_auto = self.joy.get_button(3) # Y button
+        if toggle_auto:
+            self.car_input.auto = not self.car_input.auto
         if revPressed and not self._rev_was_pressed:  # if it was not pressed last time and is pressed now, toggle reverse
             self.car_input.reverse = not self.car_input.reverse
         self._rev_was_pressed = revPressed

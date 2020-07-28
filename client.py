@@ -27,6 +27,7 @@ from src.track import track
 from src.car import car
 from src.my_args import client_args
 from src.my_logger import my_logger
+from src.car_controller import car_controller
 
 logger=my_logger(__name__)
 
@@ -77,6 +78,7 @@ class Game:
             self.input=my_joystick(joystick_number)
         except:
             self.input=my_keyboard()
+        self.auto_input = None # will make it later when car is created because it is needed for the car_controller
         # self.track=Track() # TODO for now just use default track # (Marcin) I think this line is redundant here
 
     def render_multi_line(self, text, x, y): # todo clean up
@@ -129,8 +131,8 @@ class Game:
                     if self.recorder==None:
                         self.recorder=data_recorder(car=self.car)
                     self.recorder.open()
-
                 self.car.loadAndScaleCarImage()
+                self.auto_input = car_controller(my_car=self.car)
                 logger.info('received car server response and initial car state; will use {} for communicating with l2race model server'.format(gameSockAddr))
                 logger.info('initial car state is '+str(self.car.car_state))
             except OSError as err:
@@ -159,7 +161,10 @@ class Game:
                         self.exit = True
 
                 # User input
-                command=self.input.read()
+                if self.input.read().auto:
+                    command = self.auto_input.read()
+                else:
+                    command=self.input.read()
                 # logger.info(inp)
                 if command.quit:
                     logger.info('quit recieved, ending main loop')

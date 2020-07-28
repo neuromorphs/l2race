@@ -11,6 +11,7 @@ class car_command:
         self.reset_car=False # in debugging mode, restarts car at starting line
         self.restart_client=False # abort current run (server went down?) and restart from scratch
         self.quit=False # quit input from controller, mapped to ESC for keyboard and menu button for xbox controller
+        self.auto = False # activate or deactivate the autonomous driving, mapped to A key or Y Xbox controller button
 
     def __str__(self):
         return 'steering={:.2f}, throttle={:.2f}, brake={:.2f} reverse={}'.format(self.steering, self.throttle, self.brake,self.reverse)
