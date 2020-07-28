@@ -4,7 +4,7 @@ import threading
 import argcomplete
 from timeit import default_timer as timer
 
-from l2race_utils import bind_socket_to_range
+from src.l2race_utils import bind_socket_to_range
 from src.my_args import server_args
 from src.car_model import CarModel
 from src.car import car

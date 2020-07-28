@@ -18,7 +18,7 @@ import socket
 import time
 import pygame
 
-from l2race_utils import bind_socket_to_range
+from src.l2race_utils import bind_socket_to_range
 from src.globals import *
 from src.my_joystick import my_joystick
 from src.my_keyboard import my_keyboard
