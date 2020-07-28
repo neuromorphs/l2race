@@ -20,10 +20,10 @@ class car:
 
     def __init__(self, car_name='car_1'): # TODO initialize at starting line with correct angle; this is job of model server
         self.car_state = car_state() # TODO change to init to starting line of track
-        self.track=track # TODO for now just use default track TODO check if Track should be field of Car()
+        self.track = track # TODO for now just use default track TODO check if Track should be field of Car()
         # TODO change color of car to be unique, add name of car
         self.car_name = car_name # TODO make part of constructor?
-        self.loadAndScaleCarImage()
+        # self.loadAndScaleCarImage()
         # self.rect = self.image.get_rect()
 
     def draw(self, screen):
@@ -59,13 +59,3 @@ class car:
         sc = self.car_state.length_m / (M_PER_PIXEL * rect.width)
         self.image = pygame.transform.scale(self.image, (int(sc * rect.width), int(sc * rect.height)))
 
-    # I think we do not use this function. Almost sure but tired today so I leave it commented
-    # def reset(self): # TODO (Marcin): Is this function used at all? If not delete. track has not attribute vertices..
-    #     """ reset car to starting position"""
-    #     self.car_state.reset()
-    #     x = 0
-    #     y = 0
-    #     if self.track:
-    #         x = self.track.vertices[0][0]
-    #         y = self.track.vertices[0][0]
-    #     self.car_state.position_m = Vector2(x, y) # todo reset to start line of track

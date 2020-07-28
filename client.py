@@ -52,7 +52,7 @@ def get_args():
 
 
 class Game:
-    def __init__(self, track_name='track', game_mode=1, server_host=SERVER_HOST, server_port=SERVER_PORT, joystick_number=JOYSTICK_NUMBER, fps=FPS, widthPixels=SCREEN_WIDTH_PIXELS, heightPixels=SCREEN_HEIGHT_PIXELS, timeout_s=SERVER_TIMEOUT_SEC, record=DATA_FILENAME_BASE):
+    def __init__(self, track_name='track', game_mode='1', server_host=SERVER_HOST, server_port=SERVER_PORT, joystick_number=JOYSTICK_NUMBER, fps=FPS, widthPixels=SCREEN_WIDTH_PIXELS, heightPixels=SCREEN_HEIGHT_PIXELS, timeout_s=SERVER_TIMEOUT_SEC, record=DATA_FILENAME_BASE):
         pygame.init()
         logger.info('using pygame version {}'.format(pygame.version.ver))
         pygame.display.set_caption("l2race")
@@ -72,8 +72,9 @@ class Game:
 
         self.track_name = track_name
         self.game_mode = game_mode
-        self.track = track(track_name=track_name)
-        self.car = None # will make it later after we get info from server about car
+        self.car = car(car_name=None)
+        self.car.track = track(track_name=track_name)
+
         try:
             self.input=my_joystick(joystick_number)
         except:
@@ -101,7 +102,7 @@ class Game:
 
         gotServer=False
         ntries=0
-        while not gotServer :
+        while not gotServer:
             ntries+=1
             # Event queue
             for event in pygame.event.get():
@@ -125,7 +126,7 @@ class Game:
                 p, gameSockAddr = serverSock.recvfrom(4096) # todo add timeout for flaky connection
                 (car_state, car_name) = pickle.loads(p)
                 gotServer = True
-                self.car = car(car_name=car_name)
+                self.car.car_name = car_name
                 self.car.car_state = car_state  # server sends initial state of car
                 if self.record :
                     if self.recorder==None:
@@ -165,7 +166,7 @@ class Game:
                     command = self.auto_input.read()
                 else:
                     command=self.input.read()
-                # logger.info(inp)
+
                 if command.quit:
                     logger.info('quit recieved, ending main loop')
                     self.exit=True
@@ -207,7 +208,7 @@ class Game:
                 if self.recorder:
                     self.recorder.write_sample()
                 # Drawing
-                self.track.draw(self.screen)
+                self.car.track.draw(self.screen)
                 self.car.draw(self.screen)
                 self.render_multi_line(str(self.car.car_state), 10, 10)
                 pygame.display.flip()

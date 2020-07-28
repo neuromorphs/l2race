@@ -16,7 +16,7 @@ def client_args(parser):
     clientGroup.add_argument("--port", type=int, default=SERVER_PORT, help="Server port address for initiating connections.")
     clientGroup.add_argument("--fps", type=int, default=FPS, help="Frame rate on client side (server always sets time to real time).")
     clientGroup.add_argument("--joystick", type=int, default=JOYSTICK_NUMBER, help="Desired joystick number, starting with 0.")
-    clientGroup.add_argument("--timeout_s", type=int, default=SERVER_TIMEOUT_SEC, help="Socket timeout in seconds for communication with model server.")
+    clientGroup.add_argument("--timeout_s", type=float, default=SERVER_TIMEOUT_SEC, help="Socket timeout in seconds for communication with model server.")
     clientGroup.add_argument("--record", action='store_true', help="record data to date-stamped filename, e.g. --record will write datestamped files named '{}-XXX.csv' in folder '{}, where XXX is a date/timestamp'.".format(DATA_FILENAME_BASE, DATA_FOLDER_NAME))
 
     return parser
