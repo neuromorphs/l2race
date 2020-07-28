@@ -6,7 +6,7 @@ from src.my_logger import my_logger
 logger = my_logger(__name__)
 from src.globals import SCREEN_WIDTH_PIXELS, SCREEN_HEIGHT_PIXELS, M_PER_PIXEL
 
-
+VERSION='1.0'
 
 class car_state:
     """
@@ -64,8 +64,14 @@ class car_state:
         return s
 
     def headers(self):
+        import datetime, time, getpass
+        header ='# recorded output from l2race\n# format version: {}\n'.format(VERSION)
+        header+=datetime.datetime.now().strftime('# Creation time: %I:%M%p %B %d %Y\n')  # Tue Jan 26 13:57:06 CET 2016
+        header+='# Creation time: System.currentTimeMillis() {}\n'.format(int(time.time() * 1000.))
+        header+='# User name: {}\n'.format(getpass.getuser())
         h=[
             'time',
+            'cmd.auto',
             'cmd.steering',
             'cmd.throttle',
             'cmd.brake',
@@ -84,15 +90,15 @@ class car_state:
             'length',
             'width',
         ]
-        s=''
         for i in h[:-1]:
-            s=s+i+','
-        s=s+h[-1]
-        return s
+            header=header+i+','
+        header+=h[-1]
+        return header
 
     def csvrow(self):
         l=[
             self.time,
+            1 if self.command.auto else 0,
             self.command.steering,
             self.command.throttle,
             self.command.brake,

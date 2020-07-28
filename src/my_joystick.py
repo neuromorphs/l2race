@@ -20,6 +20,7 @@ def printhelp():
           'steer with left joystick left|right\n'
           'throttle is right paddle, brake is left paddle\n'
           'B toggles reverse gear\n'
+          'Y toggles automatic control (if implemented)\n'
           'Menu button resets car\n'
           'X R restarts client from scratch (if server went down)\n'
           'Windows button quits\n'
