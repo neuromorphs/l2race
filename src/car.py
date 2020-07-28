@@ -65,13 +65,3 @@ class car:
         sc = self.car_state.length_m / (M_PER_PIXEL * rect.width)
         self.image = pygame.transform.scale(self.image, (int(sc * rect.width), int(sc * rect.height)))
 
-    # I think we do not use this function. Almost sure but tired today so I leave it commented
-    # def reset(self): # TODO (Marcin): Is this function used at all? If not delete. track has not attribute vertices..
-    #     """ reset car to starting position"""
-    #     self.car_state.reset()
-    #     x = 0
-    #     y = 0
-    #     if self.track:
-    #         x = self.track.vertices[0][0]
-    #         y = self.track.vertices[0][0]
-    #     self.car_state.position_m = Vector2(x, y) # todo reset to start line of track

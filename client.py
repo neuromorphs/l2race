@@ -178,7 +178,7 @@ class Game:
                     command = self.auto_input.read()
                 else:
                     command=self.input.read()
-                # logger.info(inp)
+
                 if command.quit:
                     logger.info('quit recieved, ending main loop')
                     self.exit=True
@@ -220,7 +220,7 @@ class Game:
                 if self.recorder:
                     self.recorder.write_sample()
                 # Drawing
-                self.track.draw(self.screen)
+                self.car.track.draw(self.screen)
                 self.car.draw(self.screen)
                 self.render_multi_line(str(self.car.car_state), 10, 10)
                 pygame.display.flip()

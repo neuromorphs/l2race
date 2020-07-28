@@ -287,8 +287,8 @@ TrackInfo = {'waypoint_x': x,
              'AngleNextSegmentEast': angles2}
 
 # Saving all relevant data
-np.save('../media/track_map.npy', im)
-np.save('../media/trackInfo.npy', TrackInfo)
+np.save('../media/tracks/track_map.npy', im)
+np.save('../media/tracks/trackInfo.npy', TrackInfo)
 
 # Summary
 # We give to the user these track-only dependant information:

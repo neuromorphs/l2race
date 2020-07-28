@@ -103,10 +103,10 @@ fig.savefig('../media/track.png',  transparent=True, dpi=f, pad_inches=0.0, bbox
 
 # bbox_inches additionally cuts the white spaces but it does so after creating png - the resulting picture is smaller
 # Here we rescale it back to have dimensions (w,h)
-im = cv.imread('../media/track.png', cv.IMREAD_UNCHANGED)
+im = cv.imread('../media/tracks/track.png', cv.IMREAD_UNCHANGED)
 # Without cv.IMREAD_UNCHANGED you loose information about transparency
 im = cv.resize(im, (w, h))
-cv.imwrite('../media/track.png', im)
+cv.imwrite('../media/tracks/track.png', im)
 
 # We now have the png with the track we will use in our game!
 # We have extracted previously the central line as plotted in the coordinates of the old picture.
