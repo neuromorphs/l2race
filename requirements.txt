@@ -9,3 +9,4 @@ opencv-python
 numba
 cython
 scipy
+upnpy

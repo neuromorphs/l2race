@@ -18,7 +18,7 @@ import socket
 import time
 import pygame
 
-from src.l2race_utils import bind_socket_to_range
+from src.l2race_utils import bind_socket_to_range, open_ports
 from src.globals import *
 from src.my_joystick import my_joystick
 from src.my_keyboard import my_keyboard
@@ -82,6 +82,10 @@ class Game:
             self.game_font.render_to(self.screen, (x, y + GAME_FONT_SIZE * i), l, [200,200,200]),
 
     def run(self):
+        try:
+            open_ports()
+        except Exception as ex:
+            logger.warning("Caught exception {} when trying to open l2race client ports".format(ex))
         iterationCounter=0
         serverSock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM) # UDP
         serverAddr=(self.server_host, self.server_port)
