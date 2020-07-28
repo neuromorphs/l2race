@@ -4,6 +4,7 @@ import threading
 import argcomplete
 from timeit import default_timer as timer
 
+from l2race_utils import bind_socket_to_range
 from src.my_args import server_args
 from src.car_model import CarModel
 from src.car import car
@@ -49,22 +50,7 @@ class ServerCarThread(threading.Thread):
         clientSock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM) # make a new datagram socket
         if self.timeout_s>0: clientSock.settimeout(self.timeout_s)
         # find range of ports we can try to open for client to connect to
-        s=CLIENT_PORT_RANGE.split('-')
-        if len(s)!=2:
-            raise RuntimeError('client port range {} should be of form start-end, e.g. 50100-50200'.format(CLIENT_PORT_RANGE))
-        start_port=int(s[0])
-        end_port=int(s[1])
-        isbound=False
-        for p in range(start_port, end_port):
-            try:
-                clientSock.bind(('0.0.0.0', p)) # bind to port 0 to get a random free port
-                logger.info('bound to socket {}'.format(clientSock))
-                isbound=True
-                break
-            except:
-                logger.warning('could not bind to port {}'.format(p))
-        if not isbound:
-            raise RuntimeError('could not bind to any port in range {}'.format(CLIENT_PORT_RANGE))
+        bind_socket_to_range(CLIENT_PORT_RANGE, clientSock)
         gameAddr=clientSock.getsockname() # get the port info for our local port
         logger.info('found free local UDP port address {}, sending initial CarState to client at {}'.format(gameAddr,self.clientAddr))
         data = (self.car_model.car_state, self.car_name)

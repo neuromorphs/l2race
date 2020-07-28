@@ -1,6 +1,27 @@
 # utility methods
+from globals import CLIENT_PORT_RANGE
 from src.my_logger import my_logger
 logger = my_logger(__name__)
+
+def bind_socket_to_range(portrange, clientSock):
+    s = portrange.split('-')
+    if len(s) != 2:
+        raise RuntimeError(
+            'client port range {} should be of form start-end, e.g. 50100-50200'.format(portrange))
+    start_port = int(s[0])
+    end_port = int(s[1])
+    isbound = False
+    for p in range(start_port, end_port):
+        try:
+            clientSock.bind(('0.0.0.0', p))  # bind to port 0 to get a random free port
+            logger.info('bound to socket {}'.format(clientSock))
+            isbound = True
+            break
+        except:
+            logger.warning('could not bind to port {}'.format(p))
+    if not isbound:
+        raise RuntimeError('could not bind to any port in range {}'.format(portrange))
+
 
 def checkAddSuffix(path: str, suffix: str):
     if path.endswith(suffix):

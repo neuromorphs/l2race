@@ -17,6 +17,8 @@ import pickle
 import socket
 import time
 import pygame
+
+from l2race_utils import bind_socket_to_range
 from src.globals import *
 from src.my_joystick import my_joystick
 from src.my_keyboard import my_keyboard
@@ -84,7 +86,7 @@ class Game:
         serverSock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM) # UDP
         serverAddr=(self.server_host, self.server_port)
         serverSock.settimeout(self.server_timeout_s)
-        serverSock.bind(('',0)) # bind to receive on any port from server - seems to cause 'ConnectionResetError: [WinError 10054] An existing connection was forcibly closed by the remote host'
+        bind_socket_to_range(CLIENT_PORT_RANGE, serverSock)
 
         logger.info('connecting to l2race model server at '+str(serverAddr))
 
