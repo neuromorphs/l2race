@@ -34,7 +34,7 @@ def get_args():
 
 
 
-class ServerCarThread(threading.Thread):
+class ServerCarThread(threading.Thread): # change to multiprocessing, add queue to share data to other processes
     def __init__(self, addr, track, game_mode=GAME_MODE, car_name=CAR_NAME, ignore_off_track=DO_NOT_RESET_CAR_WHEN_IT_GOES_OFF_TRACK, timeout_s=CLIENT_TIMEOUT_SEC):
         threading.Thread.__init__(self)
         self.clientAddr = addr
@@ -107,7 +107,7 @@ if __name__ == '__main__':
     logger.info("waiting on {}".format(str(sock)))
     clients = dict()
 
-    while True:
+    while True: # todo add KeyboardInterrupt exception handling, also SIG_TERM
         data, clientAddr = sock.recvfrom(1024)  # buffer size is 1024 bytes
         try:
             (cmd, payload) = pickle.loads(data)

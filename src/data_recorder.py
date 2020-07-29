@@ -25,7 +25,8 @@ class data_recorder:
 
     def open(self):
         if self.file:
-            raise RuntimeError('file {} is already open, close it and open a new one'.format(self.filename))
+            logger.warning('recording {} is already open, close it and open a new one'.format(self.filename))
+            return
         import time
         timestr = time.strftime("%Y%m%d-%H%M%S")
         if not os.path.exists(DATA_FOLDER_NAME):
