@@ -217,7 +217,7 @@ for name in names:
     y = np.hstack((y[idx_start:], y[:idx_start]))
 
     # if necessry reverse order of the points with x[0] remaining x[0]
-    if (y[0] > max(y)/2 and x[20] < x[0]) or (y[0] < max(y)/2 and x[20] > x[0]):
+    if (y[0] < max(y)/2 and x[20] < x[0]) or (y[0] > max(y)/2 and x[20] > x[0]): # remember y-axis points down
         print('I change the direction of '+name)
         x = x[::-1]
         x = np.hstack((x[-1], x[:-1]))
@@ -340,7 +340,7 @@ for name in names:
 
     # Saving all relevant data
     np.save('../media/tracks/' + name + '_map.npy', im)
-    np.save('../media/tracks/' + name + 'Info.npy', TrackInfo)
+    np.save('../media/tracks/' + name + '_info.npy', TrackInfo)
 
     # Summary
     # We give to the user these track-only dependant information:

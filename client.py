@@ -70,6 +70,7 @@ class Game:
         self.widthPixels = widthPixels
         self.heightPixels = heightPixels
         self.screen = pygame.display.set_mode(size=(self.widthPixels, self.heightPixels), flags=0)
+        pygame.freetype.init()
         self.game_font = pygame.freetype.SysFont(GAME_FONT_NAME, GAME_FONT_SIZE)
         self.clock = pygame.time.Clock()
         self.exit = False
@@ -97,6 +98,7 @@ class Game:
         lines = text.splitlines()
         for i, l in enumerate(lines):
             self.game_font.render_to(self.screen, (x, y + GAME_FONT_SIZE * i), l, [200,200,200]),
+            pass
 
     def run(self):
         try:

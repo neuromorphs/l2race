@@ -39,6 +39,7 @@ class car_controller:
         self.thro_d_error = 0
 
         self.previous_waypoint = 0
+        self.angle = 0
 
     def read(self):
         '''computes the control and returns it as a standard keyboard/joystick command'''

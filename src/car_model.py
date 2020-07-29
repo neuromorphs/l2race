@@ -30,6 +30,8 @@ from commonroad.vehicleDynamics_ST import vehicleDynamics_ST # single track bicy
 from commonroad.vehicleDynamics_MB import vehicleDynamics_MB # fancy multibody model
 from timeit import default_timer as timer
 
+import random
+
 LOGGING_INTERVAL_CYCLES=1000 # log output only this often
 MODEL=vehicleDynamics_ST # vehicleDynamics_KS vehicleDynamics_ST vehicleDynamics_MB
 MAX_TIMESTEP = 0.1
@@ -83,11 +85,15 @@ class CarModel:
         # self.model=vehicleDynamics_ST()
         self.track = track
         self.car_name = car_name
-        if self.car_name == 'car_1':
-            (x_start, y_start) = self.track.start_position_car1*M_PER_PIXEL
+        # Randomly find position
+        positions = ['position_1', 'position_2']
+        position = random.choice(positions)
+        if position == 'position_1':
+            (x_start, y_start) = self.track.start_position_1*M_PER_PIXEL
         else:
-            (x_start, y_start) = self.track.start_position_car2*M_PER_PIXEL
-        self.car_state=car_state(x=x_start, y=y_start)
+            (x_start, y_start) = self.track.start_position_2*M_PER_PIXEL
+
+        self.car_state = car_state(x=x_start, y=y_start, body_angle_deg=self.track.start_angle)
         self.passed_anti_cheat_rect = True  # Prohibiting (significant) cutoff
         self.round_num = 0  # Counts the rounds
         # change MODEL_TYPE to select vehicle model type
@@ -121,9 +127,9 @@ class CarModel:
             self.brake_max=.8*G
         sx0 = self.car_state.position_m.x
         sy0 = self.car_state.position_m.y
-        delta0 = 0
+        delta0 = 0  #
         vel0 = 0
-        Psi0 = 0
+        Psi0 = radians(self.car_state.body_angle_deg)
         dotPsi0 = 0
         beta0 = 0
         initialState = [sx0, sy0, delta0, vel0, Psi0, dotPsi0, beta0]  # initial state for simulation

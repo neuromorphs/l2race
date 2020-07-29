@@ -38,7 +38,7 @@ class track:
         self.name = track_name
         self.track_image = pygame.image.load(media_folder_path + track_name + '.png')
         self.track_map = np.load(media_folder_path + track_name + '_map.npy')
-        self.TrackInfo = np.load(media_folder_path + track_name + 'Info.npy', allow_pickle='TRUE').item()
+        self.TrackInfo = np.load(media_folder_path + track_name + '_info.npy', allow_pickle='TRUE').item()
         self.waypoints_x = self.TrackInfo['waypoint_x']
         self.waypoints_y = self.TrackInfo['waypoint_y']
         self.num_waypoints = len(self.waypoints_x)
@@ -51,12 +51,13 @@ class track:
         # take for it +/-dy = 52 in map units
         self.anti_cheat_rect = pygame.Rect(self.waypoints_x[self.num_waypoints//2], self.waypoints_y[self.num_waypoints//2]-60, 120, 120)
 
-        if track_name == 'track':
-            self.start_position_car1 = np.array((self.waypoints_x[0]-40, self.waypoints_y[0]-20))
-            self.start_position_car2 = np.array((self.waypoints_x[0], self.waypoints_y[0]+20))
-        else:
-            self.start_position_car1 = np.array((self.waypoints_x[0], self.waypoints_y[0]-20))
-            self.start_position_car2 = np.array((self.waypoints_x[0], self.waypoints_y[0]+20))
+        self.start_angle = self.angle_next_segment_east[0]
+        if self.waypoints_y[0]>max(self.waypoints_y)/2:  # Remember y points down, Here I am down
+            self.start_position_1 = np.array((self.waypoints_x[0], self.waypoints_y[0]+20))  # out
+            self.start_position_2 = np.array((self.waypoints_x[0]+40, self.waypoints_y[0]-20))    # in
+        else:  # Here I am up
+            self.start_position_1 = np.array((self.waypoints_x[0], self.waypoints_y[0]-20))  # out
+            self.start_position_2 = np.array((self.waypoints_x[0]-40, self.waypoints_y[0]+20))  # in
 
     def draw(self, surface: pygame.surface):
         surface.fill((65, 105, 225))
