@@ -250,7 +250,19 @@ if __name__ == '__main__':
                     'Ignore this warning if you do not want a GUI.')
     args = get_args()
 
-    game = Game(track_name='track',
+    track_names = ['Sebring',
+             'oval',
+             'track_1',
+             'track_2',
+             'track_3',
+             'track_4',
+             'track_5',
+             'track_6']
+
+    import random
+    track_name = random.choice(track_names)
+
+    game = Game(track_name=track_name,
                 game_mode='multi' if args.multi else 'solo',
                 car_name=args.car_name,
                 server_host=args.host,

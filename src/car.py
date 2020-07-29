@@ -3,6 +3,7 @@ import os
 from math import radians, cos, sin
 
 import pygame
+import pygame.freetype
 from pygame.math import Vector2
 from src.my_logger import my_logger
 from src.track import track
@@ -25,7 +26,7 @@ class car:
         self.image_name = image_name # TODO make part of constructor?
         self.loadAndScaleCarImage()
         self.name = name
-        self.game_font = pygame.freetype.SysFont(GAME_FONT_NAME, GAME_FONT_SIZE)
+        # self.game_font = pygame.freetype.SysFont(GAME_FONT_NAME, GAME_FONT_SIZE)
         # self.rect = self.image.get_rect()
 
     def draw(self, screen):
@@ -33,7 +34,7 @@ class car:
         rect = rotated.get_rect()
         screen.blit(rotated, ((self.car_state.position_m/M_PER_PIXEL) - (int(rect.width / 2), int(rect.height / 2))))
         # label name
-        self.game_font.render_to(screen, (self.car_state.position_m.x/M_PER_PIXEL, self.car_state.position_m.y/M_PER_PIXEL), self.name, [200,200,200]),
+        # self.game_font.render_to(screen, (self.car_state.position_m.x/M_PER_PIXEL, self.car_state.position_m.y/M_PER_PIXEL), self.name, [200,200,200]),
 
         # draw acceleration
         len=(self.car_state.accel_m_per_sec_2.x/G)*(self.car_state.length_m * 6) # self.car_state.command.throttle*self.car_state.length*2 # todo fix when accel include lateral component
