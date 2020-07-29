@@ -32,7 +32,16 @@ DATA_FOLDER_NAME= 'data'
 # car and track options
 CAR_NAME='l2racer' # label stuck on car
 GAME_MODE='solo' # 'solo', 'multi', 'race' whether server launches track just for this client or puts car with others on same track
-TRACK_NAME='track' # tracks are stored in the 'media' folder. Data for a track must be extracted using scripts in Track_Preparation before using in l2race
+TRACK_NAME='oval' # tracks are stored in the 'media' folder. Data for a track must be extracted using scripts in Track_Preparation before using in l2race
+# Other possible track names:
+# track_names = ['Sebring',
+#          'oval',
+#          'track_1',
+#          'track_2',
+#          'track_3',
+#          'track_4',
+#          'track_5',
+#          'track_6']
 # track_name + '.png'
 # track_name + '_map.npy'
 # track_name + 'Info.npy'
