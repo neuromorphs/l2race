@@ -21,9 +21,9 @@ class car_controller:
         self.car_command = car_command()
 
         # internet values kp=0.1 ki=0.001 kd=2.8
-        self.steer_Kp = 0.1
-        self.steer_Ki = 0.0001
-        self.steer_Kd = 3.8
+        self.steer_Kp = 0.08
+        self.steer_Ki = 0.000015
+        self.steer_Kd = 2.8
 
         # internet values kp=0.45 ki=0.000 kd=0.5
         self.thro_Kp = 0.45
@@ -48,7 +48,7 @@ class car_controller:
                                                                            y_car=self.car.car_state.position_m.y)
         self.__update_steering_error(cte=waypoint_distance)
         self.__update_throttle_error(cte=abs(waypoint_distance))
-        self.car_command.throttle = self.output_throttle(1.5)
+        self.car_command.throttle = 0.1 #self.output_throttle(1)
         self.car_command.steering = self.output_steering_angle()
         return self.car_command
 
