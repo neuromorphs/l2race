@@ -24,7 +24,7 @@ class car:
         # TODO change color of car to be unique, add name of car
         self.image_name = image_name # TODO make part of constructor?
         self.loadAndScaleCarImage()
-        self.name=name
+        self.name = name
         self.game_font = pygame.freetype.SysFont(GAME_FONT_NAME, GAME_FONT_SIZE)
         # self.rect = self.image.get_rect()
 

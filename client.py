@@ -140,6 +140,7 @@ class Game:
                 gotServer = True
                 self.car = car(name=self.car_name)
                 self.car.car_state = car_state  # server sends initial state of car
+                self.car.track = track(track_name=self.track_name)
                 if self.record :
                     if self.recorder==None:
                         self.recorder=data_recorder(car=self.car)
@@ -175,9 +176,14 @@ class Game:
 
                 # User input
                 if self.input.read().auto:
+                    car_input_console = self.input.read()
                     command = self.auto_input.read()
+                    command.reset_car = car_input_console.reset_car
+                    command.restart_client = car_input_console.restart_client
+                    command.quit = car_input_console.quit
+                    command.auto = car_input_console.auto
                 else:
-                    command=self.input.read()
+                    command = self.input.read()
 
                 if command.quit:
                     logger.info('quit recieved, ending main loop')
