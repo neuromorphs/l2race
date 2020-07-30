@@ -17,6 +17,7 @@ import pickle
 import socket
 import time
 import pygame
+import sys
 
 from src.data_recorder import data_recorder
 from src.l2race_utils import bind_socket_to_range, open_ports
@@ -29,15 +30,10 @@ from src.my_args import client_args
 from src.my_logger import my_logger
 from src.pid_next_waypoint_car_controller import pid_next_waypoint_car_controller
 
-logger=my_logger(__name__)
+logger = my_logger(__name__)
 
-# may only apply to windows
-try:
-    from scripts.regsetup import description
-    from gooey import Gooey  # pip install Gooey
-except Exception:
-    logger.warning('Gooey GUI builder not available, will use command line arguments.\n'
-                   'Install with "pip install Gooey". See README')
+
+
 
 
 def get_args():
@@ -51,7 +47,27 @@ def get_args():
     return args
 
 
+def launch_gui():
+    # may only apply to windows
+    try:
+        from scripts.regsetup import description
+        from gooey import Gooey  # pip install Gooey
+    except Exception:
+        logger.warning('Gooey GUI builder not available, will use command line arguments.\n'
+                       'Install with "pip install Gooey". See README')
+
+    try:
+        ga = Gooey(get_args, program_name="l2race client", default_size=(575, 600))
+        logger.info('Use --ignore-gooey to disable GUI and run with command line arguments')
+        ga()
+    except:
+        logger.warning('Gooey GUI not available, using command line arguments. \n'
+                       'You can try to install with "pip install Gooey".\n'
+                    'Ignore this warning if you do not want a GUI.')
+
+
 class Game:
+
     def __init__(self,
                  track_name='track',
                  game_mode=GAME_MODE,
@@ -218,18 +234,20 @@ class Game:
                 break
 
             # send control to server
-            data=command # todo add general command structure to msg
-            p=pickle.dumps(data)
+            data = command # todo add general command structure to msg
+            p = pickle.dumps(data)
             self.serverSock.sendto(p,self.gameSockAddr)
 
             # get new car state
             try:
-                data,_=self.serverSock.recvfrom(4096) # todo, make blocking with timeout to handle dropped packets
-                (dt,cs)=pickle.loads(data) # todo do something with dt to set animation rate
-                self.car.car_state=cs
+                data, _ = self.serverSock.recvfrom(4096) # todo, make blocking with timeout to handle dropped packets
+                (dt, cs) = pickle.loads(data) # todo do something with dt to set animation rate
+                self.car.car_state = cs
             except socket.timeout:
-                # the problem is that if we get a timeout, the next solution will take even longer since the step will be even larger, so we get into spiral
-                logger.warning('Timeout on socket receive from server, using previous car state. check server to make sure it is still running')
+                # the problem is that if we get a timeout,
+                # the next solution will take even longer since the step will be even larger, so we get into spiral
+                logger.warning('Timeout on socket receive from server, using previous car state. '
+                               'Check server to make sure it is still running')
             except ConnectionResetError:
                 logger.warning('Connection to {} was reset, will look for server again'.format(self.gameSockAddr))
                 self.gotServer = False
@@ -255,33 +273,101 @@ class Game:
         pygame.quit()
         quit()
 
+# A wrapper around Game class to make it easier for a user to provide arguments
+def define_game(gui='with_gui',
+                track_name=None,
+                game_mode=None,
+                car_name=None,
+                server_host=None,
+                server_port=None,
+                joystick_number=None,
+                fps=None,
+                timeout_s=None,
+                record=None):
+
+
+
+    if gui == 'with_gui':
+        launch_gui()
+        args = get_args()
+        game = Game(track_name=args.track_name,
+                    game_mode='multi' if args.multi else 'solo',
+                    car_name=args.car_name,
+                    # server_host=args.host,
+                    # server_port=args.port,
+                    joystick_number=args.joystick,
+                    # fps=args.fps,
+                    # timeout_s=args.timeout_s,
+                    record=args.record)
+    else:
+
+        IGNORE_COMMAND = '--ignore-gooey'
+        if IGNORE_COMMAND in sys.argv:
+            sys.argv.remove(IGNORE_COMMAND)
+
+        args = get_args()
+
+        if track_name is None:
+            track_name = args.track_name
+
+        if game_mode is None:
+            game_mode = 'multi' if args.multi else 'solo'
+
+        if car_name is None:
+            car_name = args.car_name
+
+        try:
+            if server_host is None:
+                server_host = args.host
+        except NameError:
+            server_host = args.host
+
+        try:
+            if server_port is None:
+                server_port = args.port
+        except NameError:
+            server_port = args.port
+
+        if joystick_number is None:
+            joystick_number = args.joystick
+
+        try:
+            if fps is None:
+                fps = args.fps
+        except NameError:
+            fps = args.fps
+
+        try:
+            if timeout_s is None:
+                timeout_s = args.timeout_s
+        except NameError:
+            timeout_s = args.timeout_s
+
+        if record is None:
+            record = args.record
+
+        game = Game(track_name=track_name,
+                    game_mode=game_mode,
+                    car_name=car_name,
+                    server_host=server_host,
+                    server_port=server_port,
+                    joystick_number=joystick_number,
+                    fps=fps,
+                    timeout_s=timeout_s,
+                    record=record)
+
+    return game
+
+
 
 
 if __name__ == '__main__':
-    try:
-        ga = Gooey(get_args, program_name="l2race client", default_size=(575, 600))
-        logger.info('Use --ignore-gooey to disable GUI and run with command line arguments')
-        ga()
-    except:
-        logger.warning('Gooey GUI not available, using command line arguments. \n'
-                       'You can try to install with "pip install Gooey".\n'
-                    'Ignore this warning if you do not want a GUI.')
+
+    launch_gui()
+
     args = get_args()
 
-    track_name = args.track_name
-    # track_names = ['Sebring',
-    #          'oval',
-    #          'track_1',
-    #          'track_2',
-    #          'track_3',
-    #          'track_4',
-    #          'track_5',
-    #          'track_6']
-    #
-    # import random
-    # track_name = random.choice(track_names)
-
-    game = Game(track_name=track_name,
+    game = Game(track_name=args.track_name,
                 game_mode='multi' if args.multi else 'solo',
                 car_name=args.car_name,
                 server_host=args.host,
@@ -290,4 +376,7 @@ if __name__ == '__main__':
                 fps=args.fps,
                 timeout_s=args.timeout_s,
                 record=args.record)
+
+    # game = define_game()
+
     game.run()
