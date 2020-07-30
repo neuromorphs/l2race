@@ -27,7 +27,7 @@ from src.track import track
 from src.car import car
 from src.my_args import client_args
 from src.my_logger import my_logger
-from src.car_controller import car_controller
+from src.pid_next_waypoint_car_controller import pid_next_waypoint_car_controller
 
 logger=my_logger(__name__)
 
@@ -154,7 +154,7 @@ class Game:
                         self.recorder = data_recorder(car=self.car)
                     self.recorder.open()
                 self.car.loadAndScaleCarImage()
-                self.auto_input = car_controller(my_car=self.car)
+                self.auto_input = pid_next_waypoint_car_controller(my_car=self.car)
                 logger.info('received car server response and initial car state; '
                             'will use {} for communicating with l2race model server'.format(self.gameSockAddr))
                 logger.info('initial car state is '+str(self.car.car_state))

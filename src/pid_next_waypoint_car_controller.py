@@ -6,9 +6,11 @@ from src.car_command import car_command
 logger = logging.getLogger(__name__)
 
 
-class car_controller:
+class pid_next_waypoint_car_controller:
     """
-    car controller: gets state and provides control signal
+    car controller: gets state and provides control signal.
+    This reference implementation is a basic PID controller that aims for the next waypoint.
+
     """
     def __init__(self, my_car: car = None):
         """
