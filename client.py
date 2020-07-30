@@ -88,11 +88,15 @@ class Game:
         self.car_name=car_name
         self.car = None # will make it later after we get info from server about car
         try:
-            self.input=my_joystick(joystick_number)
+            self.input = my_joystick(joystick_number)
         except:
-            self.input=my_keyboard()
+            self.input = my_keyboard()
+
         self.auto_input = None # will make it later when car is created because it is needed for the car_controller
-        # self.track=Track() # TODO for now just use default track # (Marcin) I think this line is redundant here
+
+        self.serverSock = None
+        self.gotServer = None
+        self.gameSockAddr = None
 
     def render_multi_line(self, text, x, y): # todo clean up
         lines = text.splitlines()
@@ -100,23 +104,23 @@ class Game:
             self.game_font.render_to(self.screen, (x, y + GAME_FONT_SIZE * i), l, [200,200,200]),
             pass
 
-    def run(self):
+    def connect_to_server(self):
         try:
             open_ports()
         except Exception as ex:
             logger.warning("Caught exception {} when trying to open l2race client ports".format(ex))
-        iterationCounter=0
-        serverSock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM) # UDP
-        serverAddr=(self.server_host, self.server_port)
-        serverSock.settimeout(self.server_timeout_s)
-        bind_socket_to_range(CLIENT_PORT_RANGE, serverSock)
+
+        self.serverSock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)  # UDP
+        serverAddr = (self.server_host, self.server_port)
+        self.serverSock.settimeout(self.server_timeout_s)
+        bind_socket_to_range(CLIENT_PORT_RANGE, self.serverSock)
 
         logger.info('connecting to l2race model server at '+str(serverAddr))
 
-        gotServer=False
-        ntries=0
-        while not gotServer :
-            ntries+=1
+        self.gotServer=False
+        ntries = 0
+        while not self.gotServer:
+            ntries += 1
             # Event queue
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:
@@ -130,116 +134,128 @@ class Game:
             payload=(self.track_name, self.game_mode, self.car_name)
             data = (cmd, payload)
             p = pickle.dumps(data)
-            s='sending cmd={} with payload {} to server initial address {}, waiting for server...[{}]'.format(cmd, payload, serverAddr,ntries)
+            s = 'sending cmd={} with payload {} to server initial address {}, ' \
+                'waiting for server...[{}]'\
+                .format(cmd, payload, serverAddr, ntries)
             logger.info(s)
             self.screen.fill([0, 0, 0])
             self.render_multi_line(s, 10, 10)
             pygame.display.flip()
-            serverSock.sendto(p, serverAddr)
+            self.serverSock.sendto(p, serverAddr)
             try:
-                p, gameSockAddr = serverSock.recvfrom(4096) # todo add timeout for flaky connection
+                p, self.gameSockAddr = self.serverSock.recvfrom(4096) # todo add timeout for flaky connection
                 car_state = pickle.loads(p)
-                gotServer = True
+                self.gotServer = True
                 self.car = car(name=self.car_name)
                 self.car.car_state = car_state  # server sends initial state of car
                 self.car.track = track(track_name=self.track_name)
-                if self.record :
-                    if self.recorder==None:
-                        self.recorder=data_recorder(car=self.car)
+                if self.record:
+                    if self.recorder is None:
+                        self.recorder = data_recorder(car=self.car)
                     self.recorder.open()
                 self.car.loadAndScaleCarImage()
                 self.auto_input = car_controller(my_car=self.car)
-                logger.info('received car server response and initial car state; will use {} for communicating with l2race model server'.format(gameSockAddr))
+                logger.info('received car server response and initial car state; '
+                            'will use {} for communicating with l2race model server'.format(self.gameSockAddr))
                 logger.info('initial car state is '+str(self.car.car_state))
             except OSError as err:
-                s='{}:\n error for response from {}; will try again in {}s ...[{}]'.format(err,serverAddr, SERVER_PING_INTERVAL_S,ntries)
+                s = '{}:\n error for response from {}; ' \
+                    'will try again in {}s ...[{}]'.format(err, serverAddr, SERVER_PING_INTERVAL_S, ntries)
                 logger.warning(s)
-                self.screen.fill([0,0,0])
+                self.screen.fill([0, 0, 0])
                 self.render_multi_line(s, 10, 10)
                 pygame.display.flip()
 
                 time.sleep(SERVER_PING_INTERVAL_S)
                 continue
 
+    def run(self):
 
-            logger.info('starting main loop')
-            while not self.exit and gotServer:
-                iterationCounter+=1
-                if iterationCounter%CHECK_FOR_JOYSTICK_INTERVAL==0 and not isinstance(self.input, my_joystick):
-                    try:
-                        self.input = my_joystick() # check for joystick that might get turned on during play
-                    except:
-                        pass
+        self.connect_to_server()
 
-                # Event queue
-                for event in pygame.event.get():
-                    if event.type == pygame.QUIT:
-                        self.exit = True
-
-                # User input
-                if self.input.read().auto:
-                    car_input_console = self.input.read()
-                    command = self.auto_input.read()
-                    command.reset_car = car_input_console.reset_car
-                    command.restart_client = car_input_console.restart_client
-                    command.quit = car_input_console.quit
-                    command.auto = car_input_console.auto
-                else:
-                    command = self.input.read()
-
-                if command.quit:
-                    logger.info('quit recieved, ending main loop')
-                    self.exit=True
-                    break
-
-                if command.reset_car:
-                    # car state reset handled on server side, here just put in forward gear
-                    logger.info('sending message to reset car state to server, putting in foward gear on client')
-                    self.input.car_input.reverse=False
-
-                if command.restart_client:
-                    logger.info('restarting client')
-                    gotServer=False
-                    if self.recorder:
-                        self.recorder.close()
-                    break
-
-                # send control to server
-                data=command # todo add general command structure to msg
-                p=pickle.dumps(data)
-                serverSock.sendto(p,gameSockAddr)
-
-                # get new car state
+        iterationCounter = 0
+        logger.info('starting main loop')
+        while not self.exit and self.gotServer:
+            iterationCounter+=1
+            if iterationCounter%CHECK_FOR_JOYSTICK_INTERVAL==0 and not isinstance(self.input, my_joystick):
                 try:
-                    data,_=serverSock.recvfrom(4096) # todo, make blocking with timeout to handle dropped packets
-                    (dt,cs)=pickle.loads(data) # todo do something with dt to set animation rate
-                    self.car.car_state=cs
-                except socket.timeout:
-                    # the problem is that if we get a timeout, the next solution will take even longer since the step will be even larger, so we get into spiral
-                    logger.warning('Timeout on socket receive from server, using previous car state. check server to make sure it is still running')
-                except ConnectionResetError:
-                    logger.warning('Connection to {} was reset, will look for server again'.format(gameSockAddr))
-                    gotServer=False
-                    break
-                except TypeError as te:
-                    logger.warning(str(te)+": ignoring and waiting for next state")
-                    continue
+                    self.input = my_joystick() # check for joystick that might get turned on during play
+                except:
+                    pass
 
+            # Event queue
+            for event in pygame.event.get():
+                if event.type == pygame.QUIT:
+                    self.exit = True
+
+            # User input
+            if self.input.read().auto:
+                car_input_console = self.input.read()
+                command = self.auto_input.read()
+                command.reset_car = car_input_console.reset_car
+                command.restart_client = car_input_console.restart_client
+                command.quit = car_input_console.quit
+                command.auto = car_input_console.auto
+            else:
+                command = self.input.read()
+
+            if command.quit:
+                logger.info('quit recieved, ending main loop')
+                self.exit=True
+                break
+
+            if command.reset_car:
+                # car state reset handled on server side, here just put in forward gear
+                logger.info('sending message to reset car state to server, putting in foward gear on client')
+                self.input.car_input.reverse=False
+
+            if command.restart_client:
+                logger.info('restarting client')
+                self.gotServer = False
+                self.connect_to_server()
                 if self.recorder:
-                    self.recorder.write_sample()
-                # Drawing
-                self.car.track.draw(self.screen)
-                self.car.draw(self.screen)
-                self.render_multi_line(str(self.car.car_state), 10, 10)
-                pygame.display.flip()
-                self.clock.tick(self.fps) # limit runtime to self.ticks Hz update rate
+                    self.recorder.close()
+                break
 
-        if serverSock:
+            # send control to server
+            data=command # todo add general command structure to msg
+            p=pickle.dumps(data)
+            self.serverSock.sendto(p,self.gameSockAddr)
+
+            # get new car state
+            try:
+                data,_=self.serverSock.recvfrom(4096) # todo, make blocking with timeout to handle dropped packets
+                (dt,cs)=pickle.loads(data) # todo do something with dt to set animation rate
+                self.car.car_state=cs
+            except socket.timeout:
+                # the problem is that if we get a timeout, the next solution will take even longer since the step will be even larger, so we get into spiral
+                logger.warning('Timeout on socket receive from server, using previous car state. check server to make sure it is still running')
+            except ConnectionResetError:
+                logger.warning('Connection to {} was reset, will look for server again'.format(self.gameSockAddr))
+                self.gotServer = False
+                self.connect_to_server()
+                break
+            except TypeError as te:
+                logger.warning(str(te)+": ignoring and waiting for next state")
+                continue
+
+            if self.recorder:
+                self.recorder.write_sample()
+            # Drawing
+            self.car.track.draw(self.screen)
+            self.car.draw(self.screen)
+            self.render_multi_line(str(self.car.car_state), 10, 10)
+            pygame.display.flip()
+            self.clock.tick(self.fps) # limit runtime to self.ticks Hz update rate
+
+        if self.serverSock:
             logger.info('closing socket')
-            serverSock.close()
+            self.serverSock.close()
         logger.info('quitting pygame')
         pygame.quit()
         quit()
+
+
 
 if __name__ == '__main__':
     try:
