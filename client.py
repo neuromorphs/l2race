@@ -168,7 +168,7 @@ class Game:
                 if self.record:
                     if self.recorder is None:
                         self.recorder = data_recorder(car=self.car)
-                    self.recorder.open()
+                    self.recorder.open_new_recording()
                 self.car.loadAndScaleCarImage()
                 self.auto_input = pid_next_waypoint_car_controller(my_car=self.car)
                 logger.info('received car server response and initial car state; '
@@ -230,7 +230,7 @@ class Game:
                 self.gotServer = False
                 self.connect_to_server()
                 if self.recorder:
-                    self.recorder.close()
+                    self.recorder.close_recording()
                 break
 
             # send control to server
@@ -268,7 +268,7 @@ class Game:
 
         if self.serverSock:
             logger.info('closing socket')
-            self.serverSock.close()
+            self.serverSock.close_recording()
         logger.info('quitting pygame')
         pygame.quit()
         quit()
