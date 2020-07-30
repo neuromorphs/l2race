@@ -5,6 +5,7 @@ from src.car_command import car_command
 from src.my_logger import my_logger
 logger = my_logger(__name__)
 
+
 def printhelp():
     print('Keyboard commands:\n'
           'drive with LEFT/UP/RIGHT/DOWN or AWDS keys\n'
@@ -12,7 +13,10 @@ def printhelp():
           'r resets car\n'
           'R restarts client from scratch (if server went down)\n'
           'ESC quits\n'
+          'a pressing for auto mode\n'
           'h|? shows this help')
+
+
 class my_keyboard:
 
     def __init__(self):
@@ -64,4 +68,8 @@ class my_keyboard:
             printhelp()
         else:
             self.car_input.steering = 0.
+
+        if pressed[pygame.K_a]:
+            self.car_input.auto = not self.car_input.auto
+
         return self.car_input
