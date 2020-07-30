@@ -2,10 +2,8 @@
 import os
 from collections import OrderedDict
 
-from car import car
+from src.car import car
 
-import pandas as pd
-import datetime
 from src.globals import DATA_FILENAME_BASE, DATA_FOLDER_NAME
 from src.my_logger import my_logger
 import atexit
@@ -25,7 +23,8 @@ class data_recorder:
 
     def open(self):
         if self.file:
-            raise RuntimeError('file {} is already open, close it and open a new one'.format(self.filename))
+            logger.warning('recording {} is already open, close it and open a new one'.format(self.filename))
+            return
         import time
         timestr = time.strftime("%Y%m%d-%H%M%S")
         if not os.path.exists(DATA_FOLDER_NAME):

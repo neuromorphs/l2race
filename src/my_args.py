@@ -5,6 +5,8 @@ import src.car_model
 from src.globals import *
 import logging
 
+from src.track import list_tracks
+
 logger = logging.getLogger(__name__)
 
 def client_args(parser):
@@ -18,7 +20,7 @@ def client_args(parser):
     clientGroup.add_argument("--joystick", type=int, default=JOYSTICK_NUMBER, help="Desired joystick number, starting with 0.")
     clientGroup.add_argument("--record", action='store_true', help="record data to date-stamped filename, e.g. --record will write datestamped files named '{}-XXX.csv' in folder '{}, where XXX is a date/timestamp\'.".format(DATA_FILENAME_BASE, DATA_FOLDER_NAME))
     clientGroup.add_argument("--car_name", type=str, default=CAR_NAME, help="Name of this car.")
-    clientGroup.add_argument("--track_name", type=str, default=TRACK_NAME, help="Name of track. Available tracks are in the 'tracks' folder.")
+    clientGroup.add_argument("--track_name", type=str, default=TRACK_NAME, help="Name of track. Available tracks are in the 'media/tracks' folder. Available tracks are "+str(list_tracks()))
     clientGroup.add_argument("--multi", action='store_true', help="Activate multi-car mode, where all cars run on same track. Default is solo mode where each car gets own track.")
     clientGroup.add_argument("--timeout_s", type=float, default=SERVER_TIMEOUT_SEC, help="Socket timeout in seconds for communication with model server.")
     # clientGroup.add_argument("--record", action='store_true', help="record data to date-stamped filename, e.g. --record will write datestamped files named '{}-XXX.csv' in folder '{}, where XXX is a date/timestamp'.".format(DATA_FILENAME_BASE, DATA_FOLDER_NAME))

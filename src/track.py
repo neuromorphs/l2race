@@ -12,6 +12,19 @@ from timeit import default_timer as timer
 
 logger = logging.getLogger(__name__)
 
+def list_tracks():
+    ''' :returns list of all available tracks as list(str)'''
+    from os import listdir
+
+    def list_files(directory, extension):
+        return (f for f in listdir(directory) if f.endswith('.' + extension))
+
+    tr=list()
+    directory = 'media/tracks'
+    files = list_files(directory, "png")
+    for f in files:
+        tr.append(f.strip('.png'))
+    return tr
 
 # Version of the track based on the extracting contour and loading png
 def get_position_on_map(car_state=None, x=None, y=None):
