@@ -2,10 +2,8 @@
 import os
 from collections import OrderedDict
 
-from car import car
+from src.car import car
 
-import pandas as pd
-import datetime
 from src.globals import DATA_FILENAME_BASE, DATA_FOLDER_NAME
 from src.my_logger import my_logger
 import atexit
