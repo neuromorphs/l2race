@@ -6,9 +6,10 @@ from timeit import default_timer as timer
 from time import sleep
 import multiprocessing as mp
 
+import car_model
 from src.l2race_utils import bind_socket_to_range
 from src.my_args import server_args
-from src.car_model import CarModel
+from src.car_model import car_model
 from src.car import car
 from src.globals import *
 from src.track import track, list_tracks
@@ -37,49 +38,72 @@ def get_args():
 
 
 class track_server_process(mp.Process):
-    def __init__(self, queue_from_server:mp.Queue, server_port_lock:mp.Lock(), server_socket:socket, client_addr, track_name=None, game_mode=GAME_MODE, car_name=CAR_NAME, ignore_off_track=DO_NOT_RESET_CAR_WHEN_IT_GOES_OFF_TRACK, timeout_s=CLIENT_TIMEOUT_SEC):
+    def __init__(self, queue_from_server:mp.Queue, server_port_lock:mp.Lock(), server_socket:socket, track_name=None, game_mode=GAME_MODE, ignore_off_track=DO_NOT_RESET_CAR_WHEN_IT_GOES_OFF_TRACK, timeout_s=CLIENT_TIMEOUT_SEC):
         super(track_server_process, self).__init__()
         self.server_queue=queue_from_server
         self.server_port_lock=server_port_lock
         self.server_socket=server_socket # used for initial communication to client who has not yet sent anything to us on the new port
-        self.client_addr = client_addr
         self.track_name = track_name
-        self.game_mode=game_mode
-        self.car_list = []
-            # = car(image_name=car_image_name, name=car_name)
-        # self.car_model = CarModel(track=track_name, car_name=car_name, ignore_off_track=ignore_off_track)
+        self.client_dict = dict() # maps from client_addr to car_model (or None if a spectator)
         self.timeout_s=timeout_s
+        self.track_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM) # make a new datagram socket
+        self.track_socket.settimeout(0) # put track socket in nonblocking mode to just poll for stuff
+        # find range of ports we can try to open for client to connect to
+        self.local_port_number=bind_socket_to_range(CLIENT_PORT_RANGE, self.track_socket)
+        self.track_socket_address=self.track_socket.getsockname() # get the port info for our local port
+        logger.info('for track {} bound free local UDP port address {}'.format(self.track_name,self.local_port_number))
 
-    def recv_msg(self):
 
+    def poll_msg(self, client):
+        p,client=self.track_socket.recvfrom(2048)
+        (msg,payload)=pickle.loads(p)
+        return msg,payload,client
 
 
     def run(self):
         logger.info("Starting track process track {} for client {}".format(self.track_name, self.client_addr))
+        last_time=timer()
 
-        client_sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM) # make a new datagram socket
-        if self.timeout_s>0: client_sock.settimeout(self.timeout_s)
-        # find range of ports we can try to open for client to connect to
-        local_port_number=bind_socket_to_range(CLIENT_PORT_RANGE, client_sock)
-        gameAddr=client_sock.getsockname() # get the port info for our local port
-        logger.info('found free local UDP port address {}, sending initial CarState to client at {}'.format(gameAddr, self.client_addr))
+        # Track process makes a single socket bound to a single port for all the clients (cars and spectators).
+        # To handle multiple clients, when it gets a message from a client, it responds to the client using the client address.
 
         msg=('track_port',local_port_number)
         send_message(lock=self.server_port_lock, socket=self.server_socket,client_addr=self.client_addr, msg=msg) # send client the port they should use for this track
 
-        # now we start loop by waiting for first message, 'send_state"
-
-        data = self.car_model.car_state
-        p = pickle.dumps(data)  # tobi measured about 600 bytes, without car_name
-        client_sock.sendto(p, self.client_addr)
-        logger.info('starting control/state loop (waiting for initial client control from {})'.format(self.client_addr))
-        lastT = timer()
-        first_control_msg_received=False
-        client_sock.settimeout(0) # nonblocking reads to get new commands and respond with current state
-        last_message_time=timer()
         while True:
+            while not self.server_queue.empty():
+                pass
+            # now we start main simulation/response loop
+            now=timer()
+            dt=now-last_time
+            for client,model in self.client_dict:
+                if isinstance(model,car_model):
+                    model.update(dt,model.car_command)
+                # poll for UDP messages
+                while True:
+                    try:
+                        msg,payload,client=self.poll_msg()
+                        self.handle_msg(msg,payload,client)
+                    except socket.timeout:
+                        break
+
+
+
+    def handle_msg(self):
+        pass
+
+
+            dt=
+            data = self.car_model.car_state
+            p = pickle.dumps(data)  # tobi measured about 600 bytes, without car_name
+            track_socket.sendto(p, self.client_addr)
+            logger.info('starting control/state loop (waiting for initial client control from {})'.format(self.client_addr))
+            lastT = timer()
+            first_control_msg_received=False
+            track_socket.settimeout(0) # nonblocking reads to get new commands and respond with current state
+            last_message_time=timer()
             try:
-                data,lastClientAddr = client_sock.recvfrom(2048) # get control input TODO add timeout and better dead client handling
+                data,lastClientAddr = track_socket.recvfrom(2048) # get control input TODO add timeout and better dead client handling
                 (cmd, payload) = pickle.loads(data)
                 if cmd=='command':
                     if payload.quit:
@@ -93,7 +117,7 @@ class track_server_process(mp.Process):
                     payload=(dtSec, carThread.car.car_state) # send (dt,car_state) to client # todo instrument to see how big is data in bytes
                     message=('car_state',payload)
                     p=pickle.dumps(message) # about 840 bytes
-                    client_sock.sendto(p,lastClientAddr)
+                    track_socket.sendto(p,lastClientAddr)
                 else:
                     logger.warning('unknowm cmd {} received; ignoring'.format(cmd))
                     continue
@@ -110,10 +134,10 @@ class track_server_process(mp.Process):
             self.car_model.update(dtSec=dtSec, command=command)
             self.track_name.car_completed_round(self.car_model)
             self.car.car_state=self.car_model.car_state
-            sleep(1./FPS)
+            sleep(1./FPS/2) # TODO, now just sleeps about 1/2 the default frame interval, should sleep for remaining time
 
         logger.info('closing client socket, ending thread (server main thread waiting for new connection)')
-        client_sock.close()
+        track_socket.close()
 
 def send_message(socket:socket, lock:mp.Lock, client_addr, msg:object):
     try:
@@ -188,7 +212,6 @@ if __name__ == '__main__':
     emtpy_track_dict = {k:None for k in track_names} # each entry holds all the clients for each track name
     track_processes = emtpy_track_dict # each entry holds the track objects for each track name
     track_quues=emtpy_track_dict
-    track_clients = emtpy_track_dict # each entry holds all the clients for each track name
 
 
     while True: # todo add KeyboardInterrupt exception handling, also SIG_TERM

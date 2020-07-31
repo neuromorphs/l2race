@@ -60,23 +60,23 @@ ISLIPANGLE=6
 
 def func_KS(t, x , u, p):
     f = vehicleDynamics_KS(x, u, p)
-    CarModel.neval+=1
+    car_model.neval+=1
     return f
 
 
 def func_ST(t, x , u, p):
     f = vehicleDynamics_ST(x, u, p)
-    CarModel.neval+=1
+    car_model.neval+=1
     return f
 
 
 def func_MB(t, x , u, p):
     f = vehicleDynamics_MB(x, u, p)
-    CarModel.neval+=1
+    car_model.neval+=1
     return f
 
 
-class CarModel:
+class car_model:
     neval=0
     """
     Car model, hidden from participants, updated on server
@@ -199,7 +199,7 @@ class CarModel:
             dtSec=MAX_TIMESTEP
 
         # self.solver.t_bound=self.solver.t+dtSec
-        neval_before=CarModel.neval
+        neval_before=car_model.neval
         tstart=self.solver.t
         tlast=tstart
         it=0
@@ -224,7 +224,7 @@ class CarModel:
         dtSolveSec=end-start
         if dtSolveSec>0.0001:
             # logger.warning(s)
-            neval_after=CarModel.neval
+            neval_after=car_model.neval
             neval_diff=neval_after-neval_before
             s='{} took {} evals in {:.1f}ms for timestep {:.1f}ms to advance {:.1f}ms {}'.format(self.model.__name__, neval_diff, dtSolveSec*1000, dtSec*1000,tsimulated*1000, ('(too_slow)' if too_slow else ''))
             self.car_state.server_msg+='\n'+s
