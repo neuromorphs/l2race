@@ -70,7 +70,7 @@ class car_state:
         header+='# Creation_time="{}" (epoch ms)\n'.format(int(time.time() * 1000.))
         header+='# Username="{}"\n'.format(getpass.getuser())
         header+='# Car_name="{}"\n'.format(car.name)
-        header+='# Track_name="{}"\n'.format(car.track.name)
+        header+='# Track_name="{}"\n'.format(car.track_name.name)
         h=[
             'time',
             'cmd.auto',

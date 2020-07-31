@@ -1,9 +1,18 @@
 # utility methods
+import os
+
 from src.globals import CLIENT_PORT_RANGE
 from src.my_logger import my_logger
 logger = my_logger(__name__)
 
-def bind_socket_to_range(portrange, clientSock):
+def bind_socket_to_range(portrange, client_sock):
+    ''' find a free server port in range
+    :arg portrange a string e.g. 10001-10010
+    :arg clientSockthe local socket we try to bind to a local port number
+    :returns the port number
+    :raises RuntimeError if cannot find a free port in range
+    '''
+
     s = portrange.split('-')
     if len(s) != 2:
         raise RuntimeError(
@@ -13,14 +22,14 @@ def bind_socket_to_range(portrange, clientSock):
     isbound = False
     for p in range(start_port, end_port):
         try:
-            clientSock.bind(('0.0.0.0', p))  # bind to port 0 to get a random free port
-            logger.info('bound to socket {}'.format(clientSock))
+            client_sock.bind(('0.0.0.0', p))  # bind to port 0 to get a random free port
+            logger.info('bound socket {} to local port {}'.format(client_sock, p))
             isbound = True
-            break
+            return p
         except:
-            logger.warning('could not bind to port {}'.format(p))
+            logger.warning('tried but could not bind to port {}'.format(p))
     if not isbound:
-        raise RuntimeError('could not bind to any port in range {}'.format(portrange))
+        raise RuntimeError('could not bind socket {} to any local port in range {}'.format(client_sock, portrange))
 
 
 def checkAddSuffix(path: str, suffix: str):
