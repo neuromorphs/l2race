@@ -10,7 +10,6 @@ class pid_next_waypoint_car_controller:
     """
     car controller: gets state and provides control signal.
     This reference implementation is a basic PID controller that aims for the next waypoint.
-
     """
     def __init__(self, my_car: car = None):
         """
@@ -22,36 +21,27 @@ class pid_next_waypoint_car_controller:
         self.car = my_car
         self.car_command = car_command()
 
-        # internet values kp=0.1 ki=0.001 kd=2.8
+        # PID constants
         self.steer_Kp = 0.08
         self.steer_Ki = 0.000015
         self.steer_Kd = 2.8
-
-        # internet values kp=0.45 ki=0.000 kd=0.5
-        self.thro_Kp = 0.45
-        self.thro_Ki = 0.001
-        self.thro_Kd = 1.5
 
         self.steer_p_error = 0
         self.steer_i_error = 0
         self.steer_d_error = 0
 
-        self.thro_p_error = 0
-        self.thro_i_error = 0
-        self.thro_d_error = 0
-
-        self.previous_waypoint = 0
-        self.angle = 0
-
+    # Computes the control and returns it as a standard keyboard/joystick command
     def read(self):
-        '''computes the control and returns it as a standard keyboard/joystick command'''
+        # Get the distance from the car position to the nearest waypoint (Middle of the road)
         waypoint_distance = self.car.track.get_distance_to_nearest_segment(car_state=self.car.car_state,
                                                                            x_car=self.car.car_state.position_m.x,
                                                                            y_car=self.car.car_state.position_m.y)
+        # Update the steering error using the distance from the car to the middle os the road
         self.__update_steering_error(cte=waypoint_distance)
-        self.__update_throttle_error(cte=abs(waypoint_distance))
-        self.car_command.throttle = 0.1 #self.output_throttle(1)
+        # Get the next steering angle and use it in the car command
         self.car_command.steering = self.output_steering_angle()
+        # For this example the throttle is fixed
+        self.car_command.throttle = 0.1
         return self.car_command
 
     def __update_steering_error(self, cte):
@@ -61,18 +51,8 @@ class pid_next_waypoint_car_controller:
         self.steer_i_error += cte
         self.steer_d_error = cte - pre_cte
 
-    def __update_throttle_error(self, cte):
-        pre_cte = self.thro_p_error
-
-        self.thro_p_error = cte
-        self.thro_i_error += cte
-        self.thro_d_error = cte - pre_cte
-
+    # Compute the steering angle using the error and the PID constants
     def output_steering_angle(self):
         angle = - self.steer_Kp * self.steer_p_error - self.steer_Ki * self.steer_i_error - \
                self.steer_Kd * self.steer_d_error
         return angle
-
-    def output_throttle(self, max_thro):
-        return max_thro - self.thro_Kp * self.thro_p_error - self.thro_Ki * self.thro_i_error - \
-               self.thro_Kd * self.thro_d_error
