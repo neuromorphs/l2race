@@ -222,3 +222,5 @@ if __name__ == '__main__':
         else:
             logger.warning('model server received unknown cmd={}'.format(cmd))
 
+
+    ## Just checking correctness of GitHub operations
