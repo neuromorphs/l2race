@@ -21,7 +21,7 @@ class data_recorder:
         self.num_records=0
         self.first_record_written=False
 
-    def open(self):
+    def open_new_recording(self):
         if self.file:
             logger.warning('recording {} is already open, close it and open a new one'.format(self.filename))
             return
@@ -38,19 +38,20 @@ class data_recorder:
 
         try:
             self.file=open(self.filename,'w')
-            print(self.car.car_state.get_record_headers(), file=self.file)
-            atexit.register(self.close)
+            print(self.car.car_state.get_record_headers(self.car), file=self.file)
+            atexit.register(self.close_recording)
             self.num_records=0
             self.first_record_written=False
+            logger.info('created new recording {}'.format(self.filename))
         except Exception as ex:
             self.file=None
             logger.warning('{}: could not open {} for recording data'.format(ex, self.filename))
             raise RuntimeError(ex)
 
-    def close(self):
+    def close_recording(self):
         if self.file:
             logger.info('closing recording {} with {} records'.format(self.filename, self.num_records))
-            self.file.close()
+            self.file.close_recording()
             self.file=None
 
     def write_sample(self):

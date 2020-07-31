@@ -63,12 +63,14 @@ class car_state:
                     self.server_msg)
         return s
 
-    def get_record_headers(self):
+    def get_record_headers(self, car):
         import datetime, time, getpass
         header ='# recorded output from l2race\n# format version: {}\n'.format(VERSION)
-        header+=datetime.datetime.now().strftime('# Creation time: %I:%M%p %B %d %Y\n')  # Tue Jan 26 13:57:06 CET 2016
-        header+='# Creation time: System.currentTimeMillis() {}\n'.format(int(time.time() * 1000.))
-        header+='# User name: {}\n'.format(getpass.getuser())
+        header+=datetime.datetime.now().strftime('# Creation_time="%I:%M%p %B %d %Y"\n')  # Tue Jan 26 13:57:06 CET 2016
+        header+='# Creation_time="{}" (epoch ms)\n'.format(int(time.time() * 1000.))
+        header+='# Username="{}"\n'.format(getpass.getuser())
+        header+='# Car_name="{}"\n'.format(car.name)
+        header+='# Track_name="{}"\n'.format(car.track.name)
         h=[
             'time',
             'cmd.auto',
