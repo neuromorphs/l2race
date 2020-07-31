@@ -72,6 +72,7 @@ class Game:
                  track_name='track',
                  game_mode=GAME_MODE,
                  car_name=CAR_NAME,
+                 controller=pid_next_waypoint_car_controller(),
                  server_host=SERVER_HOST,
                  server_port=SERVER_PORT,
                  joystick_number=JOYSTICK_NUMBER,
@@ -108,11 +109,19 @@ class Game:
         except:
             self.input = my_keyboard()
 
-        self.auto_input = None # will make it later when car is created because it is needed for the car_controller
+        # if controller is None:
+        #     self.controller = pid_next_waypoint_car_controller()
+        # else:
+        #     self.controller = controller
+
+        self.controller = controller
+
+        self.auto_input = None  # will make it later when car is created because it is needed for the car_controller
 
         self.serverSock = None
         self.gotServer = None
         self.gameSockAddr = None
+
 
     def render_multi_line(self, text, x, y): # todo clean up
         lines = text.splitlines()
@@ -170,7 +179,8 @@ class Game:
                         self.recorder = data_recorder(car=self.car)
                     self.recorder.open_new_recording()
                 self.car.loadAndScaleCarImage()
-                self.auto_input = pid_next_waypoint_car_controller(my_car=self.car)
+                self.controller.car=self.car
+                self.auto_input =self.controller
                 logger.info('received car server response and initial car state; '
                             'will use {} for communicating with l2race model server'.format(self.gameSockAddr))
                 logger.info('initial car state is '+str(self.car.car_state))
@@ -205,15 +215,16 @@ class Game:
                     self.exit = True
 
             # User input
-            if self.input.read().auto:
-                car_input_console = self.input.read()
+            external_input = self.input.read()
+            if external_input.auto:
                 command = self.auto_input.read()
-                command.reset_car = car_input_console.reset_car
-                command.restart_client = car_input_console.restart_client
-                command.quit = car_input_console.quit
-                command.auto = car_input_console.auto
+                command.throttle = external_input.throttle
+                command.reset_car = external_input.reset_car
+                command.restart_client = external_input.restart_client
+                command.quit = external_input.quit
+                command.auto = external_input.auto
             else:
-                command = self.input.read()
+                command = external_input
 
             if command.quit:
                 logger.info('quit recieved, ending main loop')
@@ -273,6 +284,7 @@ class Game:
         pygame.quit()
         quit()
 
+
 # A wrapper around Game class to make it easier for a user to provide arguments
 def define_game(gui='with_gui',
                 track_name=None,
@@ -284,8 +296,6 @@ def define_game(gui='with_gui',
                 fps=None,
                 timeout_s=None,
                 record=None):
-
-
 
     if gui == 'with_gui':
         launch_gui()

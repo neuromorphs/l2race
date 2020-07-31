@@ -72,8 +72,10 @@ class my_joystick:
         self.car_input.restart_client=self.joy.get_button(2) # X button
         revPressed = self.joy.get_button(1)  # B button
         toggle_auto = self.joy.get_button(3) # Y button
-        if toggle_auto:
-            self.car_input.auto = not self.car_input.auto
+        # if toggle_auto:
+        #     self.car_input.auto = not self.car_input.auto
+
+        self.car_input.auto = toggle_auto
         if revPressed and not self._rev_was_pressed:  # if it was not pressed last time and is pressed now, toggle reverse
             self.car_input.reverse = not self.car_input.reverse
         self._rev_was_pressed = revPressed

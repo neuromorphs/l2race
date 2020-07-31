@@ -69,8 +69,9 @@ class pid_next_waypoint_car_controller:
         self.thro_d_error = cte - pre_cte
 
     def output_steering_angle(self):
-        return - self.steer_Kp * self.steer_p_error - self.steer_Ki * self.steer_i_error - \
+        angle = - self.steer_Kp * self.steer_p_error - self.steer_Ki * self.steer_i_error - \
                self.steer_Kd * self.steer_d_error
+        return angle
 
     def output_throttle(self, max_thro):
         return max_thro - self.thro_Kp * self.thro_p_error - self.thro_Ki * self.thro_i_error - \
