@@ -271,7 +271,7 @@ class Game:
             if self.recorder:
                 self.recorder.write_sample()
             # Drawing
-            self.car.track.draw(self.screen)
+            self.car.track_name.draw(self.screen)
             self.car.draw(self.screen)
             self.render_multi_line(str(self.car.car_state), 10, 10)
             pygame.display.flip()
