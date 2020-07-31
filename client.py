@@ -390,3 +390,6 @@ if __name__ == '__main__':
     # game = define_game()
 
     game.run()
+
+
+    ## Just checking correctness of GitHub operations
