@@ -186,13 +186,13 @@ class Game:
                 self.gotServer = True
                 self.gameSockAddr=(self.server_host, payload)
                 logger.info('got game_port message from server telling us to use address {} to talk with server'.format(self.gameSockAddr))
-                self.car = car(name=self.car_name)
+                self.car = car(name=self.car_name, screen=self.screen)
                 self.car.track = track(track_name=self.track_name)
                 if self.record:
                     if self.recorder is None:
                         self.recorder = data_recorder(car=self.car)
                     self.recorder.open_new_recording()
-                self.car.loadAndScaleCarImage()
+                # self.car.loadAndScaleCarImage()   # happens inside car
                 self.controller.car=self.car
                 self.auto_input =self.controller
                 logger.info('initial car state is '+str(self.car.car_state))
@@ -288,10 +288,7 @@ class Game:
                 break
 
             # Drawing
-            self.car.track.draw(self.screen)
-            self.car.draw(self.screen)
-            self.render_multi_line(str(self.car.car_state), 10, 10)
-            pygame.display.flip()
+            self.draw()
 
         if self.sock:
             logger.info('closing socket')
@@ -310,6 +307,12 @@ class Game:
         data, server_addr = self.sock.recvfrom(8000) # todo check if large enough for payload inclding all other car state
         (cmd,payload) = pickle.loads(data)
         return cmd,payload
+
+    def draw(self):
+        self.car.track.draw(self.screen)
+        self.car.draw(self.screen)
+        self.render_multi_line(str(self.car.car_state), 10, 10)
+        pygame.display.flip()
 
 
 # A wrapper around Game class to make it easier for a user to provide arguments

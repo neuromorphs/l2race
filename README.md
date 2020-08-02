@@ -13,7 +13,7 @@ You can install the requirements in this environment using its own pip.
 
 Make a new environment (see https://docs.conda.io/projects/conda/en/latest/user-guide/tasks/manage-environments.html#)
 ```shell script
-(l2race) F:\tobi\Dropbox (Personal)\GitHub\neuromorphs\l2race>conda create --name l2race
+(l2race) F:\tobi\Dropbox (Personal)\GitHub\neuromorphs\l2race>conda create --name l2race python=3.7
 WARNING: A conda environment already exists at 'C:\Users\tobid\anaconda3\envs\l2race'
 Remove existing environment (y/[n])? n
 
@@ -21,7 +21,10 @@ Remove existing environment (y/[n])? n
 CondaSystemExit: Exiting.
 
 ```
-
+Activate it:
+```shell script
+conda activate l2race
+```
 Make sure you are using the conda pip in your conda environment:
 ```shell script
 Microsoft Windows [Version 10.0.19041.388]

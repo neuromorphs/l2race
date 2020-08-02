@@ -1,6 +1,7 @@
 # class for Car, holds other important stuff
 import os
 from math import radians, cos, sin
+from typing import Optional
 
 import pygame
 import pygame.freetype
@@ -19,18 +20,23 @@ class car:
     Local model of car. It has CarState() that is updated by remote server, and methods for drawing car and other static information related to car that is not transmitted over socket.
     """
 
-    def __init__(self,name=CAR_NAME, image_name='car_1'): # TODO initialize at starting line with correct angle; this is job of model server
+    def __init__(self,name=CAR_NAME, image_name='car_1', screen:pygame.surface=None): # TODO initialize at starting line with correct angle; this is job of model server
         self.car_state = car_state() # TODO change to init to starting line of track
         self.track=track # TODO for now just use default track TODO check if Track should be field of Car()
         # TODO change color of car to be unique, add name of car
         self.image_name = image_name # TODO make part of constructor?
-        self.loadAndScaleCarImage()
+        self.image=self.loadAndScaleCarImage(image_name, screen) # TODO should convert() the image once we have surface https://www.pygame.org/docs/tut/newbieguide.html
         self.name = name
         pygame.freetype.init()
         self.game_font = pygame.freetype.SysFont(name = GAME_FONT_NAME, size = GAME_FONT_SIZE)
+        self.other_cars_image=None
         # self.rect = self.image.get_rect()
 
     def draw(self, screen):
+        if self.image is None:
+            logger.warning('no car image yet, cannot draw it')
+            return
+        # draw our car
         rotated = pygame.transform.rotate(self.image, -self.car_state.body_angle_deg)
         rect = rotated.get_rect()
         screen.blit(rotated, ((self.car_state.position_m/M_PER_PIXEL) - (int(rect.width / 2), int(rect.height / 2))))
@@ -51,19 +57,41 @@ class car:
         str_pos1=str_orig-str_vec
         str_pos2=str_orig+str_vec
         pygame.draw.line(screen, [50,250,250],str_pos1/M_PER_PIXEL, str_pos2/M_PER_PIXEL,2)
+        self.draw_other_cars(screen)
+
+    def draw_other_cars(self, screen:pygame.surface):
+        for s in self.car_state.other_car_states:
+            self.draw_other_car(screen,s)
+
+    def draw_other_car(self, screen:pygame.surface, state:car_state):
+        if self.other_cars_image is None:
+            self.other_cars_image=self.loadAndScaleCarImage('other_car',screen)
+
+        rotated = pygame.transform.rotate(self.other_cars_image, state.body_angle_deg)
+        rect = rotated.get_rect()
+        screen.blit(rotated, ((state.position_m/M_PER_PIXEL) - (int(rect.width / 2), int(rect.height / 2))))
+        # label name
+        # self.game_font.render_to(screen, (state.position_m.x/M_PER_PIXEL, state.position_m.y/M_PER_PIXEL), state.__name__, [200,200,200]),
 
 
-    def loadAndScaleCarImage(self):
+
+    def loadAndScaleCarImage(self, image_name:str, screen:Optional[pygame.Surface]):
         """ loads image for car and scales it to its actual length.
         Call only after car_state is filled by server
         """
+        if image_name.endswith('.png'):
+            logger.warning('supply car image name {} without .png suffix'.format(image_name))
+            image_name=image_name[:-4]
         current_dir = os.path.dirname(os.path.abspath(__file__))
-        image_path = os.path.join(current_dir, "../media/" + self.image_name + ".png") # todo name of car and file should come from server
-        self.image = pygame.image.load(image_path)  # load image of car
+        image_path = os.path.join(current_dir, "../media/" + image_name + ".png") # todo name of car and file should come from server
+        if isinstance(screen,pygame.Surface):
+            self.image = pygame.image.load(image_path).convert(screen)  # load image of car
+        else:
+            self.image = pygame.image.load(image_path)  # load image of car
 
         # scale it to its length in pixels (all units are in pixels which are meters)
         # TODO use global scale of M_PER_PIXEL correctly here
         rect = self.image.get_rect()
         sc = self.car_state.length_m / (M_PER_PIXEL * rect.width)
-        self.image = pygame.transform.scale(self.image, (int(sc * rect.width), int(sc * rect.height)))
-
+        image = pygame.transform.scale(self.image, (int(sc * rect.width), int(sc * rect.height)))
+        return image
