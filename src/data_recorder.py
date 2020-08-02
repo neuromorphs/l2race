@@ -33,7 +33,7 @@ class data_recorder:
 
         self.filename='{}-{}.csv'.format(DATA_FILENAME_BASE, timestr)
         self.filename=os.path.join(DATA_FOLDER_NAME, self.filename)
-        if self.car==None:
+        if self.car is None:
             raise('car is None, cannot record data')
 
         try:
@@ -51,11 +51,11 @@ class data_recorder:
     def close_recording(self):
         if self.file:
             logger.info('closing recording {} with {} records'.format(self.filename, self.num_records))
-            self.file.close_recording()
+            self.file.close()
             self.file=None
 
     def write_sample(self):
-        if self.file==None:
+        if self.file is None:
             logger.warning('there is no output file open to record to')
             return
         print(self.car.car_state.get_record_csvrow(), file=self.file)

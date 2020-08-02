@@ -1,4 +1,6 @@
 # the observed state of car as seen by drivers
+from typing import Optional, List
+
 from pygame.math import Vector2
 
 from src.car_command import car_command
@@ -40,12 +42,9 @@ class car_state:
 
         # other car(s) # todo add structure to send other car states to client for rendering
 
-        self.other_cars: list = None  # list of other car_state for other cars
+        self.other_car_states: List[car_state] = list()  # list of other car_state for other cars
 
-        self.server_msg=None # message from server to be displayed to driver
-
-    def reset(self):
-        pass
+        self.server_msg='' # message from server to be displayed to driver
 
     def __str__(self):
         s='{}\npos=({:4.1f},{:4.1f})m vel=({:5.1f},{:5.1f})m/s, speed={:6.2f}m/s accel={:6.2f}m/s^2\nsteering_angle={:4.1f}deg body_angle={:4.1f}deg\nyaw_rate={:4.1f}deg/s drift_angle={:4.1f}\nmsg: {}'\
@@ -70,7 +69,7 @@ class car_state:
         header+='# Creation_time="{}" (epoch ms)\n'.format(int(time.time() * 1000.))
         header+='# Username="{}"\n'.format(getpass.getuser())
         header+='# Car_name="{}"\n'.format(car.name)
-        header+='# Track_name="{}"\n'.format(car.track_name.name)
+        header+='# Track_name="{}"\n'.format(car.track.name)
         h=[
             'time',
             'cmd.auto',

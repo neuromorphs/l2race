@@ -153,12 +153,13 @@ class car_model:
     def zeroTo60mpsTimeToAccelG(self,time):
         return (60*0.447)/time/G
 
-    def update(self, dtSec, command:car_command):
-        if command.reset_car:
-            self.reset()
+    def update(self, dtSec):
+        logger.debug('updating model with dt={:.1f}ms'.format(dtSec*1000))
 
         self.car_state.server_msg = ''
-        self.car_state.command=command
+        command=self.car_state.command
+        if command.reset_car:
+            self.reset()
 
         # compute commanded longitudinal acceleration from throttle and brake input
         if command.throttle>command.brake: # ignore brake

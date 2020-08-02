@@ -19,9 +19,17 @@ def client_args(parser):
     clientGroup.add_argument("--fps", type=int, default=FPS, help="Frame rate on client side (server always sets time to real time).")
     clientGroup.add_argument("--joystick", type=int, default=JOYSTICK_NUMBER, help="Desired joystick number, starting with 0.")
     clientGroup.add_argument("--record", action='store_true', help="record data to date-stamped filename, e.g. --record will write datestamped files named '{}-XXX.csv' in folder '{}, where XXX is a date/timestamp\'.".format(DATA_FILENAME_BASE, DATA_FOLDER_NAME))
-    clientGroup.add_argument("--car_name", type=str, default=CAR_NAME, help="Name of this car.")
+    try:
+        import socket,getpass
+        hostname=socket.gethostname()
+        username=getpass.getuser()
+        car_name=str(hostname)+':'+str(username)
+    except:
+        car_name=CAR_NAME
+
+    clientGroup.add_argument("--car_name", type=str, default=car_name, help="Name of this car.")
     clientGroup.add_argument("--track_name", type=str, default=TRACK_NAME, help="Name of track. Available tracks are in the 'media/tracks' folder. Available tracks are "+str(list_tracks()))
-    clientGroup.add_argument("--multi", action='store_true', help="Activate multi-car mode, where all cars run on same track. Default is solo mode where each car gets own track.")
+    clientGroup.add_argument("--spectate", action='store_true', help="Just be a spectator on the cars on the track.")
     clientGroup.add_argument("--timeout_s", type=float, default=SERVER_TIMEOUT_SEC, help="Socket timeout in seconds for communication with model server.")
     # clientGroup.add_argument("--record", action='store_true', help="record data to date-stamped filename, e.g. --record will write datestamped files named '{}-XXX.csv' in folder '{}, where XXX is a date/timestamp'.".format(DATA_FILENAME_BASE, DATA_FOLDER_NAME))
 
@@ -32,7 +40,7 @@ def server_args(parser):
 
     serverGroup = parser.add_argument_group('Server arguments:')
     serverGroup.add_argument("--ignore_off_track", action='store_true', help="ignore when car goes off track (for testing car dynamics more easily)")
-    serverGroup.add_argument("--timeout_s", type=int, default=CLIENT_TIMEOUT_SEC, help="server timeout in seconds before it ends thread for handling a car model")
+    # serverGroup.add_argument("--timeout_s", type=int, default=CLIENT_TIMEOUT_SEC, help="server timeout in seconds before it ends thread for handling a car model")
     # serverGroup.add_argument("--model", type=str, default=src.car_model.MODEL, help="server timeout in seconds before it ends thread for handling a car model")
 
     return parser

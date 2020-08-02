@@ -195,5 +195,5 @@ def open_ports():
         except:
             logger.warning('could not open port {}'.format(p))
     if not isbound:
-        raise RuntimeError('could not bind to any port in range {}'.format(portrange))
+        raise RuntimeError('could not bind to any port in range {}'.format(CLIENT_PORT_RANGE))
 

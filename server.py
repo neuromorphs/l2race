@@ -1,19 +1,21 @@
 import argparse
+import logging
 import socket, pickle
 import threading
+from typing import Dict, Tuple, List, Optional
+
 import argcomplete
 from timeit import default_timer as timer
 from time import sleep
 import multiprocessing as mp
 
-import car_model
+from src.car_state import car_state
 from src.l2race_utils import bind_socket_to_range
 from src.my_args import server_args
 from src.car_model import car_model
 from src.car import car
 from src.globals import *
 from src.track import track, list_tracks
-# may only apply to windows
 from src.my_logger import my_logger
 logger=my_logger(__name__)
 try:
@@ -22,8 +24,6 @@ try:
 except Exception:
     logger.warning('Gooey GUI builder not available, will use command line arguments.\n'
                    'Install with "pip install Gooey". See README')
-
-import random
 
 def get_args():
     parser = argparse.ArgumentParser(
@@ -35,149 +35,155 @@ def get_args():
     args = parser.parse_args()
     return args
 
-
+def send_message(socket:socket, lock:mp.Lock, client_addr: Tuple[str,int], msg:object):
+    try:
+        if lock: lock.acquire()
+        p=pickle.dumps(msg)
+        socket.sendto(p, client_addr)
+    finally:
+        if lock: lock.release()
 
 class track_server_process(mp.Process):
-    def __init__(self, queue_from_server:mp.Queue, server_port_lock:mp.Lock(), server_socket:socket, track_name=None, game_mode=GAME_MODE, ignore_off_track=DO_NOT_RESET_CAR_WHEN_IT_GOES_OFF_TRACK, timeout_s=CLIENT_TIMEOUT_SEC):
+    def __init__(self, queue_from_server:mp.Queue, server_port_lock:mp.Lock(), server_socket:socket, track_name=None):
         super(track_server_process, self).__init__()
         self.server_queue=queue_from_server
         self.server_port_lock=server_port_lock
         self.server_socket=server_socket # used for initial communication to client who has not yet sent anything to us on the new port
         self.track_name = track_name
-        self.client_dict = dict() # maps from client_addr to car_model (or None if a spectator)
-        self.timeout_s=timeout_s
+        self.track=None  # create after start since Process.spawn cannot pickle it
+        self.car_dict:Dict[Tuple[str,int],car_model] = None # maps from client_addr to car_model (or None if a spectator)
+        self.car_states_list:List[car_state]=None # list of all car states, to send to clients and put in each car's state
+        self.spectator_list:List[Tuple[str,int]] = None # maps from client_addr to car_model (or None if a spectator)
+        self.track_socket:Optional[socket] = None # make a new datagram socket
+        # find range of ports we can try to open for client to connect to
+        self.local_port_number=None
+        self.track_socket_address=None # get the port info for our local port
+        self.exit=False
+
+    def run(self):
+        logger.setLevel(logging.DEBUG)
+        logger.info("Starting track process track {}".format(self.track_name))
+        self.track=track(self.track_name)
+        self.car_dict = dict() # maps from client_addr to car_model (or None if a spectator)
+        self.car_states_list=list() # list of all car states, to send to clients and put in each car's state
+        self.spectator_list = list() # maps from client_addr to car_model (or None if a spectator)
         self.track_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM) # make a new datagram socket
-        self.track_socket.settimeout(0) # put track socket in nonblocking mode to just poll for stuff
+        self.track_socket.settimeout(0) # put track socket in nonblocking mode to just poll for client messages
         # find range of ports we can try to open for client to connect to
         self.local_port_number=bind_socket_to_range(CLIENT_PORT_RANGE, self.track_socket)
         self.track_socket_address=self.track_socket.getsockname() # get the port info for our local port
         logger.info('for track {} bound free local UDP port address {}'.format(self.track_name,self.local_port_number))
-
-
-    def poll_msg(self, client):
-        p,client=self.track_socket.recvfrom(2048)
-        (msg,payload)=pickle.loads(p)
-        return msg,payload,client
-
-
-    def run(self):
-        logger.info("Starting track process track {} for client {}".format(self.track_name, self.client_addr))
         last_time=timer()
 
         # Track process makes a single socket bound to a single port for all the clients (cars and spectators).
         # To handle multiple clients, when it gets a message from a client, it responds to the client using the client address.
 
-        msg=('track_port',local_port_number)
-        send_message(lock=self.server_port_lock, socket=self.server_socket,client_addr=self.client_addr, msg=msg) # send client the port they should use for this track
+        while not self.exit:
+            sleep(1./FPS)
+            self.process_server_queue() # 'add_car' 'add_spectator'
 
-        while True:
-            while not self.server_queue.empty():
-                pass
-            # now we start main simulation/response loop
+            # now we do main simulation/response
             now=timer()
             dt=now-last_time
-            for client,model in self.client_dict:
+            last_time=now
+            # update all the car models
+            for client,model in self.car_dict.items():
                 if isinstance(model,car_model):
-                    model.update(dt,model.car_command)
+                    model.update(dt)
                 # poll for UDP messages
-                while True:
-                    try:
-                        msg,payload,client=self.poll_msg()
-                        self.handle_msg(msg,payload,client)
-                    except socket.timeout:
-                        break
+            # update the global list of car states that cars share
+            self.car_states_list.clear()
+            for model in self.car_dict.values():
+                self.car_states_list.append(model.car_state)
+
+            # for each car, fill its car_state.other_car_states with the other cars
+            for s in self.car_states_list:
+                s.other_car_states.clear()
+                for s2 in self.car_states_list:
+                    if not s2==s:
+                        s.other_car_states.append(s2)
+
+            # process incoming UDP messages from clients, e.g. to update command
+            while True:
+                try:
+                    msg,payload,client=self.receive_msg()
+                    self.handle_client_msg(msg, payload, client)
+                except socket.timeout:
+                    break
+                except BlockingIOError:
+                    break
+
+        self.track_socket.close()
+
+    def receive_msg(self):
+        p,client=self.track_socket.recvfrom(2048)
+        (msg,payload)=pickle.loads(p)
+        logger.debug('got msg={} with payload={} from client {}'.format(msg,payload,client))
+        return msg,payload,client
+
+    def send_client_msg(self,client, msg,payload):
+        send_message(self.track_socket, None, client, (msg,payload))
+
+    def handle_client_msg(self, msg, payload, client):
+        logger.debug('handling msg={} with payload={} from client {}'.format(msg,payload,client))
+        # check if spectator or car
+        if msg=='command':
+            car_model=self.car_dict[client]
+            car_model.car_state.command=payload
+            msg='car_state'
+            payload=car_model.car_state
+            self.send_client_msg(client, msg,payload)
+        elif msg=='send_state':
+            car_model=self.car_dict[client]
+            car_model.car_state.command=payload
+            msg='car_state'
+            payload=car_model.car_state
+            self.send_client_msg(client, msg,payload)
+
+            pass
+        else:
+            logger.warning('unknowm cmd {} received; ignoring'.format(msg))
+
+        sleep(1./FPS/2) # TODO, now just sleeps about 1/2 the default frame interval, should sleep for remaining time
 
 
+    def add_car_to_track(self, car_name, client_addr):
+        logger.debug('adding car model for car named {} from client {} to track {}'.format(car_name,client_addr,self.track_name))
+        mod=car_model(track=self.track, car_name=car_name)
+        self.car_dict[client_addr]=mod
 
-    def handle_msg(self):
+    def add_spectator_to_track(self, client_addr):
+        logger.debug('adding spectator from client {} to track {}'.format(client_addr,self.track_name))
+        self.spectator_list.append(client_addr)
+
+    def process_server_queue(self):
+        while not self.server_queue.empty():
+            (cmd,payload)=self.server_queue.get_nowait()
+            self.handle_server_msg(cmd,payload)
         pass
 
-
-            dt=
-            data = self.car_model.car_state
-            p = pickle.dumps(data)  # tobi measured about 600 bytes, without car_name
-            track_socket.sendto(p, self.client_addr)
-            logger.info('starting control/state loop (waiting for initial client control from {})'.format(self.client_addr))
-            lastT = timer()
-            first_control_msg_received=False
-            track_socket.settimeout(0) # nonblocking reads to get new commands and respond with current state
-            last_message_time=timer()
-            try:
-                data,lastClientAddr = track_socket.recvfrom(2048) # get control input TODO add timeout and better dead client handling
-                (cmd, payload) = pickle.loads(data)
-                if cmd=='command':
-                    if payload.quit:
-                        logger.info('quit recieved from {}, ending control loop'.format(lastClientAddr))
-                        break
-                    if payload.reset_car:
-                        logger.info('reset recieved from {}, resetting car'.format(lastClientAddr))
-                    command=payload
-                    # self.car.car_state.update(self.car_model) # update user observed car state from model
-                    # logger.info('sending car_state={}'.format(car.car_state))
-                    payload=(dtSec, carThread.car.car_state) # send (dt,car_state) to client # todo instrument to see how big is data in bytes
-                    message=('car_state',payload)
-                    p=pickle.dumps(message) # about 840 bytes
-                    track_socket.sendto(p,lastClientAddr)
-                else:
-                    logger.warning('unknowm cmd {} received; ignoring'.format(cmd))
-                    continue
-
-            except OSError as oserror:
-                logger.warning('{}: garbled command or timeout, ending control loop thread'.format(oserror))
-                break
-            if not first_control_msg_received:
-                logger.info('got first command from client at {}'.format(lastClientAddr))
-                first_control_msg_received=True
-            now=timer()
-            dtSec = now-lastT # compute local real timestep, done on server to prevent accelerated real time cheating
-            lastT=now
-            self.car_model.update(dtSec=dtSec, command=command)
-            self.track_name.car_completed_round(self.car_model)
-            self.car.car_state=self.car_model.car_state
-            sleep(1./FPS/2) # TODO, now just sleeps about 1/2 the default frame interval, should sleep for remaining time
-
-        logger.info('closing client socket, ending thread (server main thread waiting for new connection)')
-        track_socket.close()
-
-def send_message(socket:socket, lock:mp.Lock, client_addr, msg:object):
-    try:
-        lock.acquire()
-        p=pickle.dumps(msg)
-        socket.sendto(p, client_addr)
-    finally:
-        lock.release()
+    def send_game_port_to_client(self, client_addr):
+        logger.debug('sending game_port message to client {} telling it to use our local port number {}'.format(client_addr,self.local_port_number))
+        # first message to client is the game port number
+        # send client the port they should use for this track
+        send_message(lock=None, socket=self.track_socket, client_addr=client_addr, msg=('game_port',self.local_port_number))
 
 
-def make_track_process(track_name, client_addr) -> bool:
-    if track_processes[track_name]!=None:
-        return track_processes[track_name]
-    logger.info('model server starting a new track_server_process for track {} for client at {}'.format(track_name, client_addr))
-    q=mp.queues.Queue()
-    track_quues[track_name]=q
-    track_process = track_server_process(q, server_port_lock=server_port_lock, client_addr=client_addr, track_name=track_name, ignore_off_track=args.ignore_off_track, timeout_s=args.timeout_s)
-    track_processes[track_name]=track_process
-    track_processes[track_name].start()
-    return track_processes[track_name]
-
-def add_car_to_track(track_name, game_mode, car_name, client_addr):
-    track_process=make_track_process(client_addr, track=track_name, car_name=car_name, ignore_off_track=DO_NOT_RESET_CAR_WHEN_IT_GOES_OFF_TRACK, timeout_s=CLIENT_TIMEOUT_SEC)
-    q=track_quues[track_name]
-    q.put(('add_car',game_mode, car_name, client_addr))
-
-
-def add_spectator_to_track(track_name):
-    track_process=make_track_process(track_name, client_addr)
-    q=track_quues[track_name]
-    q.put(('add_spectator',client_addr))
-
-def stop_track_process(track_name):
-    pass
-
-def remove_car_from_track(track_name, car_name, client_addr):
-    pass
-
+    def handle_server_msg(self, cmd,payload):
+        logger.debug('got queue message from server manager cmd={} payload={}'.format(cmd,payload))
+        if cmd=='add_car':
+            (car_name, client_addr)=payload
+            self.add_car_to_track(car_name, client_addr)
+            self.send_game_port_to_client(client_addr)
+        elif cmd=='add_spectator':
+            client_addr=payload
+            self.add_spectator_to_track(client_addr)
+            self.send_game_port_to_client(client_addr)
+        else:
+            raise RuntimeWarning('unknown cmd {}'.format(cmd))
 
 if __name__ == '__main__':
+    logger.setLevel(logging.DEBUG)
     try:
         ga = Gooey(get_args, program_name="l2race server", default_size=(575, 600))
         logger.info('Use --ignore-gooey to disable GUI and run with command line arguments')
@@ -191,6 +197,42 @@ if __name__ == '__main__':
     server_socket.bind(('', SERVER_PORT)) # bind to empty host, so we can receive from anyone on this port
     logger.info("waiting on {}".format(str(server_socket)))
     server_port_lock=mp.Lock() # proceeses get passed this lock to initiate connections using it (but only once, at start)
+
+    track_names=list_tracks()
+    track_processes = {k:None for k in track_names} # each entry holds the track objects for each track name
+    track_queues={k:None for k in track_names} # each entry is the queue to send to track process
+
+    def make_track_process(track_name, client_addr) -> bool:
+        if not track_processes[track_name] is None:
+            return track_processes[track_name]
+        logger.info('model server starting a new track_server_process for track {} for client at {}'.format(track_name, client_addr))
+        q=mp.Queue()
+        track_queues[track_name]=q
+        track_process = track_server_process(queue_from_server=q, server_port_lock=server_port_lock, server_socket=server_socket, track_name=track_name)
+        track_processes[track_name]=track_process
+        track_processes[track_name].start()
+        return track_processes[track_name]
+
+    def server_add_car_to_track(track_name, car_name, client_addr):
+        make_track_process(track_name=track_name, client_addr=client_addr)
+        server_put_cmd_to_client_queue(track_name, car_name, client_addr)
+
+
+    def server_put_cmd_to_client_queue(track_name,car_name, client_addr):
+        logger.debug('putting message to track process for track {} to add car named {} for client {}'.format(track_name,car_name,client_addr))
+        q = track_queues[track_name]
+        q.put(('add_car', (car_name, client_addr)))
+
+
+    def add_spectator_to_track(track_name, client_addr):
+        q=track_queues[track_name]
+        q.put(('add_spectator',client_addr))
+
+    def stop_track_process(track_name):
+        pass
+
+    def remove_car_from_track(track_name, car_name, client_addr):
+        pass
 
     # We fork an mp process for each track that might have one or more cars and spectators.
 
@@ -208,10 +250,6 @@ if __name__ == '__main__':
     # 4. Client talks to track process on new port
     # That way, client initiates communication on new port and should be able to recieve on it
 
-    track_names=list_tracks()
-    emtpy_track_dict = {k:None for k in track_names} # each entry holds all the clients for each track name
-    track_processes = emtpy_track_dict # each entry holds the track objects for each track name
-    track_quues=emtpy_track_dict
 
 
     while True: # todo add KeyboardInterrupt exception handling, also SIG_TERM
@@ -223,25 +261,22 @@ if __name__ == '__main__':
         try:
             (cmd, payload) = pickle.loads(data)
         except pickle.UnpicklingError as ex:
-            logger.warning('{}: garbled command, ignoring. Client should send 4-tuple (cmd, track_name, game_mode, car_name).\n '
-                           'cmd="newcar"\n'
-                           'track_name=<track_filename>\n'
-                           'game_mode="solo|multi\n'
-                           'car_name=<string_label_for_car>'.format(ex))
+            logger.warning('{}: garbled command, ignoring. \n'
+                           'Client should send pickled 2-tuple (cmd, payload).\n '
+                           'cmd="add_car|add_spectator"\n'
+                           'payload (for add_car) =(track_name,car_name)\n'
+                           'payload (for add_spectator) =(track_name)\n'
+                           .format(ex))
             continue
 
         logger.info('received cmd "{}" with payload "{}" from {}'.format(cmd, payload, client_addr))
         # todo handle multiple cars on one track, provide option for unique track for testing single car
 
-        if cmd == 'newcar': # todo add arguments with newcar like driver/car name
-            track_name, game_mode, car_name=payload
-            add_car_to_track(track_name,game_mode,car_name,client_addr)
-        elif cmd=='spectate':
-            w='spectate not available yet'
-            logger.warning(w)
-            message=('warning',w)
-            p=pickle.dumps(message) # about 840 bytes
-            server_socket.sendto(p, client_addr)
+        if cmd == 'add_car': # todo add arguments with newcar like driver/car name
+            (track_name, car_name)=payload
+            server_add_car_to_track(track_name, car_name, client_addr)
+        elif cmd=='add_spectator':
+            add_spectator_to_track(track_name, client_addr)
         else:
             logger.warning('model server received unknown cmd={}'.format(cmd))
 

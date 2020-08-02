@@ -1,6 +1,7 @@
 # customized logger with color output
 import logging
 
+
 def my_logger(name):
     logging.basicConfig()
     root = logging.getLogger()

@@ -1,9 +1,11 @@
 """
-Client racecar agent
+Client l2race agent
 
 """
 import argparse
 import os
+from typing import Tuple
+
 
 import argcomplete as argcomplete
 import pygame
@@ -70,7 +72,7 @@ class Game:
 
     def __init__(self,
                  track_name='track',
-                 game_mode=GAME_MODE,
+                 spectate=False,
                  car_name=CAR_NAME,
                  controller=pid_next_waypoint_car_controller(),
                  server_host=SERVER_HOST,
@@ -84,6 +86,7 @@ class Game:
         pygame.init()
         logger.info('using pygame version {}'.format(pygame.version.ver))
         pygame.display.set_caption("l2race")
+        self.spectate=spectate
         self.widthPixels = widthPixels
         self.heightPixels = heightPixels
         self.screen = pygame.display.set_mode(size=(self.widthPixels, self.heightPixels), flags=0)
@@ -93,14 +96,18 @@ class Game:
         self.exit = False
         self.input=None
         self.fps=fps
+        self.sock = None # our socket used for communicating with server
         self.server_host=server_host
         self.server_port=server_port
+        self.serverStartAddr = (self.server_host, self.server_port) # manager address, different port on server used during game
+        self.gameSockAddr = None # address used during game
         self.server_timeout_s=timeout_s
+        self.gotServer = None
         self.record=record
         self.recorder=None
 
         self.track_name = track_name
-        self.game_mode = game_mode
+        self.game_mode = spectate
         self.track = track(track_name=track_name)
         self.car_name=car_name
         self.car = None # will make it later after we get info from server about car
@@ -118,9 +125,6 @@ class Game:
 
         self.auto_input = None  # will make it later when car is created because it is needed for the car_controller
 
-        self.serverSock = None
-        self.gotServer = None
-        self.gameSockAddr = None
 
 
     def render_multi_line(self, text, x, y): # todo clean up
@@ -135,12 +139,11 @@ class Game:
         except Exception as ex:
             logger.warning("Caught exception {} when trying to open l2race client ports".format(ex))
 
-        self.serverSock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)  # UDP
-        serverAddr = (self.server_host, self.server_port)
-        self.serverSock.settimeout(self.server_timeout_s)
-        bind_socket_to_range(CLIENT_PORT_RANGE, self.serverSock)
+        self.sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)  # UDP
+        self.sock.settimeout(self.server_timeout_s)
+        bind_socket_to_range(CLIENT_PORT_RANGE, self.sock)
 
-        logger.info('connecting to l2race model server at '+str(serverAddr))
+        logger.info('asking l2race model server at '+str(self.serverStartAddr)+' to add car or spectate')
 
         self.gotServer=False
         ntries = 0
@@ -155,24 +158,35 @@ class Game:
             if command.quit:
                 logger.info('startup aborted before connecting to server')
                 pygame.quit()
-            cmd = 'newcar'
-            payload=(self.track_name, self.game_mode, self.car_name)
-            data = (cmd, payload)
-            p = pickle.dumps(data)
+            if not self.spectate:
+                cmd = 'add_car'
+                payload=(self.track_name, self.car_name)
+            else:
+                cmd = 'add_spectator'
+                payload=self.track_name
             s = 'sending cmd={} with payload {} to server initial address {}, ' \
-                'waiting for server...[{}]'\
-                .format(cmd, payload, serverAddr, ntries)
+                'waiting for server...[{}]' \
+                .format(cmd, payload, self.serverStartAddr, ntries)
             logger.info(s)
+            self.send_to_server(self.serverStartAddr, cmd,payload)
+
+            # now get the game port as a response
+
+
             self.screen.fill([0, 0, 0])
             self.render_multi_line(s, 10, 10)
             pygame.display.flip()
-            self.serverSock.sendto(p, serverAddr)
             try:
-                p, self.gameSockAddr = self.serverSock.recvfrom(4096) # todo add timeout for flaky connection
-                car_state = pickle.loads(p)
+                logger.debug('waiting for game_port message from server')
+                msg,payload=self.receive_from_server()
+                if msg!='game_port' or not isinstance(payload,int):
+                    logger.warning("got response (msg,command)=({},{}) but expected ('game_port',port_number); will try again in {}s".format(msg,payload, SERVER_PING_INTERVAL_S))
+                    time.sleep(SERVER_PING_INTERVAL_S)
+                    continue
                 self.gotServer = True
+                self.gameSockAddr=(self.server_host, payload)
+                logger.info('got game_port message from server telling us to use address {} to talk with server'.format(self.gameSockAddr))
                 self.car = car(name=self.car_name)
-                self.car.car_state = car_state  # server sends initial state of car
                 self.car.track = track(track_name=self.track_name)
                 if self.record:
                     if self.recorder is None:
@@ -181,12 +195,12 @@ class Game:
                 self.car.loadAndScaleCarImage()
                 self.controller.car=self.car
                 self.auto_input =self.controller
+                logger.info('initial car state is '+str(self.car.car_state))
                 logger.info('received car server response and initial car state; '
                             'will use {} for communicating with l2race model server'.format(self.gameSockAddr))
-                logger.info('initial car state is '+str(self.car.car_state))
             except OSError as err:
-                s = '{}:\n error for response from {}; ' \
-                    'will try again in {}s ...[{}]'.format(err, serverAddr, SERVER_PING_INTERVAL_S, ntries)
+                s += '\n{}:\n error for response from {}; ' \
+                    'will try again in {}s ...[{}]'.format(err, self.serverStartAddr, SERVER_PING_INTERVAL_S, ntries)
                 logger.warning(s)
                 self.screen.fill([0, 0, 0])
                 self.render_multi_line(s, 10, 10)
@@ -202,6 +216,7 @@ class Game:
         iterationCounter = 0
         logger.info('starting main loop')
         while not self.exit and self.gotServer:
+            self.clock.tick(self.fps) # updates pygame clock, makes sure frame rate is at most this many fps; limit runtime to self.ticks Hz update rate
             iterationCounter+=1
             if iterationCounter%CHECK_FOR_JOYSTICK_INTERVAL==0 and not isinstance(self.input, my_joystick):
                 try:
@@ -245,18 +260,25 @@ class Game:
                 break
 
             # send control to server
-            data = command # todo add general command structure to msg
-            p = pickle.dumps(data)
-            self.serverSock.sendto(p,self.gameSockAddr)
+            self.send_to_server(self.gameSockAddr, 'command',command)
 
-            # get new car state
+             # get new car state
             try:
-                data, _ = self.serverSock.recvfrom(4096) # todo, make blocking with timeout to handle dropped packets
-                (dt, cs) = pickle.loads(data) # todo do something with dt to set animation rate
-                self.car.car_state = cs
+                cmd,payload=self.receive_from_server()
+                if cmd=='car_state':
+                    self.car.car_state=payload
+                    if self.recorder:
+                        self.recorder.write_sample()
+                else:
+                    logger.warning('unexpected msg {} with payload {} received from server (should have gotten "car_state" message)'.format(cmd,payload))
+                    continue
+            except pickle.UnpicklingError as err:
+                logger.warning('{}: could not unpickle the response from server'.format(err))
+                continue
+            except TypeError as te:
+                logger.warning(str(te)+": ignoring and waiting for next state")
+                continue
             except socket.timeout:
-                # the problem is that if we get a timeout,
-                # the next solution will take even longer since the step will be even larger, so we get into spiral
                 logger.warning('Timeout on socket receive from server, using previous car state. '
                                'Check server to make sure it is still running')
             except ConnectionResetError:
@@ -264,31 +286,36 @@ class Game:
                 self.gotServer = False
                 self.connect_to_server()
                 break
-            except TypeError as te:
-                logger.warning(str(te)+": ignoring and waiting for next state")
-                continue
 
-            if self.recorder:
-                self.recorder.write_sample()
             # Drawing
-            self.car.track_name.draw(self.screen)
+            self.car.track.draw(self.screen)
             self.car.draw(self.screen)
             self.render_multi_line(str(self.car.car_state), 10, 10)
             pygame.display.flip()
-            self.clock.tick(self.fps) # limit runtime to self.ticks Hz update rate
 
-        if self.serverSock:
+        if self.sock:
             logger.info('closing socket')
-            self.serverSock.close_recording()
+            self.sock.close()
         logger.info('quitting pygame')
         pygame.quit()
         quit()
+
+    def send_to_server(self, addr:Tuple[str,int], msg:str, payload:object):
+        ''' send cmd,payload to server at specified (ip,port)'''
+        logger.debug('sending msg {} with payload {} to {}'.format(msg,payload,addr))
+        p = pickle.dumps((msg, payload))
+        self.sock.sendto(p, addr)
+
+    def receive_from_server(self):
+        data, server_addr = self.sock.recvfrom(8000) # todo check if large enough for payload inclding all other car state
+        (cmd,payload) = pickle.loads(data)
+        return cmd,payload
 
 
 # A wrapper around Game class to make it easier for a user to provide arguments
 def define_game(gui='with_gui',
                 track_name=None,
-                game_mode=None,
+                spectate=False,
                 car_name=None,
                 server_host=None,
                 server_port=None,
@@ -301,7 +328,7 @@ def define_game(gui='with_gui',
         launch_gui()
         args = get_args()
         game = Game(track_name=args.track_name,
-                    game_mode='multi' if args.multi else 'solo',
+                    spectate=spectate,
                     car_name=args.car_name,
                     # server_host=args.host,
                     # server_port=args.port,
@@ -319,9 +346,6 @@ def define_game(gui='with_gui',
 
         if track_name is None:
             track_name = args.track_name
-
-        if game_mode is None:
-            game_mode = 'multi' if args.multi else 'solo'
 
         if car_name is None:
             car_name = args.car_name
@@ -357,7 +381,7 @@ def define_game(gui='with_gui',
             record = args.record
 
         game = Game(track_name=track_name,
-                    game_mode=game_mode,
+                    spectate=spectate,
                     car_name=car_name,
                     server_host=server_host,
                     server_port=server_port,
@@ -373,12 +397,13 @@ def define_game(gui='with_gui',
 
 if __name__ == '__main__':
 
+    logger.setLevel(logging.DEBUG)
     launch_gui()
 
     args = get_args()
 
     game = Game(track_name=args.track_name,
-                game_mode='multi' if args.multi else 'solo',
+                spectate=args.spectate,
                 car_name=args.car_name,
                 server_host=args.host,
                 server_port=args.port,
