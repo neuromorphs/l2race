@@ -77,7 +77,11 @@ class car:
 
     def loadAndScaleCarImage(self, image_name:str, screen:Optional[pygame.Surface]):
         """ loads image for car and scales it to its actual length.
-        Call only after car_state is filled by server
+        Car image should be horizontal and car should be facing to the right.
+
+        Call only after car_state is filled by server since we need phyical length and width.
+        If passed screen argument, then the image surface is optimized by .convert() to the surface for faster drawing.
+
         """
         if image_name.endswith('.png'):
             logger.warning('supply car image name {} without .png suffix'.format(image_name))
@@ -85,13 +89,13 @@ class car:
         current_dir = os.path.dirname(os.path.abspath(__file__))
         image_path = os.path.join(current_dir, "../media/" + image_name + ".png") # todo name of car and file should come from server
         if isinstance(screen,pygame.Surface):
-            self.image = pygame.image.load(image_path).convert(screen)  # load image of car
+            image = pygame.image.load(image_path).convert(screen)  # load image of car
         else:
-            self.image = pygame.image.load(image_path)  # load image of car
+            image = pygame.image.load(image_path)  # load image of car
 
         # scale it to its length in pixels (all units are in pixels which are meters)
         # TODO use global scale of M_PER_PIXEL correctly here
-        rect = self.image.get_rect()
+        rect = image.get_rect()
         sc = self.car_state.length_m / (M_PER_PIXEL * rect.width)
-        image = pygame.transform.scale(self.image, (int(sc * rect.width), int(sc * rect.height)))
+        image = pygame.transform.scale(image, (int(sc * rect.width), int(sc * rect.height)))
         return image

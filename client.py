@@ -262,7 +262,7 @@ class Game:
             # send control to server
             self.send_to_server(self.gameSockAddr, 'command',command)
 
-             # get new car state
+             # expect to get new car state
             try:
                 cmd,payload=self.receive_from_server()
                 if cmd=='car_state':

@@ -61,7 +61,7 @@ class track_server_process(mp.Process):
         self.exit=False
 
     def run(self):
-        logger.setLevel(logging.DEBUG)
+        # logger.setLevel(logging.DEBUG)
         logger.info("Starting track process track {}".format(self.track_name))
         self.track=track(self.track_name)
         self.car_dict = dict() # maps from client_addr to car_model (or None if a spectator)
@@ -79,7 +79,7 @@ class track_server_process(mp.Process):
         # To handle multiple clients, when it gets a message from a client, it responds to the client using the client address.
 
         while not self.exit:
-            sleep(1./FPS)
+            sleep(1./FPS) # todo sleep for leftover time
             self.process_server_queue() # 'add_car' 'add_spectator'
 
             # now we do main simulation/response
@@ -133,11 +133,9 @@ class track_server_process(mp.Process):
             msg='car_state'
             payload=car_model.car_state
             self.send_client_msg(client, msg,payload)
-        elif msg=='send_state':
-            car_model=self.car_dict[client]
-            car_model.car_state.command=payload
-            msg='car_state'
-            payload=car_model.car_state
+        elif msg=='send_states':
+            msg='all_states'
+            payload=self.car_states_list
             self.send_client_msg(client, msg,payload)
 
             pass
