@@ -16,7 +16,8 @@ G=scipy.constants.value('standard acceleration of gravity')
 # client
 
 # SERVER_HOST='telluridevm.iniforum.ch' # metanet 16-core model server
-SERVER_HOST='localhost'
+# SERVER_HOST='localhost'
+SERVER_HOST='172.20.10.6' # Local IP of Marcin
 
 FPS=30 # frames per second for simulation and animation
 GAME_FONT_NAME='Consolas'
