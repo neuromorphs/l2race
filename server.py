@@ -10,7 +10,7 @@ from time import sleep
 import multiprocessing as mp
 
 from src.car_state import car_state
-from src.l2race_utils import bind_socket_to_range
+from src.l2race_utils import bind_socket_to_range, set_logging_leveal
 from src.my_args import server_args
 from src.car_model import car_model
 from src.car import car
@@ -181,7 +181,6 @@ class track_server_process(mp.Process):
             raise RuntimeWarning('unknown cmd {}'.format(cmd))
 
 if __name__ == '__main__':
-    logger.setLevel(logging.DEBUG)
     try:
         ga = Gooey(get_args, program_name="l2race server", default_size=(575, 600))
         logger.info('Use --ignore-gooey to disable GUI and run with command line arguments')
@@ -190,6 +189,7 @@ if __name__ == '__main__':
         logger.warning('Gooey GUI not available, using command line arguments. \n'
                        'You can try to install with "pip install Gooey"')
     args = get_args()
+    set_logging_leveal(args)
 
     server_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
     server_socket.bind(('', SERVER_PORT)) # bind to empty host, so we can receive from anyone on this port

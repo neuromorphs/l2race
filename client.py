@@ -20,9 +20,11 @@ import socket
 import time
 import pygame
 import sys
+import atexit
+
 
 from src.data_recorder import data_recorder
-from src.l2race_utils import bind_socket_to_range, open_ports
+from src.l2race_utils import bind_socket_to_range, open_ports, set_logging_leveal
 from src.globals import *
 from src.my_joystick import my_joystick
 from src.my_keyboard import my_keyboard
@@ -125,7 +127,15 @@ class Game:
 
         self.auto_input = None  # will make it later when car is created because it is needed for the car_controller
 
-
+    def cleanup(self):
+        if self.gotServer:
+            if self.spectate:
+                self.send_to_server(self.gameSockAddr,'remove_spectator',None)
+            else:
+                self.send_to_server(self.gameSockAddr,'remove_car',self.car_name)
+        if self.sock:
+            self.sock.close()
+            self.sock=None
 
     def render_multi_line(self, text, x, y): # todo clean up
         lines = text.splitlines()
@@ -142,6 +152,8 @@ class Game:
         self.sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)  # UDP
         self.sock.settimeout(self.server_timeout_s)
         bind_socket_to_range(CLIENT_PORT_RANGE, self.sock)
+
+        atexit.register(self.cleanup())
 
         logger.info('asking l2race model server at '+str(self.serverStartAddr)+' to add car or spectate')
 
@@ -290,9 +302,7 @@ class Game:
             # Drawing
             self.draw()
 
-        if self.sock:
-            logger.info('closing socket')
-            self.sock.close()
+        self.cleanup()
         logger.info('quitting pygame')
         pygame.quit()
         quit()
@@ -396,14 +406,13 @@ def define_game(gui='with_gui',
     return game
 
 
-
-
 if __name__ == '__main__':
 
-    logger.setLevel(logging.DEBUG)
     launch_gui()
 
     args = get_args()
+
+    set_logging_leveal(args)
 
     game = Game(track_name=args.track_name,
                 spectate=args.spectate,

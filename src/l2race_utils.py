@@ -1,9 +1,22 @@
 # utility methods
+import logging
 import os
 
 from src.globals import CLIENT_PORT_RANGE
 from src.my_logger import my_logger
 logger = my_logger(__name__)
+
+
+def set_logging_leveal(args):
+    if args.logging_level=='INFO':
+        logger.setLevel(logging.INFO)
+    elif args.logging_level=='DEBUG':
+        logger.setLevel(logging.DEBUG)
+    elif args.logging_level=='WARNING':
+        logger.setLevel(logging.WARNING)
+    else:
+        logger.warning('unknown logging level {} specified, using default level {}'.format(args.logging_level,logger.getEffectiveLevel()))
+
 
 def bind_socket_to_range(portrange, client_sock):
     ''' find a free server port in range
