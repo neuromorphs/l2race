@@ -12,7 +12,6 @@ from src.l2race_utils import my_logger
 from src.track import track
 
 logger = my_logger(__name__)
-logger.setLevel(logging.DEBUG)
 
 # import sys
 # sys.path.append('../commonroad-vehicle-models/Python')
