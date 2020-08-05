@@ -4,7 +4,7 @@ from typing import Optional, List
 from pygame.math import Vector2
 
 from src.car_command import car_command
-from src.my_logger import my_logger
+from src.l2race_utils import my_logger
 logger = my_logger(__name__)
 from src.globals import SCREEN_WIDTH_PIXELS, SCREEN_HEIGHT_PIXELS, M_PER_PIXEL
 

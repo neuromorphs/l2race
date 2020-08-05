@@ -3,19 +3,53 @@ import logging
 import os
 
 from src.globals import CLIENT_PORT_RANGE
-from src.my_logger import my_logger
+
+# customized logger with color output
+import logging
+
+from src.globals import LOGGING_LEVEL
+
+
+def my_logger(name):
+    logging.basicConfig(level=LOGGING_LEVEL)
+    # root = logging.getLogger()
+    # root.setLevel(logging.INFO)
+    # https://stackoverflow.com/questions/384076/how-can-i-color-python-logging-output/7995762#7995762
+    logging.addLevelName(
+        logging.WARNING, "\033[1;31m%s\033[1;0m" % logging.getLevelName(
+            logging.WARNING))
+    logging.addLevelName(
+        logging.ERROR, "\033[1;41m%s\033[1;0m" % logging.getLevelName(
+            logging.ERROR))
+    logger = logging.getLogger(name)
+    logger.setLevel(LOGGING_LEVEL)
+    return logger
+
 logger = my_logger(__name__)
 
-
-def set_logging_level(args):
-    if args.logging_level=='INFO':
-        logger.setLevel(logging.INFO)
-    elif args.logging_level=='DEBUG':
-        logger.setLevel(logging.DEBUG)
-    elif args.logging_level=='WARNING':
-        logger.setLevel(logging.WARNING)
+def set_logging_level(args): # todo still does not correctly affect all of our existing loggers.... tricky
+    global LOGGING_LEVEL
+    if args.log=='INFO':
+        LOGGING_LEVEL=logging.INFO
+    elif args.log=='DEBUG':
+        LOGGING_LEVEL=logging.DEBUG
+    elif args.log=='WARNING':
+        LOGGING_LEVEL=logging.WARNING
+    elif args.log=='CRITICAL':
+        LOGGING_LEVEL=logging.CRITICAL
     else:
         logger.warning('unknown logging level {} specified, using default level {}'.format(args.logging_level,logger.getEffectiveLevel()))
+        return
+    logging.basicConfig(level=LOGGING_LEVEL)
+    # root = logging.getLogger()
+    # root.setLevel(logging.INFO)
+    # https://stackoverflow.com/questions/384076/how-can-i-color-python-logging-output/7995762#7995762
+    logging.addLevelName(
+        logging.WARNING, "\033[1;31m%s\033[1;0m" % logging.getLevelName(
+            logging.WARNING))
+    logging.addLevelName(
+        logging.ERROR, "\033[1;41m%s\033[1;0m" % logging.getLevelName(
+            logging.ERROR))
 
 
 def bind_socket_to_range(portrange, client_sock):

@@ -7,7 +7,7 @@ import pygame # conda install -c cogsci pygame; maybe because it only is supplie
 from pygame import joystick
 
 from src.car_command import car_command
-from src.my_logger import my_logger
+from src.l2race_utils import my_logger
 
 import platform
 from src.globals import JOYSTICK_NUMBER

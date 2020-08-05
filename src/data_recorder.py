@@ -5,7 +5,7 @@ from collections import OrderedDict
 from src.car import car
 
 from src.globals import DATA_FILENAME_BASE, DATA_FOLDER_NAME
-from src.my_logger import my_logger
+from src.l2race_utils import my_logger
 import atexit
 
 logger = my_logger(__name__)

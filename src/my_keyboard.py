@@ -2,7 +2,7 @@
 import pygame
 
 from src.car_command import car_command
-from src.my_logger import my_logger
+from src.l2race_utils import my_logger
 logger = my_logger(__name__)
 
 def printhelp():

@@ -30,7 +30,7 @@ from src.my_keyboard import my_keyboard
 from src.track import track
 from src.car import car
 from src.my_args import client_args
-from src.my_logger import my_logger
+from src.l2race_utils import my_logger
 from src.pid_next_waypoint_car_controller import pid_next_waypoint_car_controller
 
 logger = my_logger(__name__)

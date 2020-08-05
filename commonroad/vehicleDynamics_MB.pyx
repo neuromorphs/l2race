@@ -8,7 +8,7 @@ from . import tireModel
 import math
 from typing import *
 # from .vehicleParameters import VehicleParameters, vehicle_params_type
-from src.my_logger import my_logger
+from src.l2race_utils import my_logger
 from cpython cimport array
 import array
 logger = my_logger(__name__)

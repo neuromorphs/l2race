@@ -31,7 +31,7 @@ def client_args(parser):
     clientGroup.add_argument("--track_name", type=str, default=TRACK_NAME, help="Name of track. Available tracks are in the 'media/tracks' folder. Available tracks are "+str(list_tracks()))
     clientGroup.add_argument("--spectate", action='store_true', help="Just be a spectator on the cars on the track.")
     clientGroup.add_argument("--timeout_s", type=float, default=SERVER_TIMEOUT_SEC, help="Socket timeout in seconds for communication with model server.")
-    clientGroup.add_argument('--logging_level',type=str,default='INFO',help='Set logging level. From most to least verbose, choices are "DEBUG", "INFO", "WARNING".')
+    clientGroup.add_argument('--log',type=str,default=str(logging.getLevelName(LOGGING_LEVEL)),help='Set logging level. From most to least verbose, choices are "DEBUG", "INFO", "WARNING".')
     # clientGroup.add_argument("--record", action='store_true', help="record data to date-stamped filename, e.g. --record will write datestamped files named '{}-XXX.csv' in folder '{}, where XXX is a date/timestamp'.".format(DATA_FILENAME_BASE, DATA_FOLDER_NAME))
 
     return parser
@@ -41,7 +41,7 @@ def server_args(parser):
 
     serverGroup = parser.add_argument_group('Server arguments:')
     serverGroup.add_argument("--ignore_off_track", action='store_true', help="ignore when car goes off track (for testing car dynamics more easily)")
-    serverGroup.add_argument('--logging_level',type=str,default='INFO',help='Set logging level. From most to least verbose, choices are "DEBUG", "INFO", "WARNING". ')
+    serverGroup.add_argument('--log',type=str,default=str(logging.getLevelName(LOGGING_LEVEL)),help='Set logging level. From most to least verbose, choices are "DEBUG", "INFO", "WARNING".')
     # serverGroup.add_argument("--timeout_s", type=int, default=CLIENT_TIMEOUT_SEC, help="server timeout in seconds before it ends thread for handling a car model")
     # serverGroup.add_argument("--model", type=str, default=src.car_model.MODEL, help="server timeout in seconds before it ends thread for handling a car model")
 

@@ -18,7 +18,7 @@ from src.car_model import car_model
 from src.car import car
 from src.globals import *
 from src.track import track, list_tracks
-from src.my_logger import my_logger
+from src.l2race_utils import my_logger
 logger=my_logger(__name__)
 try:
     from scripts.regsetup import description
@@ -152,8 +152,8 @@ class track_server_process(mp.Process):
                 except Exception as e:
                     logger.warning('caught Exception {} while processing UDP messages from client'.format(e))
                     break
-
-        self.track_socket.close()
+        self.cleanup()
+        logger.info('ended track {}'.format(self.track_name))
 
     def receive_msg(self):
         p,client=self.track_socket.recvfrom(2048)
@@ -259,8 +259,8 @@ if __name__ == '__main__':
     server_port_lock=mp.Lock() # proceeses get passed this lock to initiate connections using it (but only once, at start)
 
     track_names=list_tracks()
-    track_processes = {k:None for k in track_names} # each entry holds the track objects for each track name
-    track_queues={k:None for k in track_names} # each entry is the queue to send to track process
+    track_processes:Dict[str,mp.Process] = {k:None for k in track_names} # each entry holds the track objects for each track name
+    track_queues:Dict[str,mp.Queue]={k:None for k in track_names} # each entry is the queue to send to track process
 
     def make_track_process(track_name, client_addr) -> bool:
         if not track_processes[track_name] is None:
@@ -292,10 +292,14 @@ if __name__ == '__main__':
             logger.info('telling track {} to stop'.format(t))
             q.put('stop')
         sleep(1)
-        logger.info('terminating zombie track processes')
+        logger.info('joining processes')
         for t,p in track_processes.items():
-            if p.running():
+            p.join(1)
+        for t,p in track_processes.items():
+            if p.is_alive():
+                logger.info('terminating zombie track process {}'.format(p))
                 p.terminate()
+        logger.info('closing queues')
         for q in track_queues.values():
             q.close()
             q.join_thread()
@@ -303,7 +307,6 @@ if __name__ == '__main__':
     def cleanup():
         logger.debug('cleaning up server main process')
         stop_all_track_processes()
-        pass
 
     atexit.register(cleanup)
 

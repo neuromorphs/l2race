@@ -1,4 +1,9 @@
 """ global parameters"""
+import logging
+
+
+LOGGING_LEVEL=logging.INFO # set the overall default leval, change with --log option
+
 # DO NOT CHANGE UNLESS you change on server too
 # define screen area, track is scaled to fill this area, note 4:3 aspect ratio
 SCREEN_WIDTH_PIXELS=1024 #  pixels

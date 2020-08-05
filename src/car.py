@@ -6,7 +6,7 @@ from typing import Optional
 import pygame
 import pygame.freetype
 from pygame.math import Vector2
-from src.my_logger import my_logger
+from src.l2race_utils import my_logger
 from src.track import track
 
 from src.car_state import car_state
