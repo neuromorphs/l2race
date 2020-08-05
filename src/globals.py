@@ -50,7 +50,7 @@ TRACK_NAME='oval' # tracks are stored in the 'media' folder. Data for a track mu
 #server and model settings. Client cannot affect these model server settings
 SERVER_PORT = 50000 # client starts game on this port on the SERVER_HOST
 CLIENT_PORT_RANGE='50010-50020' # range of ports used for client that server uses for game
-DO_NOT_RESET_CAR_WHEN_IT_GOES_OFF_TRACK = True # set true for testing dynamics of car
+DO_NOT_RESET_CAR_WHEN_IT_GOES_OFF_TRACK = False # set true for testing dynamics of car
 FRICTION_FACTOR = .5 # overall friction parameter multiplier for some models
 # CLIENT_TIMEOUT_SEC=0 # server timeout in seconds before it ends thread for handling a car model
 # client needs to open this port range for receiving state from server and sending commands to server

@@ -195,7 +195,7 @@ class car_model:
 
         if dtSec> MAX_TIMESTEP:
             s='bounded real dtSec={:.1f}ms to {:.2f}ms'.format(dtSec * 1000, MAX_TIMESTEP*1000)
-            logger.info(s)
+            # logger.info(s)
             self.car_state.server_msg+=s
             dtSec=MAX_TIMESTEP
 
@@ -265,8 +265,14 @@ class car_model:
 
         current_surface = self.track.get_surface_type(car_state=self.car_state)
         if not self.ignore_off_track and current_surface == 0:
-            logger.info("went off track, resetting car")
-            self.reset()
+            if self.car_state.speed_m_per_sec > 0:
+                self.car_state.speed_m_per_sec = 0
+                self.car_state.velocity_m_per_sec.x = 0
+                self.car_state.velocity_m_per_sec.y = 0
+
+
+            # logger.info("went off track, resetting car")
+            # self.reset()
 
     def computeSteerVelocityRadPerSec(self, commandedSteering:float):
         # based on https://github.com/f1tenth/f1tenth_gym/blob/master/src/racecar.cpp

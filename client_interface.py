@@ -41,7 +41,8 @@ if __name__ == '__main__':
     The only case when a flag has precedence over a variable provided below is for disabling gui
     '''
 
-    game = define_game(gui='without_gui')
+    game = define_game(gui='without_gui',
+                       )
     game.run()
 
     '''

@@ -137,7 +137,9 @@ class track_server_process(mp.Process):
             msg='all_states'
             payload=self.car_states_list
             self.send_client_msg(client, msg,payload)
-
+        elif msg == 'finish_race':
+            logger.info('Removing {} from track'.format(self.car_dict[client].car_name))
+            del self.car_dict[client]
             pass
         else:
             logger.warning('unknowm cmd {} received; ignoring'.format(msg))
@@ -170,7 +172,7 @@ class track_server_process(mp.Process):
     def handle_server_msg(self, cmd,payload):
         logger.debug('got queue message from server manager cmd={} payload={}'.format(cmd,payload))
         if cmd=='add_car':
-            (car_name, client_addr)=payload
+            (car_name, client_addr)=payload #todo: is it right? is car_name here not (track_name, car_name)
             self.add_car_to_track(car_name, client_addr)
             self.send_game_port_to_client(client_addr)
         elif cmd=='add_spectator':

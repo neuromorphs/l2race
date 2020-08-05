@@ -264,7 +264,7 @@ class Game:
 
              # expect to get new car state
             try:
-                cmd,payload=self.receive_from_server()
+                cmd, payload=self.receive_from_server()
                 if cmd=='car_state':
                     self.car.car_state=payload
                     if self.recorder:
@@ -290,12 +290,7 @@ class Game:
             # Drawing
             self.draw()
 
-        if self.sock:
-            logger.info('closing socket')
-            self.sock.close()
-        logger.info('quitting pygame')
-        pygame.quit()
-        quit()
+        self.finish_race()
 
     def send_to_server(self, addr:Tuple[str,int], msg:str, payload:object):
         ''' send cmd,payload to server at specified (ip,port)'''
@@ -313,6 +308,16 @@ class Game:
         self.car.draw(self.screen)
         self.render_multi_line(str(self.car.car_state), 10, 10)
         pygame.display.flip()
+
+    def finish_race(self):
+
+        if self.sock:
+            self.send_to_server(self.gameSockAddr, 'finish_race', None)
+            logger.info('closing socket')
+            self.sock.close()
+        logger.info('quitting pygame')
+        pygame.quit()
+        quit()
 
 
 # A wrapper around Game class to make it easier for a user to provide arguments
