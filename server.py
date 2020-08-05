@@ -75,7 +75,7 @@ class track_server_process(mp.Process):
             for s in self. spectator_list:
                 self.send_client_msg(s,'server_shutdown','track server has shut down')
         # empty queue
-        if self.server_queue and self.se:
+        if self.server_queue and not self.server_queue.empty:
             item = self.server_queue.get(block=False)
             while item:
                 try:
