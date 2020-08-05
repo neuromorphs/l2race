@@ -7,7 +7,7 @@ from src.my_logger import my_logger
 logger = my_logger(__name__)
 
 
-def set_logging_leveal(args):
+def set_logging_level(args):
     if args.logging_level=='INFO':
         logger.setLevel(logging.INFO)
     elif args.logging_level=='DEBUG':

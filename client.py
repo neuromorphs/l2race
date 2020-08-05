@@ -4,8 +4,7 @@ Client l2race agent
 """
 import argparse
 import os
-from typing import Tuple
-
+from typing import Tuple, List, Optional
 
 import argcomplete as argcomplete
 import pygame
@@ -22,9 +21,9 @@ import pygame
 import sys
 import atexit
 
-
+from src.car_state import car_state
 from src.data_recorder import data_recorder
-from src.l2race_utils import bind_socket_to_range, open_ports
+from src.l2race_utils import bind_socket_to_range, open_ports, set_logging_level
 from src.globals import *
 from src.my_joystick import my_joystick
 from src.my_keyboard import my_keyboard
@@ -98,21 +97,20 @@ class Game:
         self.exit = False
         self.input=None
         self.fps=fps
-        self.sock = None # our socket used for communicating with server
-        self.server_host=server_host
-        self.server_port=server_port
-        self.serverStartAddr = (self.server_host, self.server_port) # manager address, different port on server used during game
-        self.gameSockAddr = None # address used during game
+        self.sock:Optional[socket] = None # our socket used for communicating with server
+        self.server_host:str=server_host
+        self.server_port:int=server_port
+        self.serverStartAddr: Tuple[str,int] = (self.server_host, self.server_port) # manager address, different port on server used during game
+        self.gameSockAddr:Optional[Tuple[str,int]] = None # address used during game
         self.server_timeout_s=timeout_s
-        self.gotServer = None
-        self.record=record
-        self.recorder=None
+        self.gotServer = False
+        self.record:bool=record
+        self.recorder:Optional[data_recorder]=None
 
-        self.track_name = track_name
-        self.game_mode = spectate
-        self.track = track(track_name=track_name)
-        self.car_name=car_name
-        self.car = None # will make it later after we get info from server about car
+        self.track_name:str = track_name
+        self.spectate_track:Optional[track] = None # used here for track when there is no car, otherwise track is part of the car object
+        self.car_name:str=car_name
+        self.car:Optional[car] = None # will make it later after we get info from server about car
         try:
             self.input = my_joystick(joystick_number)
         except:
@@ -124,6 +122,7 @@ class Game:
         #     self.controller = controller
 
         self.controller = controller
+        self.spectate_states:List[car_state]=list()
 
         self.auto_input = None  # will make it later when car is created because it is needed for the car_controller
 
@@ -153,7 +152,7 @@ class Game:
         self.sock.settimeout(self.server_timeout_s)
         bind_socket_to_range(CLIENT_PORT_RANGE, self.sock)
 
-        atexit.register(self.cleanup())
+        atexit.register(self.cleanup)
 
         logger.info('asking l2race model server at '+str(self.serverStartAddr)+' to add car or spectate')
 
@@ -198,18 +197,19 @@ class Game:
                 self.gotServer = True
                 self.gameSockAddr=(self.server_host, payload)
                 logger.info('got game_port message from server telling us to use address {} to talk with server'.format(self.gameSockAddr))
-                self.car = car(name=self.car_name, screen=self.screen)
-                self.car.track = track(track_name=self.track_name)
-                if self.record:
-                    if self.recorder is None:
-                        self.recorder = data_recorder(car=self.car)
-                    self.recorder.open_new_recording()
-                # self.car.loadAndScaleCarImage()   # happens inside car
-                self.controller.car=self.car
-                self.auto_input =self.controller
-                logger.info('initial car state is '+str(self.car.car_state))
-                logger.info('received car server response and initial car state; '
-                            'will use {} for communicating with l2race model server'.format(self.gameSockAddr))
+                if not self.spectate:
+                    self.car = car(name=self.car_name, screen=self.screen)
+                    self.car.track = track(track_name=self.track_name)
+                    if self.record:
+                        if self.recorder is None:
+                            self.recorder = data_recorder(car=self.car)
+                        self.recorder.open_new_recording()
+                    # self.car.loadAndScaleCarImage()   # happens inside car
+                    self.controller.car=self.car
+                    self.auto_input =self.controller
+                    logger.info('initial car state is {}'.format(self.car.car_state))
+                else:
+                    self.spectate_track=track(track_name=self.track_name)
             except OSError as err:
                 s += '\n{}:\n error for response from {}; ' \
                     'will try again in {}s ...[{}]'.format(err, self.serverStartAddr, SERVER_PING_INTERVAL_S, ntries)
@@ -228,7 +228,12 @@ class Game:
         iterationCounter = 0
         logger.info('starting main loop')
         while not self.exit and self.gotServer:
-            self.clock.tick(self.fps) # updates pygame clock, makes sure frame rate is at most this many fps; limit runtime to self.ticks Hz update rate
+            try:
+                self.clock.tick(self.fps) # updates pygame clock, makes sure frame rate is at most this many fps; limit runtime to self.ticks Hz update rate
+            except KeyboardInterrupt:
+                logger.info('KeyboardInterrupt, stopping client')
+                self.exit=True
+                continue
             iterationCounter+=1
             if iterationCounter%CHECK_FOR_JOYSTICK_INTERVAL==0 and not isinstance(self.input, my_joystick):
                 try:
@@ -258,32 +263,29 @@ class Game:
                 self.exit=True
                 break
 
-            if command.reset_car:
-                # car state reset handled on server side, here just put in forward gear
-                logger.info('sending message to reset car state to server, putting in foward gear on client')
-                self.input.car_input.reverse=False
+            if not self.spectate:
+                if command.reset_car:
+                    # car state reset handled on server side, here just put in forward gear
+                    logger.info('sending message to reset car state to server, putting in foward gear on client')
+                    self.input.car_input.reverse=False
 
-            if command.restart_client:
-                logger.info('restarting client')
-                self.gotServer = False
-                self.connect_to_server()
-                if self.recorder:
-                    self.recorder.close_recording()
-                break
+                if command.restart_client:
+                    logger.info('restarting client')
+                    self.gotServer = False
+                    self.connect_to_server()
+                    if self.recorder:
+                        self.recorder.close_recording()
+                    break
 
-            # send control to server
-            self.send_to_server(self.gameSockAddr, 'command',command)
+                # send control to server
+                self.send_to_server(self.gameSockAddr, 'command',command)
+            else:
+                self.send_to_server(self.gameSockAddr,'send_states',None)
 
              # expect to get new car state
             try:
                 cmd,payload=self.receive_from_server()
-                if cmd=='car_state':
-                    self.car.car_state=payload
-                    if self.recorder:
-                        self.recorder.write_sample()
-                else:
-                    logger.warning('unexpected msg {} with payload {} received from server (should have gotten "car_state" message)'.format(cmd,payload))
-                    continue
+                self.process_message(cmd,payload)
             except pickle.UnpicklingError as err:
                 logger.warning('{}: could not unpickle the response from server'.format(err))
                 continue
@@ -299,6 +301,9 @@ class Game:
                 self.connect_to_server()
                 break
 
+            if not self.spectate and self.recorder:
+                self.recorder.write_sample()
+
             # Drawing
             self.draw()
 
@@ -310,6 +315,9 @@ class Game:
 
     def send_to_server(self, addr:Tuple[str,int], msg:str, payload:object):
         ''' send cmd,payload to server at specified (ip,port)'''
+        if self.sock is None:
+            logger.warning('no socket to send message {} with payload {}'.format(msg,payload))
+            return
         logger.debug('sending msg {} with payload {} to {}'.format(msg,payload,addr))
         p = pickle.dumps((msg, payload))
         self.sock.sendto(p, addr)
@@ -320,10 +328,34 @@ class Game:
         return cmd,payload
 
     def draw(self):
+        if not self.spectate:
+            self.draw_car_view()
+        else:
+            self.draw_spectate_view()
+        pygame.display.flip()
+
+    def draw_car_view(self):
         self.car.track.draw(self.screen)
         self.car.draw(self.screen)
         self.render_multi_line(str(self.car.car_state), 10, 10)
-        pygame.display.flip()
+
+    def draw_spectate_view(self):
+        self.spectate_track.draw(self.screen)
+        pass
+
+    def process_message(self, msg, payload):
+        if msg== 'car_state':
+            self.car.car_state=payload
+        elif msg=='all_states':
+            self.spectate_states=payload
+        elif msg=='game_port':
+            self.gameSockAddr=(self.server_host,payload)
+        elif msg== 'server_shutdown':
+            logger.warning('{}, will try to look for it again'.format(payload))
+            self.gotServer=False
+        else:
+            logger.warning('unexpected msg {} with payload {} received from server (should have gotten "car_state" message)'.format(msg, payload))
+
 
     def finish_race(self):
         if self.sock:

@@ -1,7 +1,9 @@
 import argparse
+import atexit
 import logging
 import socket, pickle
 import threading
+from queue import Empty
 from typing import Dict, Tuple, List, Optional
 
 import argcomplete
@@ -10,7 +12,7 @@ from time import sleep
 import multiprocessing as mp
 
 from src.car_state import car_state
-from src.l2race_utils import bind_socket_to_range, set_logging_leveal
+from src.l2race_utils import bind_socket_to_range, set_logging_level
 from src.my_args import server_args
 from src.car_model import car_model
 from src.car import car
@@ -45,13 +47,14 @@ def send_message(socket:socket, lock:mp.Lock, client_addr: Tuple[str,int], msg:o
 
 class track_server_process(mp.Process):
     def __init__(self, queue_from_server:mp.Queue, server_port_lock:mp.Lock(), server_socket:socket, track_name=None):
-        super(track_server_process, self).__init__()
+        super(track_server_process, self).__init__(name='track_server_process-{}'.format(track_name))
         self.server_queue=queue_from_server
         self.server_port_lock=server_port_lock
         self.server_socket=server_socket # used for initial communication to client who has not yet sent anything to us on the new port
         self.track_name = track_name
         self.track=None  # create after start since Process.spawn cannot pickle it
         self.car_dict:Dict[Tuple[str,int],car_model] = None # maps from client_addr to car_model (or None if a spectator)
+        # each client process should bind it's own unique local port (on remote client) so should be unique in dict
         self.car_states_list:List[car_state]=None # list of all car states, to send to clients and put in each car's state
         self.spectator_list:List[Tuple[str,int]] = None # maps from client_addr to car_model (or None if a spectator)
         self.track_socket:Optional[socket] = None # make a new datagram socket
@@ -59,6 +62,30 @@ class track_server_process(mp.Process):
         self.local_port_number=None
         self.track_socket_address=None # get the port info for our local port
         self.exit=False
+        self.last_message_time=timer() # used to terminate ourselves if no messages for some time
+
+        atexit.register(self.cleanup)
+
+    def cleanup(self):
+        logger.debug('cleaning up {} process'.format(self.track_name))
+        if self.car_dict:
+            for c in self.car_dict.keys():
+                self.send_client_msg(c,'server_shutdown','track server has shut down')
+        if self.spectator_list:
+            for s in self. spectator_list:
+                self.send_client_msg(s,'server_shutdown','track server has shut down')
+        # empty queue
+        if self.server_queue and self.se:
+            item = self.server_queue.get(block=False)
+            while item:
+                try:
+                    self.server_queue.get(block=False)
+                except Empty:
+                    break
+
+        self.server_queue.close()
+        self.track_socket.close()
+
 
     def run(self):
         # logger.setLevel(logging.DEBUG)
@@ -79,7 +106,17 @@ class track_server_process(mp.Process):
         # To handle multiple clients, when it gets a message from a client, it responds to the client using the client address.
 
         while not self.exit:
-            sleep(1./FPS) # todo sleep for leftover time
+            if timer()-self.last_message_time>KILL_ZOMBIE_TRACK_TIMEOUT_S:
+                logger.warning('track process {} got no input for {}s, terminating'.format(self.track_name,KILL_ZOMBIE_TRACK_TIMEOUT_S))
+                self.exit=True
+                self.cleanup()
+                continue
+            try:
+                sleep(1./FPS) # todo sleep for leftover time
+            except KeyboardInterrupt:
+                logger.info('KeyboardInterrupt, stopping server')
+                self.exit=True
+                continue
             self.process_server_queue() # 'add_car' 'add_spectator'
 
             # now we do main simulation/response
@@ -112,6 +149,9 @@ class track_server_process(mp.Process):
                     break
                 except BlockingIOError:
                     break
+                except Exception as e:
+                    logger.warning('caught Exception {} while processing UDP messages from client'.format(e))
+                    break
 
         self.track_socket.close()
 
@@ -126,9 +166,13 @@ class track_server_process(mp.Process):
 
     def handle_client_msg(self, msg, payload, client):
         logger.debug('handling msg={} with payload={} from client {}'.format(msg,payload,client))
+        self.last_message_time=timer()
         # check if spectator or car
         if msg=='command':
-            car_model=self.car_dict[client]
+            car_model=self.car_dict.get(client)
+            if car_model is None:
+                logger.warning('car model=None for client {}'.format(client))
+                return
             car_model.car_state.command=payload
             msg='car_state'
             payload=car_model.car_state
@@ -137,6 +181,14 @@ class track_server_process(mp.Process):
             msg='all_states'
             payload=self.car_states_list
             self.send_client_msg(client, msg,payload)
+        elif msg=='remove_car':
+            car_model=self.car_dict.get(client)
+            if not car_model is None:
+                logger.info('removing car {} from track {}'.format(car_model.car_name, self.track_name))
+                del self.car_dict[client]
+        elif msg=='remove_spectator':
+            logger.info('removing spectator {} from track {}'.format(client,self.track_name))
+            self.spectator_list.remove(client)
         elif msg == 'finish_race':
             logger.info('Removing {} from track'.format(self.car_dict[client].car_name))
             del self.car_dict[client]
@@ -148,13 +200,17 @@ class track_server_process(mp.Process):
 
 
     def add_car_to_track(self, car_name, client_addr):
+        if self.car_dict.get(client_addr):
+            logger.warning('client at {} already has a car model, replacing it with a new model'.format(client_addr))
         logger.debug('adding car model for car named {} from client {} to track {}'.format(car_name,client_addr,self.track_name))
         mod=car_model(track=self.track, car_name=car_name)
         self.car_dict[client_addr]=mod
+        self.send_game_port_to_client(client_addr)
 
     def add_spectator_to_track(self, client_addr):
         logger.debug('adding spectator from client {} to track {}'.format(client_addr,self.track_name))
         self.spectator_list.append(client_addr)
+        self.send_game_port_to_client(client_addr)
 
     def process_server_queue(self):
         while not self.server_queue.empty():
@@ -171,14 +227,17 @@ class track_server_process(mp.Process):
 
     def handle_server_msg(self, cmd,payload):
         logger.debug('got queue message from server manager cmd={} payload={}'.format(cmd,payload))
-        if cmd=='add_car':
-            (car_name, client_addr)=payload #todo: is it right? is car_name here not (track_name, car_name)
+        self.last_message_time=timer()
+        if cmd=='stop':
+            logger.info('track {} stopping'.format(self.track_name))
+            self.cleanup()
+            self.exit=True
+        elif cmd=='add_car':
+            (car_name, client_addr)=payload
             self.add_car_to_track(car_name, client_addr)
-            self.send_game_port_to_client(client_addr)
         elif cmd=='add_spectator':
             client_addr=payload
             self.add_spectator_to_track(client_addr)
-            self.send_game_port_to_client(client_addr)
         else:
             raise RuntimeWarning('unknown cmd {}'.format(cmd))
 
@@ -191,7 +250,8 @@ if __name__ == '__main__':
         logger.warning('Gooey GUI not available, using command line arguments. \n'
                        'You can try to install with "pip install Gooey"')
     args = get_args()
-    set_logging_leveal(args)
+    set_logging_level(args)
+
 
     server_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
     server_socket.bind(('', SERVER_PORT)) # bind to empty host, so we can receive from anyone on this port
@@ -213,26 +273,39 @@ if __name__ == '__main__':
         track_processes[track_name].start()
         return track_processes[track_name]
 
-    def server_add_car_to_track(track_name, car_name, client_addr):
+
+    def add_car_to_track(track_name, car_name, client_addr):
         make_track_process(track_name=track_name, client_addr=client_addr)
-        server_put_cmd_to_client_queue(track_name, car_name, client_addr)
-
-
-    def server_put_cmd_to_client_queue(track_name,car_name, client_addr):
         logger.debug('putting message to track process for track {} to add car named {} for client {}'.format(track_name,car_name,client_addr))
         q = track_queues[track_name]
         q.put(('add_car', (car_name, client_addr)))
 
 
     def add_spectator_to_track(track_name, client_addr):
+        make_track_process(track_name=track_name, client_addr=client_addr)
         q=track_queues[track_name]
-        q.put(('add_spectator',client_addr))
+        if q:
+            q.put(('add_spectator',client_addr))
 
-    def stop_track_process(track_name):
+    def stop_all_track_processes():
+        for t,q in track_queues.items():
+            logger.info('telling track {} to stop'.format(t))
+            q.put('stop')
+        sleep(1)
+        logger.info('terminating zombie track processes')
+        for t,p in track_processes.items():
+            if p.running():
+                p.terminate()
+        for q in track_queues.values():
+            q.close()
+            q.join_thread()
+
+    def cleanup():
+        logger.debug('cleaning up server main process')
+        stop_all_track_processes()
         pass
 
-    def remove_car_from_track(track_name, car_name, client_addr):
-        pass
+    atexit.register(cleanup)
 
     # We fork an mp process for each track that might have one or more cars and spectators.
 
@@ -251,11 +324,15 @@ if __name__ == '__main__':
     # That way, client initiates communication on new port and should be able to recieve on it
 
 
+     # handling proceeses based on https://www.cloudcity.io/blog/2019/02/27/things-i-wish-they-told-me-about-multiprocessing-in-python/
 
     while True: # todo add KeyboardInterrupt exception handling, also SIG_TERM
         try:
             server_port_lock.acquire()
             data, client_addr = server_socket.recvfrom(1024)  # buffer size is 1024 bytes
+        except KeyboardInterrupt:
+            logger.info('KeyboardInterrupt, stopping server')
+            break
         finally:
             server_port_lock.release()
         try:
@@ -268,17 +345,18 @@ if __name__ == '__main__':
                            'payload (for add_spectator) =(track_name)\n'
                            .format(ex))
             continue
+        except KeyboardInterrupt:
+            logger.info('KeyboardInterrupt, stopping server')
+            break
 
         logger.info('received cmd "{}" with payload "{}" from {}'.format(cmd, payload, client_addr))
         # todo handle multiple cars on one track, provide option for unique track for testing single car
 
         if cmd == 'add_car': # todo add arguments with newcar like driver/car name
             (track_name, car_name)=payload
-            server_add_car_to_track(track_name, car_name, client_addr)
+            add_car_to_track(track_name, car_name, client_addr)
         elif cmd=='add_spectator':
+            track_name=payload
             add_spectator_to_track(track_name, client_addr)
         else:
             logger.warning('model server received unknown cmd={}'.format(cmd))
-
-
-    ## Just checking correctness of GitHub operations

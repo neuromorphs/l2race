@@ -31,7 +31,6 @@ DATA_FOLDER_NAME= 'data'
 
 # car and track options
 CAR_NAME='l2racer' # label stuck on car
-GAME_MODE='solo' # 'solo', 'multi', 'race' whether server launches track just for this client or puts car with others on same track
 TRACK_NAME='oval' # tracks are stored in the 'media' folder. Data for a track must be extracted using scripts in Track_Preparation before using in l2race
 # Other possible track names:
 # track_names = ['Sebring',
@@ -49,8 +48,10 @@ TRACK_NAME='oval' # tracks are stored in the 'media' folder. Data for a track mu
 #######################################################
 #server and model settings. Client cannot affect these model server settings
 SERVER_PORT = 50000 # client starts game on this port on the SERVER_HOST
+# client needs to open this port range for receiving state from server and sending commands to server
 CLIENT_PORT_RANGE='50010-50020' # range of ports used for client that server uses for game
-DO_NOT_RESET_CAR_WHEN_IT_GOES_OFF_TRACK = False # set true for testing dynamics of car
+KILL_ZOMBIE_TRACK_TIMEOUT_S=10 # if track process gets no input for this long, it terminates itself
+DO_NOT_RESET_CAR_WHEN_IT_GOES_OFF_TRACK = True # set true for testing dynamics of car
 FRICTION_FACTOR = .5 # overall friction parameter multiplier for some models
 # CLIENT_TIMEOUT_SEC=0 # server timeout in seconds before it ends thread for handling a car model
 # client needs to open this port range for receiving state from server and sending commands to server

@@ -26,7 +26,6 @@ if __name__ == '__main__':
     These arguments are:
     gui:            'with_gui'/'without gui',
     track_name:     'Sebring','oval','track_1','track_2','track_3','track_4','track_5','track_6'
-    game_mode:      'multi', 'solo'
     car_name:       any string
     server_host:    [change by user not recommended]
     server_port:    [change by user not recommended]
