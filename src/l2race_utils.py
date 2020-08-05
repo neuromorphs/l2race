@@ -14,23 +14,23 @@ import logging
 from src.globals import LOGGING_LEVEL
 
 class loop_timer():
+    """ simple game loop timer that sleeps for leftover time (if any) at end of each iteration"""
     LOG_INTERVAL_SEC=10
-    ''' simple game loop timer that sleeps for leftover time (if any) at end of each iteration'''
     def __init__(self, rate_hz:float):
         ''' :param rate_hz: the target loop rate'''
-        self.fps=rate_hz
+        self.rate_hz=rate_hz
         self.start_loop()
         self.loop_counter=0
         self.last_log_time=0
 
     def start_loop(self):
-        ''' can be called to initialize the timer'''
+        """ can be called to initialize the timer"""
         self.last_iteration_start_time=timer()
 
     def sleep_leftover_time(self):
-        ''' call at start or end of each iteration '''
+        """ call at start or end of each iteration """
         now=timer()
-        max_sleep=1./self.fps
+        max_sleep=1./self.rate_hz
         leftover_time=max_sleep-(now-self.last_iteration_start_time)
         if leftover_time>0:
             sleep(leftover_time)
@@ -39,9 +39,9 @@ class loop_timer():
         if now-self.last_log_time>self.LOG_INTERVAL_SEC:
             self.last_log_time=now
             if leftover_time>0:
-                logger.info('loop_timer slept for {:.1f}ms leftover time for desired loop inteval {:.1f}ms'.format(leftover_time*1000,max_sleep*1000))
+                logger.info('loop_timer slept for {:.1f}ms leftover time for desired loop interval {:.1f}ms'.format(leftover_time*1000,max_sleep*1000))
             else:
-                logger.warning('loop_timer cannot achieve desired rate {}Hz, time ran over by {}ms compared with allowed time {}ms'.format(self.fps, -leftover_time*1000, max_sleep*1000))
+                logger.warning('loop_timer cannot achieve desired rate {}Hz, time ran over by {}ms compared with allowed time {}ms'.format(self.rate_hz, -leftover_time*1000, max_sleep*1000))
 
 def my_logger(name):
     logging.basicConfig(level=LOGGING_LEVEL)

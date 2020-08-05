@@ -31,7 +31,7 @@ from timeit import default_timer as timer
 
 import random
 
-LOGGING_INTERVAL_CYCLES=1000 # log output only this often
+LOGGING_INTERVAL_CYCLES=0 # 0 to disable # 1000 # log output only this often
 MODEL=vehicleDynamics_ST # vehicleDynamics_KS vehicleDynamics_ST vehicleDynamics_MB
 MAX_TIMESTEP = 0.1
 SOLVER=RK45 # DOP853 LSODA BDF RK45 RK23 # faster, no overhead but no checking
@@ -153,7 +153,7 @@ class car_model:
         return (60*0.447)/time/G
 
     def update(self, dtSec):
-        logger.debug('updating model with dt={:.1f}ms'.format(dtSec*1000))
+        # logger.debug('updating model with dt={:.1f}ms'.format(dtSec*1000))
 
         # Update model state:
         pass
@@ -273,8 +273,8 @@ class car_model:
         self.car_state.accel_m_per_sec_2.y=0 # todo, for now and with KS/ST model
 
 
-        if self.cycle_count%LOGGING_INTERVAL_CYCLES==0:
-            print('\rcar_model.py: cycle {}, dt={:.2f}ms, soln_time={:.3f}ms: {}'.format(self.cycle_count, dtSec * 1e3,dtSolveSec * 1e3,  str(self.car_state)), end='')
+        if LOGGING_INTERVAL_CYCLES>0 and self.cycle_count%LOGGING_INTERVAL_CYCLES==0:
+            print('\ncar_model.py: cycle {}, dt={:.2f}ms, soln_time={:.3f}ms: {}'.format(self.cycle_count, dtSec * 1e3,dtSolveSec * 1e3,  str(self.car_state)))
 
         self.cycle_count+=1
 
