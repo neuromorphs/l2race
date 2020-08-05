@@ -156,6 +156,10 @@ class car_model:
     def update(self, dtSec):
         logger.debug('updating model with dt={:.1f}ms'.format(dtSec*1000))
 
+        # Update model state:
+        pass
+
+
         self.car_state.server_msg = ''
         command=self.car_state.command
         if command.reset_car:
@@ -238,6 +242,18 @@ class car_model:
         # # set speed to zero if it comes out negative from Euler braking
         # self.model_state[ISPEED]=max([0,self.model_state[ISPEED]])
 
+        current_surface = self.track.get_surface_type(car_state=self.car_state)
+        if not self.ignore_off_track and current_surface == 0:
+            if self.model_state[ISPEED] > 0:
+                self.model_state[ISPEED] = 0
+
+        if current_surface == 10:
+            self.model_state[ISPEED] = self.model_state[ISPEED]*0.8
+
+
+            # logger.info("went off track, resetting car")
+            # self.reset()
+
         # update driver's observed state from model
         # set l2race driver observed car_state from car model
         self.car_state.time+=dtSec
@@ -263,16 +279,7 @@ class car_model:
 
         self.cycle_count+=1
 
-        current_surface = self.track.get_surface_type(car_state=self.car_state)
-        if not self.ignore_off_track and current_surface == 0:
-            if self.car_state.speed_m_per_sec > 0:
-                self.car_state.speed_m_per_sec = 0
-                self.car_state.velocity_m_per_sec.x = 0
-                self.car_state.velocity_m_per_sec.y = 0
 
-
-            # logger.info("went off track, resetting car")
-            # self.reset()
 
     def computeSteerVelocityRadPerSec(self, commandedSteering:float):
         # based on https://github.com/f1tenth/f1tenth_gym/blob/master/src/racecar.cpp
