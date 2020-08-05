@@ -30,6 +30,7 @@ from commonroad.vehicleDynamics_MB import vehicleDynamics_MB # fancy multibody m
 from timeit import default_timer as timer
 
 import random
+import numpy as np
 
 LOGGING_INTERVAL_CYCLES=0 # 0 to disable # 1000 # log output only this often
 MODEL=vehicleDynamics_ST # vehicleDynamics_KS vehicleDynamics_ST vehicleDynamics_MB
@@ -164,16 +165,27 @@ class car_model:
         if command.reset_car:
             self.reset()
 
-        # compute commanded longitudinal acceleration from throttle and brake input
-        if command.throttle>command.brake: # ignore brake
-            accel= (command.throttle) * self.accel_max # commanded acceleration from driver # TODO BS params, a_max=11.5m/s^2 is bigger than g
-        elif self.model_state[ISPEED]>0:
-            accel= (-command.brake) * self.brake_max
-        else:
-            accel=0
+        # # compute commanded longitudinal acceleration from throttle and brake input
+        if not command.reverse:
+            # Forward
+            accel = command.throttle * self.accel_max - command.brake * self.brake_max # TODO BS params, a_max=11.5m/s^2 is bigger than g
+            if self.model_state[ISPEED] < 0:
+                self.model_state[ISPEED] = 0
+                if accel < 0:
+                    accel = 0
 
-        if command.reverse:
-            accel=-accel/4.
+        else:
+            # Backward
+            reverse_gear_factor = REVERSE_TO_FORWARD_GEAR # Give how much weaker is acceleration on the reverse gear
+            accel = command.throttle * self.accel_max*reverse_gear_factor - command.brake * self.brake_max
+            accel = -accel
+            if self.model_state[ISPEED] > 0:
+                self.model_state[ISPEED] = 0
+                if accel > 0:
+                    accel = 0
+            if self.model_state[ISPEED]<-2.0: # That is only temporary workaround
+                self.model_state[ISPEED] = 2.0
+
 
         # go from driver input to commanded steering and acceleration
         commandedSteeringRad = command.steering * self.parameters.steering.max  # commanded steering angle (not velocity of steering) from driver
@@ -247,7 +259,7 @@ class car_model:
                 self.model_state[ISPEED] = 0
 
         if current_surface == 10:
-            self.model_state[ISPEED] = self.model_state[ISPEED]*0.8
+            self.model_state[ISPEED] = self.model_state[ISPEED]*SAND_SLOWDOWN
 
 
             # logger.info("went off track, resetting car")
