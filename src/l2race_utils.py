@@ -1,6 +1,10 @@
 # utility methods
 import logging
 import os
+from time import sleep
+from timeit import default_timer as timer
+from time import sleep as sleep
+
 
 from src.globals import CLIENT_PORT_RANGE
 
@@ -9,6 +13,35 @@ import logging
 
 from src.globals import LOGGING_LEVEL
 
+class loop_timer():
+    LOG_INTERVAL_SEC=10
+    ''' simple game loop timer that sleeps for leftover time (if any) at end of each iteration'''
+    def __init__(self, rate_hz:float):
+        ''' :param rate_hz: the target loop rate'''
+        self.fps=rate_hz
+        self.start_loop()
+        self.loop_counter=0
+        self.last_log_time=0
+
+    def start_loop(self):
+        ''' can be called to initialize the timer'''
+        self.last_iteration_start_time=timer()
+
+    def sleep_leftover_time(self):
+        ''' call at start or end of each iteration '''
+        now=timer()
+        max_sleep=1./self.fps
+        leftover_time=max_sleep-(now-self.last_iteration_start_time)
+        if leftover_time>0:
+            sleep(leftover_time)
+        self.start_loop()
+        self.loop_counter+=1
+        if now-self.last_log_time>self.LOG_INTERVAL_SEC:
+            self.last_log_time=now
+            if leftover_time>0:
+                logger.info('loop_timer slept for {:.1f}ms leftover time for desired loop inteval {:.1f}ms'.format(leftover_time*1000,max_sleep*1000))
+            else:
+                logger.warning('loop_timer cannot achieve desired rate {}Hz, time ran over by {}ms compared with allowed time {}ms'.format(self.fps, -leftover_time*1000, max_sleep*1000))
 
 def my_logger(name):
     logging.basicConfig(level=LOGGING_LEVEL)

@@ -12,7 +12,7 @@ from time import sleep
 import multiprocessing as mp
 
 from src.car_state import car_state
-from src.l2race_utils import bind_socket_to_range, set_logging_level
+from src.l2race_utils import bind_socket_to_range, set_logging_level, loop_timer
 from src.my_args import server_args
 from src.car_model import car_model
 from src.car import car
@@ -105,24 +105,19 @@ class track_server_process(mp.Process):
         # Track process makes a single socket bound to a single port for all the clients (cars and spectators).
         # To handle multiple clients, when it gets a message from a client, it responds to the client using the client address.
 
+        looper=loop_timer(MODEL_UPDATE_RATE_HZ)
         while not self.exit:
-            if timer()-self.last_message_time>KILL_ZOMBIE_TRACK_TIMEOUT_S:
+            now=timer()
+            dt=now-last_time
+            last_time=now
+            if now-self.last_message_time>KILL_ZOMBIE_TRACK_TIMEOUT_S:
                 logger.warning('track process {} got no input for {}s, terminating'.format(self.track_name,KILL_ZOMBIE_TRACK_TIMEOUT_S))
                 self.exit=True
                 self.cleanup()
                 continue
-            try:
-                sleep(1./FPS) # todo sleep for leftover time
-            except KeyboardInterrupt:
-                logger.info('KeyboardInterrupt, stopping server')
-                self.exit=True
-                continue
             self.process_server_queue() # 'add_car' 'add_spectator'
 
             # now we do main simulation/response
-            now=timer()
-            dt=now-last_time
-            last_time=now
             # update all the car models
             for client,model in self.car_dict.items():
                 if isinstance(model,car_model):
@@ -152,6 +147,14 @@ class track_server_process(mp.Process):
                 except Exception as e:
                     logger.warning('caught Exception {} while processing UDP messages from client'.format(e))
                     break
+            try:
+                looper.sleep_leftover_time()
+            except KeyboardInterrupt:
+                logger.info('KeyboardInterrupt, stopping server')
+                self.exit=True
+                continue
+
+
         self.cleanup()
         logger.info('ended track {}'.format(self.track_name))
 
@@ -291,7 +294,11 @@ if __name__ == '__main__':
     def stop_all_track_processes():
         for t,q in track_queues.items():
             logger.info('telling track {} to stop'.format(t))
-            if q: q.put('stop')
+            if q:
+                try:
+                    q.put('stop')
+                except:
+                    pass
         sleep(1)
         logger.info('joining processes')
         for t,p in track_processes.items():

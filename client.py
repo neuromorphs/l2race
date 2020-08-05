@@ -23,7 +23,7 @@ import atexit
 
 from src.car_state import car_state
 from src.data_recorder import data_recorder
-from src.l2race_utils import bind_socket_to_range, open_ports, set_logging_level
+from src.l2race_utils import bind_socket_to_range, open_ports, set_logging_level, loop_timer
 from src.globals import *
 from src.my_joystick import my_joystick
 from src.my_keyboard import my_keyboard
@@ -227,6 +227,7 @@ class Game:
 
         iterationCounter = 0
         logger.info('starting main loop')
+        looper=loop_timer(self.fps)
         while not self.exit and self.gotServer:
             try:
                 self.clock.tick(self.fps) # updates pygame clock, makes sure frame rate is at most this many fps; limit runtime to self.ticks Hz update rate
@@ -306,6 +307,11 @@ class Game:
 
             # Drawing
             self.draw()
+            try:
+                looper.sleep_leftover_time()
+            except KeyboardInterrupt:
+                logger.info('KeyboardInterrupt, stopping client')
+                self.exit=True
 
         self.finish_race()
         self.cleanup()
