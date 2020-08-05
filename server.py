@@ -277,8 +277,9 @@ if __name__ == '__main__':
     def add_car_to_track(track_name, car_name, client_addr):
         make_track_process(track_name=track_name, client_addr=client_addr)
         logger.debug('putting message to track process for track {} to add car named {} for client {}'.format(track_name,car_name,client_addr))
-        q = track_queues[track_name]
-        q.put(('add_car', (car_name, client_addr)))
+        q = track_queues.get(track_name)
+        if q:
+            q.put(('add_car', (car_name, client_addr)))
 
 
     def add_spectator_to_track(track_name, client_addr):
@@ -290,19 +291,20 @@ if __name__ == '__main__':
     def stop_all_track_processes():
         for t,q in track_queues.items():
             logger.info('telling track {} to stop'.format(t))
-            q.put('stop')
+            if q: q.put('stop')
         sleep(1)
         logger.info('joining processes')
         for t,p in track_processes.items():
-            p.join(1)
+            if p: p.join(1)
         for t,p in track_processes.items():
-            if p.is_alive():
+            if p and p.is_alive():
                 logger.info('terminating zombie track process {}'.format(p))
                 p.terminate()
         logger.info('closing queues')
         for q in track_queues.values():
-            q.close()
-            q.join_thread()
+            if q:
+                q.close()
+                q.join_thread()
 
     def cleanup():
         logger.debug('cleaning up server main process')

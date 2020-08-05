@@ -89,7 +89,7 @@ class car:
         current_dir = os.path.dirname(os.path.abspath(__file__))
         image_path = os.path.join(current_dir, "../media/" + image_name + ".png") # todo name of car and file should come from server
         if isinstance(screen,pygame.Surface):
-            image = pygame.image.load(image_path).convert(screen)  # load image of car
+            image = pygame.image.load(image_path).convert_alpha(screen)  # load image of car
         else:
             image = pygame.image.load(image_path)  # load image of car
 
