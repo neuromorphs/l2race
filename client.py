@@ -24,7 +24,7 @@ import atexit
 
 
 from src.data_recorder import data_recorder
-from src.l2race_utils import bind_socket_to_range, open_ports, set_logging_leveal
+from src.l2race_utils import bind_socket_to_range, open_ports
 from src.globals import *
 from src.my_joystick import my_joystick
 from src.my_keyboard import my_keyboard
@@ -302,6 +302,7 @@ class Game:
             # Drawing
             self.draw()
 
+        self.finish_race()
         self.cleanup()
         logger.info('quitting pygame')
         pygame.quit()
@@ -323,6 +324,10 @@ class Game:
         self.car.draw(self.screen)
         self.render_multi_line(str(self.car.car_state), 10, 10)
         pygame.display.flip()
+
+    def finish_race(self):
+        if self.sock:
+            self.send_to_server(self.gameSockAddr, 'finish_race', None)
 
 
 # A wrapper around Game class to make it easier for a user to provide arguments
@@ -406,13 +411,14 @@ def define_game(gui='with_gui',
     return game
 
 
-if __name__ == '__main__':
 
+
+if __name__ == '__main__':
     launch_gui()
 
     args = get_args()
 
-    set_logging_leveal(args)
+    set_logging_level(args)
 
     game = Game(track_name=args.track_name,
                 spectate=args.spectate,
