@@ -26,6 +26,7 @@ try:
 except Exception:
     logger.warning('Gooey GUI builder not available, will use command line arguments.\n'
                    'Install with "pip install Gooey". See README')
+SKIP_CHECK_SERVER=100
 
 def get_args():
     parser = argparse.ArgumentParser(
@@ -63,6 +64,7 @@ class track_server_process(mp.Process):
         self.track_socket_address=None # get the port info for our local port
         self.exit=False
         self.last_message_time=timer() # used to terminate ourselves if no messages for some time
+        self.skip_checking_server_queue_count=0
 
         atexit.register(self.cleanup)
 
@@ -199,9 +201,6 @@ class track_server_process(mp.Process):
         else:
             logger.warning('unknowm cmd {} received; ignoring'.format(msg))
 
-        sleep(1./FPS/2) # TODO, now just sleeps about 1/2 the default frame interval, should sleep for remaining time
-
-
     def add_car_to_track(self, car_name, client_addr):
         if self.car_dict.get(client_addr):
             logger.warning('client at {} already has a car model, replacing it with a new model'.format(client_addr))
@@ -216,6 +215,8 @@ class track_server_process(mp.Process):
         self.send_game_port_to_client(client_addr)
 
     def process_server_queue(self):
+        self.skip_checking_server_queue_count+=1
+        if self.skip_checking_server_queue_count//SKIP_CHECK_SERVER!=0: return
         while not self.server_queue.empty():
             (cmd,payload)=self.server_queue.get_nowait()
             self.handle_server_msg(cmd,payload)
@@ -265,16 +266,18 @@ if __name__ == '__main__':
     track_processes:Dict[str,mp.Process] = {k:None for k in track_names} # each entry holds the track objects for each track name
     track_queues:Dict[str,mp.Queue]={k:None for k in track_names} # each entry is the queue to send to track process
 
-    def make_track_process(track_name, client_addr) -> bool:
-        if not track_processes[track_name] is None:
-            return track_processes[track_name]
+    def make_track_process(track_name, client_addr) -> mp.Process:
+        if not track_processes.get(track_name) is None\
+                and track_processes.get(track_name).is_alive():
+            logger.debug('track process {} exists already and is alive')
+            return track_processes.get(track_name)
         logger.info('model server starting a new track_server_process for track {} for client at {}'.format(track_name, client_addr))
         q=mp.Queue()
         track_queues[track_name]=q
         track_process = track_server_process(queue_from_server=q, server_port_lock=server_port_lock, server_socket=server_socket, track_name=track_name)
         track_processes[track_name]=track_process
         track_processes[track_name].start()
-        return track_processes[track_name]
+        return track_process
 
 
     def add_car_to_track(track_name, car_name, client_addr):
@@ -307,11 +310,13 @@ if __name__ == '__main__':
             if p and p.is_alive():
                 logger.info('terminating zombie track process {}'.format(p))
                 p.terminate()
+        track_processes.clear()
         logger.info('closing queues')
         for q in track_queues.values():
             if q:
                 q.close()
                 q.join_thread()
+        track_queues.clear()
 
     def cleanup():
         logger.debug('cleaning up server main process')

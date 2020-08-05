@@ -12,16 +12,31 @@ from src.globals import CLIENT_PORT_RANGE
 import logging
 
 from src.globals import LOGGING_LEVEL
+import numpy as np
+from collections import deque
+class circular_buffer(deque):
+    def __init__(self, size=0):
+        super(circular_buffer, self).__init__(maxlen=size)
+
+    @property
+    def average(self):  # TODO: Make type check for integer or floats
+        return sum(self)/len(self)
+
+    def hist(self):
+        return np.histogram(np.array(self))
+
 
 class loop_timer():
     """ simple game loop timer that sleeps for leftover time (if any) at end of each iteration"""
     LOG_INTERVAL_SEC=10
+    NUM_SAMPLES=1000
     def __init__(self, rate_hz:float):
         ''' :param rate_hz: the target loop rate'''
         self.rate_hz=rate_hz
         self.start_loop()
         self.loop_counter=0
         self.last_log_time=0
+        self.circ_buffer=circular_buffer(self.NUM_SAMPLES)
 
     def start_loop(self):
         """ can be called to initialize the timer"""
@@ -31,7 +46,9 @@ class loop_timer():
         """ call at start or end of each iteration """
         now=timer()
         max_sleep=1./self.rate_hz
-        leftover_time=max_sleep-(now-self.last_iteration_start_time)
+        dt=(now-self.last_iteration_start_time)
+        leftover_time=max_sleep-dt
+        self.circ_buffer.append(dt)
         if leftover_time>0:
             sleep(leftover_time)
         self.start_loop()
@@ -42,6 +59,7 @@ class loop_timer():
                 logger.info('loop_timer slept for {:.1f}ms leftover time for desired loop interval {:.1f}ms'.format(leftover_time*1000,max_sleep*1000))
             else:
                 logger.warning('loop_timer cannot achieve desired rate {}Hz, time ran over by {}ms compared with allowed time {}ms'.format(self.rate_hz, -leftover_time*1000, max_sleep*1000))
+            logger.info('histogram of intervals (counts and bin edges in s)\n{}'.format(self.circ_buffer.hist()))
 
 # https://stackoverflow.com/questions/1423345/can-i-run-a-python-script-as-a-service
 import os, sys

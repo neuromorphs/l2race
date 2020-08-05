@@ -36,7 +36,7 @@ DATA_FOLDER_NAME= 'data'
 
 # car and track options
 CAR_NAME='l2racer' # label stuck on car
-TRACK_NAME='oval' # tracks are stored in the 'media' folder. Data for a track must be extracted using scripts in Track_Preparation before using in l2race
+TRACK_NAME='oval_easy' # tracks are stored in the 'media' folder. Data for a track must be extracted using scripts in Track_Preparation before using in l2race
 # Other possible track names:
 # track_names = ['Sebring',
 #          'oval',
@@ -54,15 +54,13 @@ TRACK_NAME='oval' # tracks are stored in the 'media' folder. Data for a track mu
 #######################################################
 #server and model settings. Client cannot affect these model server settings
 SERVER_PORT = 50000 # client starts game on this port on the SERVER_HOST
-# client needs to open this port range for receiving state from server and sending commands to server
 CLIENT_PORT_RANGE='50010-50020' # range of ports used for client that server uses for game
+    # client needs to open this port range for receiving state from server and sending commands to server
 KILL_ZOMBIE_TRACK_TIMEOUT_S=10 # if track process gets no input for this long, it terminates itself
 DO_NOT_RESET_CAR_WHEN_IT_GOES_OFF_TRACK = False # set true for testing dynamics of car
 FRICTION_FACTOR = .5 # overall friction parameter multiplier for some models
 SAND_SLOWDOWN = 0.95  # If in sand, at every time the resulting velocity is multiplied by the slowdown factor
 REVERSE_TO_FORWARD_GEAR = 0.25  # You get less acceleration on reverse gear than while moving forwards.
 MODEL_UPDATE_RATE_HZ=100 # rate that server attempts to update all the car models for each track process (models run serially in each track process)
-# CLIENT_TIMEOUT_SEC=0 # server timeout in seconds before it ends thread for handling a car model
-# client needs to open this port range for receiving state from server and sending commands to server
 
 
