@@ -6,6 +6,7 @@ import matplotlib.pyplot as plt
 # Name of the picture (png) we load to extract track shape
 names = ['Sebring',
          'oval',
+         'oval_easy',
          'track_1',
          'track_2',
          'track_3',
@@ -154,12 +155,13 @@ for name in names:
             else:
                 print('You have to correct some contour!')
 
-            # Matplotlib code to check if you combined contours correctly
-            # plt.figure()
-            # plt.plot(xl, yl, 'r.')
-            # plt.plot(xr, yr, 'b.')
-            # plt.title(track_name)
-            # plt.show()
+        # # Matplotlib code to check if you combined contours correctly
+        # if name == 'oval_easy':
+        #     plt.figure()
+        #     plt.plot(xl, yl, 'r.')
+        #     plt.plot(xr, yr, 'b.')
+        #     plt.title(track_name)
+        #     plt.show()
 
 
         # Make asphalt boundaries

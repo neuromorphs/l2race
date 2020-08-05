@@ -55,10 +55,17 @@ class track:
         self.waypoints_x = self.TrackInfo['waypoint_x']
         self.waypoints_y = self.TrackInfo['waypoint_y']
         self.num_waypoints = len(self.waypoints_x)
-        self.waypoints_search_radius = 80
+
         self.angle_next_segment_east = self.TrackInfo['AngleNextSegmentEast']
         self.angle_next_waypoint = self.TrackInfo['AngleNextCheckpointEast']
-        dy = 70
+
+        if track_name == 'oval_easy':
+            self.waypoints_search_radius = 160
+            dy = 140
+        else:
+            self.waypoints_search_radius = 80
+            dy = 70
+
         self.starting_line_rect = pygame.Rect(self.waypoints_x[0], self.waypoints_y[0]-dy, 100, 2*dy)
         # This is a pygame rectangle to automatically check if you passed the starting line
         # take for it +/-dy = 52 in map units

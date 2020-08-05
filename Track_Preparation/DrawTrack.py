@@ -20,6 +20,7 @@ plt.rcParams['figure.figsize'] = w/float(f), h/float(f)
 # Name of the picture (png) we load to extract track shape
 names = ['Sebring',
          'oval',
+         'oval_easy',
          'track_1',
          'track_2',
          'track_3',
@@ -67,6 +68,8 @@ for name in names:
         idx_start = 118  # Search for a straight part of the track to smoothly connect start and end
     elif name == 'oval':
         idx_start = 1
+    elif name == 'oval_easy':
+        idx_start = 1
     elif name == 'track_1':
         idx_start = 0
     elif name == 'track_2':
@@ -95,13 +98,20 @@ for name in names:
 
     # Create a line to indicate the start
     xs = x[0]
-    dy = 40
 
+    if name == 'oval_easy':
+        dy = 80
+        lw_sand = 24
+        lw_asphalt = 16
+    else:
+        dy = 40
+        lw_sand = 12
+        lw_asphalt = 8
 
     # Plotting the track png
     fig, ax = plt.subplots()
-    plt.plot(x, y, linewidth=12, color='#FFFF00', snap=True)  # Sand region (yellow)
-    plt.plot(x, y, linewidth=8, color='#000000', snap=True)  # Asphalt (black)
+    plt.plot(x, y, linewidth=lw_sand, color='#FFFF00', snap=True)  # Sand region (yellow)
+    plt.plot(x, y, linewidth=lw_asphalt, color='#000000', snap=True)  # Asphalt (black)
     plt.plot(x, y, linewidth=1,  color='#FFFFFF', snap=True, ls='--')  # Central line (white)
     plt.plot((xs, xs), (y[0]-dy, y[0]+dy), linewidth=1,  color='#778899', snap=True)  # Start line (gray)
     # snap = True should prevent color interpolations between areas of different colors
@@ -160,8 +170,8 @@ for name in names:
 
     # You have to plot the invisible start line, otherwise the picture rescales
     plt.plot((xs, xs), (y[0]-dy, y[0]+dy), linewidth=1,  color='0.0', snap=True)  # Start line (gray)
-    plt.plot(x, y, linewidth=12,  color='0.2', snap=True)
-    plt.plot(x, y, linewidth=8,  color='0.8', snap=True)
+    plt.plot(x, y, linewidth=lw_sand,  color='0.2', snap=True)
+    plt.plot(x, y, linewidth=lw_asphalt,  color='0.8', snap=True)
     plt.plot(x, y, linewidth=0.5, color='1.0', snap=True)
     ax.set_facecolor('0.0')
 
@@ -198,8 +208,8 @@ for name in names:
 
     # You have to plot the invisible start line, otherwise the picture rescales
 
-    plt.plot(x, y, linewidth=12,  color='0.0', snap=True)
-    plt.plot(x, y, linewidth=8,  color='0.0', snap=True)
+    plt.plot(x, y, linewidth=lw_sand,  color='0.0', snap=True)
+    plt.plot(x, y, linewidth=lw_asphalt,  color='0.0', snap=True)
     plt.plot(x, y, linewidth=0.5, color='0.0', snap=True)
     plt.plot((xs, xs), (y[0]-dy, y[0]+dy), linewidth=1,  color='1.0', snap=True)  # Start line (gray)
     ax.set_facecolor('0.0')

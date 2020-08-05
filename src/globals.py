@@ -40,6 +40,7 @@ TRACK_NAME='oval' # tracks are stored in the 'media' folder. Data for a track mu
 # Other possible track names:
 # track_names = ['Sebring',
 #          'oval',
+#          'oval_easy',
 #          'track_1',
 #          'track_2',
 #          'track_3',
