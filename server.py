@@ -12,7 +12,7 @@ from time import sleep
 import multiprocessing as mp
 
 from src.car_state import car_state
-from src.l2race_utils import bind_socket_to_range, set_logging_level, loop_timer
+from src.l2race_utils import bind_socket_to_range, set_logging_level, loop_timer, become_daemon
 from src.my_args import server_args
 from src.car_model import car_model
 from src.car import car
@@ -318,6 +318,8 @@ if __name__ == '__main__':
         stop_all_track_processes()
 
     atexit.register(cleanup)
+
+    become_daemon()
 
     # We fork an mp process for each track that might have one or more cars and spectators.
 
