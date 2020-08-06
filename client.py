@@ -201,7 +201,7 @@ class Game:
                 time.sleep(2) # it takes significant time to start the track process. To avoid timeout, wait a bit here before checking
                 logger.debug('receiving game_port message from server')
                 msg,payload=self.receive_from_server()
-                if msg!='game_port' or not isinstance(payload,int):
+                if msg!='game_port':
                     logger.warning("got response (msg,command)=({},{}) but expected ('game_port',port_number); will try again in {}s".format(msg,payload, SERVER_PING_INTERVAL_S))
                     time.sleep(SERVER_PING_INTERVAL_S)
                     continue
@@ -347,6 +347,7 @@ class Game:
     def receive_from_server(self):
         data, server_addr = self.sock.recvfrom(8000) # todo check if large enough for payload inclding all other car state
         (cmd,payload) = pickle.loads(data)
+        logger.debug('got message {} with payload {} from server {}'.format(cmd,payload,server_addr))
         return cmd,payload
 
     def draw(self):

@@ -13,7 +13,7 @@ SCREEN_HEIGHT_PIXELS= 768 # pixels
 M_PER_PIXEL=0.15
 
 SERVER_PING_INTERVAL_S=1 # interval between trying for server
-SERVER_TIMEOUT_SEC = .2 # timeout in seconds for UDP socket reads during game running
+SERVER_TIMEOUT_SEC = 1 # timeout in seconds for UDP socket reads during game running
 import scipy.constants
 G=scipy.constants.value('standard acceleration of gravity')
 
