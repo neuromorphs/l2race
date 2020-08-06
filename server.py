@@ -209,7 +209,7 @@ class track_server_process(mp.Process):
         """ adds a car to this track """
         if self.car_dict.get(client_addr):
             logger.warning('client at {} already has a car model, replacing it with a new model'.format(client_addr))
-        logger.debug('adding car model for car named {} from client {} to track {}'.format(car_name,client_addr,self.track_name))
+        logger.info('adding car model for car named {} from client {} to track {}'.format(car_name,client_addr,self.track_name))
         mod=car_model(track=self.track, car_name=car_name)
         self.car_dict[client_addr]=mod
 
@@ -271,12 +271,12 @@ if __name__ == '__main__':
     track_queues:Dict[str,mp.Queue]={k:None for k in track_names} # each entry is the queue to send to track process
 
     def make_track_process(track_name, client_addr) -> mp.Process:
-        if not track_processes.get(track_name) is None\
-                and track_processes.get(track_name).is_alive():
-            logger.debug('track process {} exists already and is alive')
-            return track_processes.get(track_name)
         track_port_number=find_unbound_port_in_range(CLIENT_PORT_RANGE)
         send_game_port_to_client(client_addr,track_port_number)
+        if not track_processes.get(track_name) is None\
+                and track_processes.get(track_name).is_alive():
+            logger.info('track process {} already exists already and is alive')
+            return track_processes.get(track_name)
         logger.info('starting a new track_server_process for track {} for client at {} using local port {}'
                     .format(track_name, client_addr, track_port_number))
         q=mp.Queue()
@@ -300,7 +300,7 @@ if __name__ == '__main__':
 
     def add_car_to_track(track_name, car_name, client_addr):
         make_track_process(track_name=track_name, client_addr=client_addr)
-        logger.debug('putting message to track process for track {} to add car named {} for client {}'.format(track_name,car_name,client_addr))
+        logger.info('putting message to track process for track {} to add car named {} for client {}'.format(track_name,car_name,client_addr))
         q = track_queues.get(track_name)
         if q:
             q.put(('add_car', (car_name, client_addr)))

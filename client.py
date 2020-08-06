@@ -140,7 +140,8 @@ class Game:
             pass
 
     def ping_server(self):
-        logger.debug('pinging server at {}'.format(self.serverStartAddr))
+        logger.info('pinging server at {}'.format(self.serverStartAddr))
+        self.drain_udp_messages()
         self.send_to_server(self.serverStartAddr,'ping',None)
         try:
             (msg,payload)=self.receive_from_server()
@@ -157,7 +158,7 @@ class Game:
             logger.warning('wrong response {} received for ping'.format(msg))
             return False
         else:
-            logger.debug('pong received')
+            logger.info('pong received')
             return True
 
     def connect_to_server(self):
@@ -203,9 +204,9 @@ class Game:
 
             try:
                 # now get the game port as a response
-                logger.debug('pausing for server track process to start (if not running already)')
+                logger.info('pausing for server track process to start (if not running already)')
                 time.sleep(2) # it takes significant time to start the track process. To avoid timeout, wait a bit here before checking
-                logger.debug('receiving game_port message from server')
+                logger.info('receiving game_port message from server')
                 msg,payload=self.receive_from_server()
                 if msg!='game_port':
                     logger.warning("got response (msg,command)=({},{}) but expected ('game_port',port_number); will try again in {}s".format(msg,payload, SERVER_PING_INTERVAL_S))
@@ -346,6 +347,19 @@ class Game:
         logger.debug('sending msg {} with payload {} to {}'.format(msg,payload,addr))
         p = pickle.dumps((msg, payload))
         self.sock.sendto(p, addr)
+
+    def drain_udp_messages(self):
+        self.sock.settimeout(0)
+        while True:
+            try:
+                data, server_addr = self.sock.recvfrom(8000) # todo check if large enough for payload inclding all other car state
+                (msg,payload) = pickle.loads(data)
+                logger.debug('emptied msg {} with payload {}'.format(msg,payload))
+            except socket.timeout:
+                break
+            except BlockingIOError:
+                break
+        self.sock.settimeout(SERVER_TIMEOUT_SEC)
 
     def receive_from_server(self):
         data, server_addr = self.sock.recvfrom(8000) # todo check if large enough for payload inclding all other car state
