@@ -37,6 +37,7 @@ class car_state:
 
         # current commanded control input
         self.command = car_command()
+        self.command.complete_default()
 
         self.time_results = []
 

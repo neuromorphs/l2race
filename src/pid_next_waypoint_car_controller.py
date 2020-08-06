@@ -44,6 +44,8 @@ class pid_next_waypoint_car_controller:
         self.angle = 0
 
     def read(self):
+
+        self.car_command = car_command()
         '''computes the control and returns it as a standard keyboard/joystick command'''
         waypoint_distance = self.car.track.get_distance_to_nearest_segment(car_state=self.car.car_state,
                                                                            x_car=self.car.car_state.position_m.x,

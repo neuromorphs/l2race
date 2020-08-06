@@ -1,4 +1,5 @@
 from client import define_game
+from my_controller import my_controller
 
 if __name__ == '__main__':
 
@@ -39,10 +40,11 @@ if __name__ == '__main__':
     If also no corresponding flag was provided the program takes a default value
     The only case when a flag has precedence over a variable provided below is for disabling gui
     '''
-
+    controller = my_controller()
     game = define_game(gui='without_gui',
                        track_name='oval_easy',
-                       car_name='Marcin')
+                       car_name='Marcin',
+                       controller=None)
     game.run()
 
     '''
