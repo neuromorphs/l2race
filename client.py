@@ -32,6 +32,7 @@ from src.car import car
 from src.my_args import client_args
 from src.l2race_utils import my_logger
 from src.pid_next_waypoint_car_controller import pid_next_waypoint_car_controller
+from src.car_command import car_command
 
 logger = my_logger(__name__)
 
@@ -269,13 +270,11 @@ class Game:
             external_input = self.input.read()
             if external_input.auto:
                 command = self.auto_input.read()
-                command.throttle = external_input.throttle
-                command.reset_car = external_input.reset_car
-                command.restart_client = external_input.restart_client
-                command.quit = external_input.quit
-                command.auto = external_input.auto
+                command.add_command(external_input)
+                command.complete_default()
             else:
                 command = external_input
+                command.complete_default()
 
             if command.quit:
                 logger.info('quit recieved, ending main loop')
@@ -389,6 +388,7 @@ class Game:
 # A wrapper around Game class to make it easier for a user to provide arguments
 def define_game(gui='with_gui',
                 track_name=None,
+                controller=None,
                 spectate=False,
                 car_name=None,
                 server_host=None,
@@ -398,10 +398,14 @@ def define_game(gui='with_gui',
                 timeout_s=None,
                 record=None):
 
+    if controller is None:
+        controller = pid_next_waypoint_car_controller()
+
     if gui == 'with_gui':
         launch_gui()
         args = get_args()
         game = Game(track_name=args.track_name,
+                    controller=controller,
                     spectate=spectate,
                     car_name=args.car_name,
                     # server_host=args.host,
@@ -457,6 +461,7 @@ def define_game(gui='with_gui',
         game = Game(track_name=track_name,
                     spectate=spectate,
                     car_name=car_name,
+                    controller=controller,
                     server_host=server_host,
                     server_port=server_port,
                     joystick_number=joystick_number,

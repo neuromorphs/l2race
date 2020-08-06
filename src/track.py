@@ -132,12 +132,15 @@ class track:
                 logger.warning("Error! Car angle for track.get_current_angle not provided")
                 return None
 
-        angle_car = angle_car - 360.0 * np.rint(angle_car / 360.0)
+        # angle_car = angle_car - 360.0 * np.rint(angle_car / 360.0)
+        # print('angle car: {}'.format(angle_car))
+        # print('angle segment: {}'.format(self.angle_next_segment_east[nearest_waypoint_idx]))
 
-        angele_to_road = angle_car - self.angle_next_segment_east[nearest_waypoint_idx]
-
+        angle_to_road = angle_car - self.angle_next_segment_east[nearest_waypoint_idx]
+        angle_to_road = angle_to_road - 360.0 * np.rint(angle_to_road / 360.0)
+        # print('angle_to_road: {}'.format(angle_to_road))
         # logger.info(angele_to_road)
-        return angele_to_road
+        return angle_to_road
 
     def get_distance_to_nearest_segment(self,
                                         car_state=None,
