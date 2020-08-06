@@ -35,10 +35,6 @@ from src.pid_next_waypoint_car_controller import pid_next_waypoint_car_controlle
 
 logger = my_logger(__name__)
 
-
-
-
-
 def get_args():
     parser = argparse.ArgumentParser(
         description='l2race client: run this if you are a racer.',
@@ -142,23 +138,35 @@ class Game:
             self.game_font.render_to(self.screen, (x, y + GAME_FONT_SIZE * i), l, [200,200,200]),
             pass
 
-    def connect_to_server(self):
+    def ping_server(self):
+        logger.debug('pinging server at {}'.format(self.serverStartAddr))
+        self.send_to_server(self.serverStartAddr,'ping',None)
         try:
-            open_ports()
-        except Exception as ex:
-            logger.warning("Caught exception {} when trying to open l2race client ports".format(ex))
+            (msg,payload)=self.receive_from_server()
+        except socket.timeout:
+            logger.warning('ping timeout')
+            return False
+        except ConnectionResetError:
+            logger.warning('ping connection reset error')
+            return False
+        except Exception as e:
+            logger.warning('ping other exception {}'.format(e))
+            return False
+        if msg!='pong':
+            logger.warning('wrong response {} received for ping'.format(msg))
+            return False
+        else:
+            logger.debug('pong received')
+            return True
 
-        self.sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)  # UDP
-        self.sock.settimeout(self.server_timeout_s)
-        bind_socket_to_range(CLIENT_PORT_RANGE, self.sock)
-
-        atexit.register(self.cleanup)
-
-        logger.info('asking l2race model server at '+str(self.serverStartAddr)+' to add car or spectate')
-
-        self.gotServer=False
+    def connect_to_server(self):
+        if self.gotServer:
+            return
+        logger.info('connecting to l2race model server at '+str(self.serverStartAddr)+' to add car or spectate')
         ntries = 0
+        looper=loop_timer(rate_hz=1./SERVER_PING_INTERVAL_S)
         while not self.gotServer:
+            looper.sleep_leftover_time()
             ntries += 1
             # Event queue
             for event in pygame.event.get():
@@ -169,6 +177,8 @@ class Game:
             if command.quit:
                 logger.info('startup aborted before connecting to server')
                 pygame.quit()
+            if not self.ping_server():
+                continue
             if not self.spectate:
                 cmd = 'add_car'
                 payload=(self.track_name, self.car_name)
@@ -181,14 +191,14 @@ class Game:
             logger.info(s)
             self.send_to_server(self.serverStartAddr, cmd,payload)
 
-            # now get the game port as a response
-
-
             self.screen.fill([0, 0, 0])
             self.render_multi_line(s, 10, 10)
             pygame.display.flip()
             try:
-                logger.debug('waiting for game_port message from server')
+                # now get the game port as a response
+                logger.debug('pausing for server track process to start (if not running already)')
+                time.sleep(2) # it takes significant time to start the track process. To avoid timeout, wait a bit here before checking
+                logger.debug('receiving game_port message from server')
                 msg,payload=self.receive_from_server()
                 if msg!='game_port' or not isinstance(payload,int):
                     logger.warning("got response (msg,command)=({},{}) but expected ('game_port',port_number); will try again in {}s".format(msg,payload, SERVER_PING_INTERVAL_S))
@@ -217,18 +227,26 @@ class Game:
                 self.screen.fill([0, 0, 0])
                 self.render_multi_line(s, 10, 10)
                 pygame.display.flip()
-
-                time.sleep(SERVER_PING_INTERVAL_S)
                 continue
 
     def run(self):
 
-        self.connect_to_server()
+        try:
+            open_ports()
+        except Exception as ex:
+            logger.warning("Caught exception {} when trying to open l2race client ports".format(ex))
+
+        self.sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)  # UDP
+        self.sock.settimeout(self.server_timeout_s)
+        bind_socket_to_range(CLIENT_PORT_RANGE, self.sock)
+
+        atexit.register(self.cleanup)
 
         iterationCounter = 0
         logger.info('starting main loop')
         looper=loop_timer(self.fps)
-        while not self.exit and self.gotServer:
+        while not self.exit:
+            self.connect_to_server() # TODO wrong, will not look again if server connection lost, should go back to this
             try:
                 self.clock.tick(self.fps) # updates pygame clock, makes sure frame rate is at most this many fps; limit runtime to self.ticks Hz update rate
             except KeyboardInterrupt:
@@ -273,10 +291,9 @@ class Game:
                 if command.restart_client:
                     logger.info('restarting client')
                     self.gotServer = False
-                    self.connect_to_server()
                     if self.recorder:
                         self.recorder.close_recording()
-                    break
+                    continue
 
                 # send control to server
                 self.send_to_server(self.gameSockAddr, 'command',command)
@@ -299,8 +316,7 @@ class Game:
             except ConnectionResetError:
                 logger.warning('Connection to {} was reset, will look for server again'.format(self.gameSockAddr))
                 self.gotServer = False
-                self.connect_to_server()
-                break
+                continue
 
             if not self.spectate and self.recorder:
                 self.recorder.write_sample()
@@ -313,6 +329,7 @@ class Game:
                 logger.info('KeyboardInterrupt, stopping client')
                 self.exit=True
 
+        logger.info('ending main loop')
         self.finish_race()
         self.cleanup()
         logger.info('quitting pygame')
@@ -364,6 +381,7 @@ class Game:
 
 
     def finish_race(self):
+        logger.info('sending "finish_race" message to server')
         if self.sock:
             self.send_to_server(self.gameSockAddr, 'finish_race', None)
 

@@ -37,6 +37,7 @@ class loop_timer():
         self.loop_counter=0
         self.last_log_time=0
         self.circ_buffer=circular_buffer(self.NUM_SAMPLES)
+        self.first_call_done=False
 
     def start_loop(self):
         """ can be called to initialize the timer"""
@@ -45,6 +46,10 @@ class loop_timer():
     def sleep_leftover_time(self):
         """ call at start or end of each iteration """
         now=timer()
+        if not self.first_call_done:
+            self.first_call_done=True
+            return # don't sleep on first call at start of loop
+
         max_sleep=1./self.rate_hz
         dt=(now-self.last_iteration_start_time)
         leftover_time=max_sleep-dt
@@ -103,20 +108,40 @@ def become_daemon(our_home_dir='.', out_log='/dev/null', err_log='/dev/null', pi
     except Exception as e:
         logger.warning('Could not become daemon (might only work under linux): {}'.format(e))
 
+class CustomFormatter(logging.Formatter):
+    """Logging Formatter to add colors and count warning / errors"""
+
+    grey = "\x1b[38;21m"
+    yellow = "\x1b[33;21m"
+    red = "\x1b[31;21m"
+    bold_red = "\x1b[31;1m"
+    reset = "\x1b[0m"
+    format = "%(asctime)s - %(name)s - %(levelname)s - %(message)s (%(filename)s:%(lineno)d)"
+
+    FORMATS = {
+        logging.DEBUG: grey + format + reset,
+        logging.INFO: grey + format + reset,
+        logging.WARNING: yellow + format + reset,
+        logging.ERROR: red + format + reset,
+        logging.CRITICAL: bold_red + format + reset
+    }
+
+    def format(self, record):
+        log_fmt = self.FORMATS.get(record.levelno)
+        formatter = logging.Formatter(log_fmt)
+        return formatter.format(record)
 
 def my_logger(name):
-    logging.basicConfig(level=LOGGING_LEVEL)
-    # root = logging.getLogger()
-    # root.setLevel(logging.INFO)
-    # https://stackoverflow.com/questions/384076/how-can-i-color-python-logging-output/7995762#7995762
-    logging.addLevelName(
-        logging.WARNING, "\033[1;31m%s\033[1;0m" % logging.getLevelName(
-            logging.WARNING))
-    logging.addLevelName(
-        logging.ERROR, "\033[1;41m%s\033[1;0m" % logging.getLevelName(
-            logging.ERROR))
     logger = logging.getLogger(name)
     logger.setLevel(LOGGING_LEVEL)
+
+    # create console handler with a higher log level
+    ch = logging.StreamHandler()
+    ch.setLevel(logging.DEBUG)
+
+    ch.setFormatter(CustomFormatter())
+
+    logger.addHandler(ch)
     return logger
 
 logger = my_logger(__name__)
@@ -133,18 +158,6 @@ def set_logging_level(args): # todo still does not correctly affect all of our e
         LOGGING_LEVEL=logging.CRITICAL
     else:
         logger.warning('unknown logging level {} specified, using default level {}'.format(args.logging_level,logger.getEffectiveLevel()))
-        return
-    logging.basicConfig(level=LOGGING_LEVEL)
-    # root = logging.getLogger()
-    # root.setLevel(logging.INFO)
-    # https://stackoverflow.com/questions/384076/how-can-i-color-python-logging-output/7995762#7995762
-    logging.addLevelName(
-        logging.WARNING, "\033[1;31m%s\033[1;0m" % logging.getLevelName(
-            logging.WARNING))
-    logging.addLevelName(
-        logging.ERROR, "\033[1;41m%s\033[1;0m" % logging.getLevelName(
-            logging.ERROR))
-
 
 def bind_socket_to_range(portrange, client_sock):
     ''' find a free server port in range

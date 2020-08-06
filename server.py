@@ -20,13 +20,7 @@ from src.globals import *
 from src.track import track, list_tracks
 from src.l2race_utils import my_logger
 logger=my_logger(__name__)
-try:
-    from scripts.regsetup import description
-    from gooey import Gooey  # pip install Gooey
-except Exception:
-    logger.warning('Gooey GUI builder not available, will use command line arguments.\n'
-                   'Install with "pip install Gooey". See README')
-SKIP_CHECK_SERVER=100
+SKIP_CHECK_SERVER_QUEUE=0 # use to reduce checking queue, but causes timeout problems with adding car if too big. 0 to disable
 
 def get_args():
     parser = argparse.ArgumentParser(
@@ -40,6 +34,7 @@ def get_args():
 
 def send_message(socket:socket, lock:mp.Lock, client_addr: Tuple[str,int], msg:object):
     try:
+        logger.debug('sending msg {} to client {}'.format(msg,client_addr))
         if lock: lock.acquire()
         p=pickle.dumps(msg)
         socket.sendto(p, client_addr)
@@ -161,15 +156,18 @@ class track_server_process(mp.Process):
         logger.info('ended track {}'.format(self.track_name))
 
     def receive_msg(self):
+        """ receives a message from client using track's socket"""
         p,client=self.track_socket.recvfrom(2048)
         (msg,payload)=pickle.loads(p)
         logger.debug('got msg={} with payload={} from client {}'.format(msg,payload,client))
         return msg,payload,client
 
     def send_client_msg(self,client, msg,payload):
+        """ sends message back to client using the track's socket"""
         send_message(self.track_socket, None, client, (msg,payload))
 
     def handle_client_msg(self, msg, payload, client):
+        """ handles the client messages """
         logger.debug('handling msg={} with payload={} from client {}'.format(msg,payload,client))
         self.last_message_time=timer()
         # check if spectator or car
@@ -202,6 +200,7 @@ class track_server_process(mp.Process):
             logger.warning('unknowm cmd {} received; ignoring'.format(msg))
 
     def add_car_to_track(self, car_name, client_addr):
+        """ adds a car to this track """
         if self.car_dict.get(client_addr):
             logger.warning('client at {} already has a car model, replacing it with a new model'.format(client_addr))
         logger.debug('adding car model for car named {} from client {} to track {}'.format(car_name,client_addr,self.track_name))
@@ -210,13 +209,15 @@ class track_server_process(mp.Process):
         self.send_game_port_to_client(client_addr)
 
     def add_spectator_to_track(self, client_addr):
+        """ adds a spectator to this track """
         logger.debug('adding spectator from client {} to track {}'.format(client_addr,self.track_name))
         self.spectator_list.append(client_addr)
         self.send_game_port_to_client(client_addr)
 
     def process_server_queue(self):
-        self.skip_checking_server_queue_count+=1
-        if self.skip_checking_server_queue_count//SKIP_CHECK_SERVER!=0: return
+        if SKIP_CHECK_SERVER_QUEUE>0:
+            self.skip_checking_server_queue_count+=1
+            if self.skip_checking_server_queue_count%SKIP_CHECK_SERVER_QUEUE!=0: return
         while not self.server_queue.empty():
             (cmd,payload)=self.server_queue.get_nowait()
             self.handle_server_msg(cmd,payload)
@@ -246,6 +247,12 @@ class track_server_process(mp.Process):
             raise RuntimeWarning('unknown cmd {}'.format(cmd))
 
 if __name__ == '__main__':
+    try:
+        from scripts.regsetup import description
+        from gooey import Gooey  # pip install Gooey
+    except Exception:
+        logger.warning('Gooey GUI builder not available, will use command line arguments.\n'
+                       'Install with "pip install Gooey". See README')
     try:
         ga = Gooey(get_args, program_name="l2race server", default_size=(575, 600))
         logger.info('Use --ignore-gooey to disable GUI and run with command line arguments')
@@ -364,14 +371,14 @@ if __name__ == '__main__':
                            'payload (for add_spectator) =(track_name)\n'
                            .format(ex))
             continue
-        except KeyboardInterrupt:
-            logger.info('KeyboardInterrupt, stopping server')
-            break
 
         logger.info('received cmd "{}" with payload "{}" from {}'.format(cmd, payload, client_addr))
         # todo handle multiple cars on one track, provide option for unique track for testing single car
 
-        if cmd == 'add_car': # todo add arguments with newcar like driver/car name
+        if cmd=='ping':
+            msg=('pong',None)
+            send_message(server_socket,server_port_lock,client_addr,msg)
+        elif cmd == 'add_car': # todo add arguments with newcar like driver/car name
             (track_name, car_name)=payload
             add_car_to_track(track_name, car_name, client_addr)
         elif cmd=='add_spectator':
