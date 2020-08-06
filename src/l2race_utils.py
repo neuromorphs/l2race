@@ -1,6 +1,7 @@
 # utility methods
 import logging
 import os
+import socket, pickle
 from time import sleep
 from timeit import default_timer as timer
 from time import sleep as sleep
@@ -174,8 +175,12 @@ def bind_socket_to_range(portrange, client_sock):
     start_port = int(s[0])
     end_port = int(s[1])
     isbound = False
-    r = np.random.permutation(np.arange(start_port, end_port))
-    # r= np.arange(start_port, end_port)
+    r= np.random.permutation(np.arange(start_port, end_port))
+    return r
+
+def find_unbound_port_in_range(portrange:str):
+    r=random_port_permutation(portrange)
+    sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM) # make a new datagram socket
     for p in r:
         try:
             client_sock.bind(('0.0.0.0', p))  # bind to port 0 to get a random free port

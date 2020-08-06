@@ -145,7 +145,8 @@ class Game:
             pass
 
     def ping_server(self):
-        logger.debug('pinging server at {}'.format(self.serverStartAddr))
+        logger.info('pinging server at {}'.format(self.serverStartAddr))
+        self.drain_udp_messages()
         self.send_to_server(self.serverStartAddr,'ping',None)
         try:
             (msg,payload)=self.receive_from_server()
@@ -162,7 +163,7 @@ class Game:
             logger.warning('wrong response {} received for ping'.format(msg))
             return False
         else:
-            logger.debug('pong received')
+            logger.info('pong received')
             return True
 
     def connect_to_server(self):
@@ -171,8 +172,12 @@ class Game:
         logger.info('connecting to l2race model server at '+str(self.serverStartAddr)+' to add car or spectate')
         ntries = 0
         looper=loop_timer(rate_hz=1./SERVER_PING_INTERVAL_S)
+        err_str=''
         while not self.gotServer:
             looper.sleep_leftover_time()
+            self.screen.fill([0, 0, 0])
+            self.render_multi_line(err_str, 10, 10)
+            pygame.display.flip()
             ntries += 1
             # Event queue
             for event in pygame.event.get():
@@ -184,6 +189,8 @@ class Game:
                 logger.info('startup aborted before connecting to server')
                 pygame.quit()
             if not self.ping_server():
+                err_str='No response to ping server at {}, will try again in {:.1f}s [{}]'.\
+                    format(self.serverStartAddr, 1./looper.rate_hz, looper.loop_counter)
                 continue
             if not self.spectate:
                 cmd = 'add_car'
@@ -191,49 +198,46 @@ class Game:
             else:
                 cmd = 'add_spectator'
                 payload=self.track_name
-            s = 'sending cmd={} with payload {} to server initial address {}, ' \
+            err_str = 'sending cmd={} with payload {} to server initial address {}, ' \
                 'waiting for server...[{}]' \
                 .format(cmd, payload, self.serverStartAddr, ntries)
-            logger.info(s)
+            logger.info(err_str)
+            self.screen.fill([0, 0, 0])
+            self.render_multi_line(err_str, 10, 10)
+            pygame.display.flip()
             self.send_to_server(self.serverStartAddr, cmd,payload)
 
-            self.screen.fill([0, 0, 0])
-            self.render_multi_line(s, 10, 10)
-            pygame.display.flip()
             try:
                 # now get the game port as a response
-                logger.debug('pausing for server track process to start (if not running already)')
+                logger.info('pausing for server track process to start (if not running already)')
                 time.sleep(2) # it takes significant time to start the track process. To avoid timeout, wait a bit here before checking
-                logger.debug('receiving game_port message from server')
+                logger.info('receiving game_port message from server')
                 msg,payload=self.receive_from_server()
                 if msg!='game_port':
                     logger.warning("got response (msg,command)=({},{}) but expected ('game_port',port_number); will try again in {}s".format(msg,payload, SERVER_PING_INTERVAL_S))
-                    time.sleep(SERVER_PING_INTERVAL_S)
                     continue
-                self.gotServer = True
-                self.gameSockAddr=(self.server_host, payload)
-                logger.info('got game_port message from server telling us to use address {} to talk with server'.format(self.gameSockAddr))
-                if not self.spectate:
-                    self.car = car(name=self.car_name, screen=self.screen)
-                    self.car.track = track(track_name=self.track_name)
-                    if self.record:
-                        if self.recorder is None:
-                            self.recorder = data_recorder(car=self.car)
-                        self.recorder.open_new_recording()
-                    # self.car.loadAndScaleCarImage()   # happens inside car
-                    self.controller.car=self.car
-                    self.auto_input =self.controller
-                    logger.info('initial car state is {}'.format(self.car.car_state))
-                else:
-                    self.spectate_track=track(track_name=self.track_name)
             except OSError as err:
-                s += '\n{}:\n error for response from {}; ' \
-                    'will try again in {}s ...[{}]'.format(err, self.serverStartAddr, SERVER_PING_INTERVAL_S, ntries)
-                logger.warning(s)
-                self.screen.fill([0, 0, 0])
-                self.render_multi_line(s, 10, 10)
-                pygame.display.flip()
+                err_str += '\n{}:\n error for response from {}; ' \
+                     'will try again in {}s ...[{}]'.format(err, self.serverStartAddr, SERVER_PING_INTERVAL_S, ntries)
+                logger.warning(err_str)
                 continue
+
+            self.gotServer = True
+            self.gameSockAddr=(self.server_host, payload)
+            logger.info('got game_port message from server telling us to use address {} to talk with server'.format(self.gameSockAddr))
+            if not self.spectate:
+                self.car = car(name=self.car_name, screen=self.screen)
+                self.car.track = track(track_name=self.track_name)
+                if self.record:
+                    if self.recorder is None:
+                        self.recorder = data_recorder(car=self.car)
+                    self.recorder.open_new_recording()
+                # self.car.loadAndScaleCarImage()   # happens inside car
+                self.controller.car=self.car
+                self.auto_input =self.controller
+                logger.info('initial car state is {}'.format(self.car.car_state))
+            else:
+                self.spectate_track=track(track_name=self.track_name)
 
     def run(self):
 
@@ -349,6 +353,19 @@ class Game:
         p = pickle.dumps((msg, payload))
         self.sock.sendto(p, addr)
 
+    def drain_udp_messages(self):
+        self.sock.settimeout(0)
+        while True:
+            try:
+                data, server_addr = self.sock.recvfrom(8000) # todo check if large enough for payload inclding all other car state
+                (msg,payload) = pickle.loads(data)
+                logger.debug('emptied msg {} with payload {}'.format(msg,payload))
+            except socket.timeout:
+                break
+            except BlockingIOError:
+                break
+        self.sock.settimeout(SERVER_TIMEOUT_SEC)
+
     def receive_from_server(self):
         data, server_addr = self.sock.recvfrom(8000) # todo check if large enough for payload inclding all other car state
         (cmd,payload) = pickle.loads(data)
@@ -378,7 +395,7 @@ class Game:
             self.spectate_states=payload
         elif msg=='game_port':
             self.gameSockAddr=(self.server_host,payload)
-        elif msg== 'server_shutdown':
+        elif msg== 'track_shutdown':
             logger.warning('{}, will try to look for it again'.format(payload))
             self.gotServer=False
         else:
