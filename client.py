@@ -35,6 +35,9 @@ from src.pid_next_waypoint_car_controller import pid_next_waypoint_car_controlle
 from src.car_command import car_command
 
 import numpy as np
+import pandas as pd
+import re
+from time import sleep
 
 logger = my_logger(__name__)
 
@@ -386,6 +389,84 @@ class Game:
         logger.info('sending "finish_race" message to server')
         if self.sock:
             self.send_to_server(self.gameSockAddr, 'finish_race', None)
+
+    def replay(self, race_name = None):
+        # Load data
+
+        # Find the right file
+        if race_name:
+            try:
+                file_path = './data/'+race_name+'.csv'
+
+            except FileNotFoundError:
+                logger.warning('There is no race recording with name {}'.format(race_name))
+                return
+        else:
+            try:
+                import glob
+                import os
+                list_of_files = glob.glob('./data/*.csv')
+                file_path = max(list_of_files, key=os.path.getctime)
+            except FileNotFoundError:
+                logger.warning('No race recording found in data folder')
+                return
+
+        # Get race recording
+        print(file_path)
+        data = pd.read_csv(file_path, skiprows=7)
+
+        # Get used car name
+        s = str(pd.read_csv(file_path, skiprows=5, nrows=1))
+        self.car_name = re.search('"(.*)"', s).group(1)
+        print(self.car_name)
+
+        # Get used track
+        s = str(pd.read_csv(file_path, skiprows=6, nrows=1))
+        self.track_name = re.search('"(.*)"', s).group(1)
+        print(self.track_name)
+
+        # print(file_path)
+        # print(data.head())
+
+        # Define car and track
+        self.car = car(name=self.car_name, screen=self.screen)
+        self.car.track = track(track_name=self.track_name)
+
+        # decimate data
+        data = data.iloc[::4, :]
+
+        # Run a loop to print data
+        for index, row in data.iterrows():
+
+            self.car.car_state.command.auto = row['cmd.auto']
+            self.car.car_state.command.steering = row['cmd.steering']
+            self.car.car_state.command.throttle = row['cmd.throttle']
+            self.car.car_state.command.brake = row['cmd.brake']
+            self.car.car_state.command.reverse = row['cmd.reverse']
+
+            self.car.car_state.time = row['time']
+            self.car.car_state.position_m = Vector2(row['pos.x'], row['pos.y'])
+            self.car.car_state.velocity_m_per_sec = Vector2(row['vel.x'],row['vel.y'])
+            self.car.car_state.speed_m_per_sec = row['speed']
+            self.car.car_state.accel_m_per_sec_2 = Vector2(row['accel.x'],row['accel.y'])
+            self.car.car_state.steering_angle_deg = row['steering_angle']
+            self.car.car_state.body_angle_deg = row['body_angle']
+            self.car.car_state.yaw_rate_deg_per_sec = row['yaw_rate']
+            self.car.car_state.drift_angle_deg = row['drift_angle']
+
+
+            # Drawing
+            self.draw()
+            sleep(0.1)
+            # try:
+            #     looper.sleep_leftover_time()
+            # except KeyboardInterrupt:
+            #     logger.info('KeyboardInterrupt, stopping client')
+            #     self.exit=True
+
+
+
+
 
 
 # A wrapper around Game class to make it easier for a user to provide arguments

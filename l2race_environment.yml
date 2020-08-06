@@ -65,6 +65,7 @@ dependencies:
   - olefile
   - openssl
   - packaging
+  - pandas
   - pandoc
   - pandocfilters
   - parso

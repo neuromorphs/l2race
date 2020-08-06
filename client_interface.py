@@ -44,8 +44,11 @@ if __name__ == '__main__':
     game = define_game(gui='without_gui',
                        track_name='oval_easy',
                        car_name='Tobi',
-                       controller=controller)
+                       controller=controller,
+                       record=True)
     game.run()
+    # game.replay('l2race-20200803-220912')
+    # game.replay()
 
     '''
     Place for your code to post-process data
