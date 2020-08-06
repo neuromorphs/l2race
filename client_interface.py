@@ -43,8 +43,8 @@ if __name__ == '__main__':
     controller = my_controller()
     game = define_game(gui='without_gui',
                        track_name='oval_easy',
-                       car_name='Marcin',
-                       controller=None)
+                       car_name='Tobi',
+                       controller=controller)
     game.run()
 
     '''

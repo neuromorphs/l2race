@@ -174,7 +174,7 @@ def bind_socket_to_range(portrange, client_sock):
     start_port = int(s[0])
     end_port = int(s[1])
     isbound = False
-    r= np.random.permutation(np.arange(start_port, end_port))
+    r = np.random.permutation(np.arange(start_port, end_port))
     # r= np.arange(start_port, end_port)
     for p in r:
         try:

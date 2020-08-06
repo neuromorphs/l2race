@@ -34,6 +34,8 @@ from src.l2race_utils import my_logger
 from src.pid_next_waypoint_car_controller import pid_next_waypoint_car_controller
 from src.car_command import car_command
 
+import numpy as np
+
 logger = my_logger(__name__)
 
 def get_args():

@@ -8,7 +8,8 @@ logger = my_logger(__name__)
 def printhelp():
     print('Keyboard commands:\n'
           'drive with LEFT/UP/RIGHT/DOWN or AWDS keys\n'
-          'BACKSPACE toggles reverse gear\n'
+          'keep SPACE pressed to drive on reverse gear\n'
+          'y toggles automatic control (if implemented)\n'
           'r resets car\n'
           'R restarts client from scratch (if server went down)\n'
           'ESC quits\n'
@@ -30,8 +31,13 @@ class my_keyboard:
         self.car_input.reset_car=False
         self.car_input.restart_client=False
 
-        if not any(pressed):
-            return self.car_input
+        # if not any(pressed):
+        #     return self.car_input
+
+        if pressed[pygame.K_y]:
+            self.car_input.auto = True
+        else:
+            self.car_input.auto = False
 
         if pressed[pygame.K_UP] or pressed[pygame.K_w]:
            self.car_input.throttle=1.
@@ -46,14 +52,21 @@ class my_keyboard:
             self.car_input.steering = +1. # steer in negative angle direction, i.e. CW
         elif pressed[pygame.K_LEFT] or pressed[pygame.K_a]:
             self.car_input.steering = -1. # steer in positive angle, i.e. CCW
-        elif pressed[pygame.K_BACKSPACE]:
-            if not self.backspace_down:
-                self.car_input.reverse = not self.car_input.reverse
-                self.backspace_down=True
-            else:
-                self.backspace_down=False
+        else:
+            self.car_input.steering = 0.
+        # elif pressed[pygame.K_BACKSPACE]:
+        #     if not self.backspace_down:
+        #         self.car_input.reverse = not self.car_input.reverse
+        #         self.backspace_down=True
+        #     else:
+        #         self.backspace_down=False
 
-        elif pressed[pygame.K_ESCAPE]:
+        if pressed[pygame.K_SPACE]:
+            self.car_input.reverse = True
+        else:
+            self.car_input.reverse = False
+
+        if pressed[pygame.K_ESCAPE]:
             self.car_input.quit = True
         elif pressed[pygame.K_r]:
             if (pygame.key.get_mods() & pygame.KMOD_LSHIFT):
@@ -62,6 +75,5 @@ class my_keyboard:
                 self.car_input.reset_car =True
         elif pressed[pygame.K_QUESTION] or pressed[pygame.K_h]:
             printhelp()
-        else:
-            self.car_input.steering = 0.
+
         return self.car_input
