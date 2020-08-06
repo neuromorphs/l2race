@@ -2,7 +2,6 @@ import argparse
 import atexit
 import logging
 import socket, pickle
-import threading
 from queue import Empty
 from typing import Dict, Tuple, List, Optional
 
@@ -12,7 +11,8 @@ from time import sleep
 import multiprocessing as mp
 
 from src.car_state import car_state
-from src.l2race_utils import bind_socket_to_range, set_logging_level, loop_timer, become_daemon
+from src.l2race_utils import bind_socket_to_range, set_logging_level, loop_timer, become_daemon, \
+    find_unbound_port_in_range
 from src.my_args import server_args
 from src.car_model import car_model
 from src.car import car
@@ -42,7 +42,7 @@ def send_message(socket:socket, lock:mp.Lock, client_addr: Tuple[str,int], msg:o
         if lock: lock.release()
 
 class track_server_process(mp.Process):
-    def __init__(self, queue_from_server:mp.Queue, server_port_lock:mp.Lock(), server_socket:socket, track_name=None):
+    def __init__(self, queue_from_server:mp.Queue, server_port_lock:mp.Lock(), server_socket:socket, track_name=None, port: int=None):
         super(track_server_process, self).__init__(name='track_server_process-{}'.format(track_name))
         self.server_queue=queue_from_server
         self.server_port_lock=server_port_lock
@@ -54,8 +54,7 @@ class track_server_process(mp.Process):
         self.car_states_list:List[car_state]=None # list of all car states, to send to clients and put in each car's state
         self.spectator_list:List[Tuple[str,int]] = None # maps from client_addr to car_model (or None if a spectator)
         self.track_socket:Optional[socket] = None # make a new datagram socket
-        # find range of ports we can try to open for client to connect to
-        self.local_port_number=None
+        self.local_port_number=port
         self.track_socket_address=None # get the port info for our local port
         self.exit=False
         self.last_message_time=timer() # used to terminate ourselves if no messages for some time
@@ -94,7 +93,11 @@ class track_server_process(mp.Process):
         self.track_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM) # make a new datagram socket
         self.track_socket.settimeout(0) # put track socket in nonblocking mode to just poll for client messages
         # find range of ports we can try to open for client to connect to
-        self.local_port_number=bind_socket_to_range(CLIENT_PORT_RANGE, self.track_socket)
+        try:
+            self.track_socket.bind(('0.0.0.0',self.local_port_number))
+        except Exception as e:
+            logger.error('track process aborting: could not bind to the local port {} that server told us to use: got {}'.format(self.local_port_number, e))
+            raise e
         self.track_socket_address=self.track_socket.getsockname() # get the port info for our local port
         logger.info('for track {} bound free local UDP port address {}'.format(self.track_name,self.local_port_number))
         last_time=timer()
@@ -206,13 +209,11 @@ class track_server_process(mp.Process):
         logger.debug('adding car model for car named {} from client {} to track {}'.format(car_name,client_addr,self.track_name))
         mod=car_model(track=self.track, car_name=car_name)
         self.car_dict[client_addr]=mod
-        self.send_game_port_to_client(client_addr)
 
     def add_spectator_to_track(self, client_addr):
         """ adds a spectator to this track """
         logger.debug('adding spectator from client {} to track {}'.format(client_addr,self.track_name))
         self.spectator_list.append(client_addr)
-        self.send_game_port_to_client(client_addr)
 
     def process_server_queue(self):
         if SKIP_CHECK_SERVER_QUEUE>0:
@@ -222,13 +223,6 @@ class track_server_process(mp.Process):
             (cmd,payload)=self.server_queue.get_nowait()
             self.handle_server_msg(cmd,payload)
         pass
-
-    def send_game_port_to_client(self, client_addr):
-        logger.debug('sending game_port message to client {} telling it to use our local port number {}'.format(client_addr,self.local_port_number))
-        # first message to client is the game port number
-        # send client the port they should use for this track
-        send_message(lock=None, socket=self.track_socket, client_addr=client_addr, msg=('game_port',self.local_port_number))
-
 
     def handle_server_msg(self, cmd,payload):
         logger.debug('got queue message from server manager cmd={} payload={}'.format(cmd,payload))
@@ -278,14 +272,28 @@ if __name__ == '__main__':
                 and track_processes.get(track_name).is_alive():
             logger.debug('track process {} exists already and is alive')
             return track_processes.get(track_name)
-        logger.info('model server starting a new track_server_process for track {} for client at {}'.format(track_name, client_addr))
+        track_port_number=find_unbound_port_in_range(CLIENT_PORT_RANGE)
+        send_game_port_to_client(client_addr,track_port_number)
+        logger.info('starting a new track_server_process for track {} for client at {} using local port {}'
+                    .format(track_name, client_addr, track_port_number))
         q=mp.Queue()
         track_queues[track_name]=q
-        track_process = track_server_process(queue_from_server=q, server_port_lock=server_port_lock, server_socket=server_socket, track_name=track_name)
+        track_process = track_server_process(queue_from_server=q,
+                                             server_port_lock=server_port_lock,
+                                             server_socket=server_socket,
+                                             track_name=track_name,
+                                             port=track_port_number)
         track_processes[track_name]=track_process
         track_processes[track_name].start()
         return track_process
 
+    def send_game_port_to_client(client_addr:Tuple[str,int], port:int):
+        logger.info('sending game_port message to client {} telling it to use our local port number {}'.format(client_addr,port))
+        # first message to client is the game port number
+        # send client the port they should use for this track
+        send_message(socket=server_socket, lock=server_port_lock,
+                     client_addr=client_addr,
+                     msg=('game_port',port))
 
     def add_car_to_track(track_name, car_name, client_addr):
         make_track_process(track_name=track_name, client_addr=client_addr)
@@ -293,7 +301,6 @@ if __name__ == '__main__':
         q = track_queues.get(track_name)
         if q:
             q.put(('add_car', (car_name, client_addr)))
-
 
     def add_spectator_to_track(track_name, client_addr):
         make_track_process(track_name=track_name, client_addr=client_addr)

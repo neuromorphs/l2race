@@ -1,6 +1,7 @@
 # utility methods
 import logging
 import os
+import socket, pickle
 from time import sleep
 from timeit import default_timer as timer
 from time import sleep as sleep
@@ -116,7 +117,7 @@ class CustomFormatter(logging.Formatter):
     red = "\x1b[31;21m"
     bold_red = "\x1b[31;1m"
     reset = "\x1b[0m"
-    format = "%(asctime)s - %(name)s - %(levelname)s - %(message)s (%(filename)s:%(lineno)d)"
+    format = "%(asctime)s-%(name)s-%(levelname)s-%(message)s(%(filename)s:%(lineno)d)"
 
     FORMATS = {
         logging.DEBUG: grey + format + reset,
@@ -159,7 +160,34 @@ def set_logging_level(args): # todo still does not correctly affect all of our e
     else:
         logger.warning('unknown logging level {} specified, using default level {}'.format(args.logging_level,logger.getEffectiveLevel()))
 
-def bind_socket_to_range(portrange, client_sock):
+
+def random_port_permutation(portrange:str):
+    s = portrange.split('-')
+    if len(s) != 2:
+        raise RuntimeError(
+            'client port range {} should be of form start-end, e.g. 50100-50200'.format(portrange))
+    try:
+        start_port = int(s[0])
+        end_port = int(s[1])
+    except Exception as e:
+        raise RuntimeError('something wrong with port range "{}"; should be of form e.g. 50100-50200'.format(e))
+    isbound = False
+    r= np.random.permutation(np.arange(start_port, end_port))
+    return r
+
+def find_unbound_port_in_range(portrange:str):
+    r=random_port_permutation(portrange)
+    sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM) # make a new datagram socket
+    for p in r:
+        try:
+            sock.bind(('0.0.0.0', p))  # bind to port 0 to get a random free port
+            sock.close()
+            return p
+        except:
+            continue
+    return None
+
+def bind_socket_to_range(portrange:str, client_sock:socket):
     ''' find a free server port in range
     :arg portrange a string e.g. 10001-10010
     :arg clientSockthe local socket we try to bind to a local port number
@@ -167,26 +195,18 @@ def bind_socket_to_range(portrange, client_sock):
     :raises RuntimeError if cannot find a free port in range
     '''
 
-    s = portrange.split('-')
-    if len(s) != 2:
-        raise RuntimeError(
-            'client port range {} should be of form start-end, e.g. 50100-50200'.format(portrange))
-    start_port = int(s[0])
-    end_port = int(s[1])
-    isbound = False
-    r= np.random.permutation(np.arange(start_port, end_port))
     # r= np.arange(start_port, end_port)
-    for p in r:
+    r=random_port_permutation(portrange)
+    p=find_unbound_port_in_range(portrange)
+    if p:
         try:
             client_sock.bind(('0.0.0.0', p))  # bind to port 0 to get a random free port
             logger.info('bound socket {} to local port {}'.format(client_sock, p))
-            isbound = True
             return p
         except:
-            logger.warning('tried but could not bind to port {}'.format(p))
-    if not isbound:
-        raise RuntimeError('could not bind socket {} to any local port in range {}'.format(client_sock, portrange))
-
+             raise RuntimeError('tried but could not bind to any free port in range {}'.format(portrange))
+    else:
+        raise RuntimeError('no free port in range {}'.format(portrange))
 
 def checkAddSuffix(path: str, suffix: str):
     if path.endswith(suffix):
