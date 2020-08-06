@@ -35,9 +35,12 @@ def get_args():
 def send_message(socket:socket, lock:mp.Lock, client_addr: Tuple[str,int], msg:object):
     try:
         logger.debug('sending msg {} to client {}'.format(msg,client_addr))
-        if lock: lock.acquire()
         p=pickle.dumps(msg)
-        socket.sendto(p, client_addr)
+        if lock: lock.acquire()
+        try:
+            socket.sendto(p, client_addr)
+        except OSError as e:
+            logger.error('failed sending msg {} to client {}: {}'.format(msg,client_addr,e))
     finally:
         if lock: lock.release()
 
@@ -66,7 +69,7 @@ class track_server_process(mp.Process):
         logger.debug('cleaning up {} process'.format(self.track_name))
         if self.car_dict:
             for c in self.car_dict.keys():
-                self.send_client_msg(c,'server_shutdown','track server has shut down')
+                self.send_client_msg(c,'track_shutdown','track server has shut down')
         if self.spectator_list:
             for s in self. spectator_list:
                 self.send_client_msg(s,'server_shutdown','track server has shut down')

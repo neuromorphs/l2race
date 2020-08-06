@@ -376,7 +376,7 @@ class Game:
             self.spectate_states=payload
         elif msg=='game_port':
             self.gameSockAddr=(self.server_host,payload)
-        elif msg== 'server_shutdown':
+        elif msg== 'track_shutdown':
             logger.warning('{}, will try to look for it again'.format(payload))
             self.gotServer=False
         else:
