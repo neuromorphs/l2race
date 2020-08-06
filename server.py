@@ -303,8 +303,8 @@ if __name__ == '__main__':
 
     def stop_all_track_processes():
         for t,q in track_queues.items():
-            logger.info('telling track {} to stop'.format(t))
             if q:
+                logger.info('telling track {} to stop'.format(t))
                 try:
                     q.put('stop')
                 except:
@@ -331,7 +331,7 @@ if __name__ == '__main__':
 
     atexit.register(cleanup)
 
-    become_daemon()
+    # become_daemon() # todo for service mode
 
     # We fork an mp process for each track that might have one or more cars and spectators.
 
