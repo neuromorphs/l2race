@@ -2,8 +2,14 @@
  
 Simulation of racecar from eye of god view. User code must drive the car as quickly as possible around the track.
 
-## Requirements
+![aminated gif](media/SampleRun_2020-07-25_075130_2.gif)
 
+ - [L2RACE challenge page](https://sites.google.com/view/telluride2020/challenges/l2race?authuser=0) on workshop site
+ - The [L2RACE google driver folder](https://drive.google.com/drive/folders/1IJmfvKY2n24PQTGxc9Ek4ApufMVISC1C?usp=sharing).
+ - In particular, [L2RACE introductory slides](https://docs.google.com/presentation/d/1nvmZqHNQrUKONi_r6YIpepk4Ie-LkIc1N1GxrF_Ehv0/edit?usp=sharing).
+ 
+
+## Requirements
 
  - anaconda or miniconda https://www.anaconda.com/products/individual
  - Use Python 3.7.x (for pygame 2.0, using prebuilt python wheel archive)
