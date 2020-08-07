@@ -275,24 +275,28 @@ if __name__ == '__main__':
     track_queues:Dict[str,mp.Queue]={k:None for k in track_names} # each entry is the queue to send to track process
 
     def make_track_process(track_name, client_addr) -> mp.Process:
-        track_port_number=find_unbound_port_in_range(CLIENT_PORT_RANGE)
-        send_game_port_to_client(client_addr,track_port_number)
-        if not track_processes.get(track_name) is None\
+
+        if not (track_processes.get(track_name) is None)\
                 and track_processes.get(track_name).is_alive():
+            track_port_number = track_processes.get(track_name).local_port_number
+            send_game_port_to_client(client_addr, track_port_number)
             logger.info('track process {} already exists already and is alive')
             return track_processes.get(track_name)
-        logger.info('starting a new track_server_process for track {} for client at {} using local port {}'
-                    .format(track_name, client_addr, track_port_number))
-        q=mp.Queue()
-        track_queues[track_name]=q
-        track_process = track_server_process(queue_from_server=q,
-                                             server_port_lock=server_port_lock,
-                                             server_socket=server_socket,
-                                             track_name=track_name,
-                                             port=track_port_number)
-        track_processes[track_name]=track_process
-        track_processes[track_name].start()
-        return track_process
+        else:
+            track_port_number = find_unbound_port_in_range(CLIENT_PORT_RANGE)
+            send_game_port_to_client(client_addr, track_port_number)
+            logger.info('starting a new track_server_process for track {} for client at {} using local port {}'
+                        .format(track_name, client_addr, track_port_number))
+            q=mp.Queue()
+            track_queues[track_name]=q
+            track_process = track_server_process(queue_from_server=q,
+                                                 server_port_lock=server_port_lock,
+                                                 server_socket=server_socket,
+                                                 track_name=track_name,
+                                                 port=track_port_number)
+            track_processes[track_name]=track_process
+            track_processes[track_name].start()
+            return track_process
 
     def send_game_port_to_client(client_addr:Tuple[str,int], port:int):
         logger.info('sending game_port message to client {} telling it to use our local port number {}'.format(client_addr,port))
