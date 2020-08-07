@@ -9,6 +9,8 @@ from typing import Tuple, List, Optional
 import argcomplete as argcomplete
 import pygame
 from math import sin, radians, degrees, copysign
+
+import select
 from pygame.math import Vector2
 import logging
 import socket, pickle
@@ -354,20 +356,16 @@ class Game:
         self.sock.sendto(p, addr)
 
     def drain_udp_messages(self):
-        self.sock.settimeout(0)
+        """remove the data present on the socket. From https://stackoverflow.com/questions/1097974/how-to-empty-a-socket-in-python """
+        logger.debug('draining existing received UDP messages')
+        input = [self.sock]
         while True:
-            try:
-                data, server_addr = self.sock.recvfrom(8000) # todo check if large enough for payload inclding all other car state
-                (msg,payload) = pickle.loads(data)
-                logger.debug('emptied msg {} with payload {}'.format(msg,payload))
-            except socket.timeout:
-                break
-            except BlockingIOError:
-                break
-        self.sock.settimeout(SERVER_TIMEOUT_SEC)
+            inputready, o, e = select.select(input,[],[], 0.0)
+            if len(inputready)==0: break
+            for s in inputready: s.recv(1)
 
     def receive_from_server(self):
-        data, server_addr = self.sock.recvfrom(8000) # todo check if large enough for payload inclding all other car state
+        data, server_addr = self.sock.recvfrom(8192) # todo check if large enough for payload inclding all other car state
         (cmd,payload) = pickle.loads(data)
         logger.debug('got message {} with payload {} from server {}'.format(cmd,payload,server_addr))
         return cmd,payload
