@@ -169,8 +169,7 @@ class car_model:
         if not command.reverse:
             # Forward
             accel = command.throttle * self.accel_max - command.brake * self.brake_max # TODO BS params, a_max=11.5m/s^2 is bigger than g
-            if self.model_state[ISPEED] < 0:
-                self.model_state[ISPEED] = 0
+            if self.model_state[ISPEED] <= 0:
                 if accel < 0:
                     accel = 0
 
@@ -179,12 +178,9 @@ class car_model:
             reverse_gear_factor = REVERSE_TO_FORWARD_GEAR # Give how much weaker is acceleration on the reverse gear
             accel = command.throttle * self.accel_max*reverse_gear_factor - command.brake * self.brake_max
             accel = -accel
-            if self.model_state[ISPEED] > 0:
-                self.model_state[ISPEED] = 0
+            if self.model_state[ISPEED] >= 0:
                 if accel > 0:
                     accel = 0
-            if self.model_state[ISPEED]<-2.0: # That is only temporary workaround
-                self.model_state[ISPEED] = 2.0
 
 
         # go from driver input to commanded steering and acceleration
@@ -253,7 +249,34 @@ class car_model:
         # # set speed to zero if it comes out negative from Euler braking
         # self.model_state[ISPEED]=max([0,self.model_state[ISPEED]])
 
-        current_surface = self.track.get_surface_type(car_state=self.car_state)
+
+        # make additional constrains for moving foreward and on reverse gear
+        if not command.reverse:
+            # Forward
+            if self.model_state[ISPEED] < 0:
+                self.model_state[ISPEED] = 0
+
+        else:
+            # Backward
+            if self.model_state[ISPEED] > 0:
+                self.model_state[ISPEED] = 0
+            if self.model_state[ISPEED]<-2.0: # That is only temporary workaround
+                self.model_state[ISPEED] = 2.0
+
+
+        # Constrain position
+
+        if self.model_state[IXPOS] > (SCREEN_WIDTH_PIXELS-2)*M_PER_PIXEL:
+            self.model_state[IXPOS] = (SCREEN_WIDTH_PIXELS-2)**M_PER_PIXEL
+        elif self.model_state[IXPOS] < 0:
+            self.model_state[IXPOS] = 0
+
+        if self.model_state[IYPOS] > (SCREEN_HEIGHT_PIXELS-2)*M_PER_PIXEL:
+            self.model_state[IYPOS] = (SCREEN_HEIGHT_PIXELS-2)*M_PER_PIXEL
+        elif self.model_state[IYPOS] < 0:
+            self.model_state[IYPOS] = 0
+
+        current_surface = self.track.get_surface_type(x=self.model_state[IXPOS], y=self.model_state[IYPOS])
         if not self.ignore_off_track and current_surface == 0:
             if self.model_state[ISPEED] > 0:
                 self.model_state[ISPEED] = 0
