@@ -1,6 +1,8 @@
 # Learning to Race (l2race)
  
-Simulation of racecar from eye of god view. User code must drive the car as quickly as possible around the track.
+Simulation of racecar from eye of god view. User algorithms must learn from only real time data to drive the car as quickly as possible around the track. Data can be collected by human driving or by developing a basic controller and using it to bootstrap more powerful controllers.
+
+The key points are to learn a controller from limited 'real world' data and to use it for optimal control.
 
 ![aminated gif](media/SampleRun_2020-07-25_075130_2.gif)
 
@@ -11,6 +13,7 @@ Simulation of racecar from eye of god view. User code must drive the car as quic
 
 ## Requirements
 
+ - Windows, linux, macOS all seem to work
  - anaconda or miniconda https://www.anaconda.com/products/individual
  - Use Python 3.7.x (for pygame 2.0, using prebuilt python wheel archive)
 
