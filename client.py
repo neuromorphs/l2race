@@ -23,7 +23,7 @@ import atexit
 
 from src.car_state import car_state
 from src.data_recorder import data_recorder
-from src.l2race_utils import bind_socket_to_range, open_ports, set_logging_level, loop_timer
+from src.l2race_utils import find_unbound_port_in_range, open_ports, set_logging_level, loop_timer
 from src.globals import *
 from src.my_joystick import my_joystick
 from src.my_keyboard import my_keyboard
@@ -248,7 +248,7 @@ class Game:
 
         self.sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)  # UDP
         self.sock.settimeout(self.server_timeout_s)
-        bind_socket_to_range(CLIENT_PORT_RANGE, self.sock)
+        find_unbound_port_in_range(CLIENT_PORT_RANGE)
 
         atexit.register(self.cleanup)
 

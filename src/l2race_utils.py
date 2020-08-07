@@ -160,7 +160,7 @@ def set_logging_level(args): # todo still does not correctly affect all of our e
     else:
         logger.warning('unknown logging level {} specified, using default level {}'.format(args.logging_level,logger.getEffectiveLevel()))
 
-def bind_socket_to_range(portrange, client_sock):
+def random_port_permutation(portrange):
     ''' find a free server port in range
     :arg portrange a string e.g. 10001-10010
     :arg clientSockthe local socket we try to bind to a local port number
@@ -174,17 +174,17 @@ def bind_socket_to_range(portrange, client_sock):
             'client port range {} should be of form start-end, e.g. 50100-50200'.format(portrange))
     start_port = int(s[0])
     end_port = int(s[1])
-    isbound = False
     r= np.random.permutation(np.arange(start_port, end_port))
     return r
 
 def find_unbound_port_in_range(portrange:str):
     r=random_port_permutation(portrange)
     sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM) # make a new datagram socket
+    isbound = False
     for p in r:
         try:
-            client_sock.bind(('0.0.0.0', p))  # bind to port 0 to get a random free port
-            logger.info('bound socket {} to local port {}'.format(client_sock, p))
+            sock.bind(('0.0.0.0', p))  # bind to port 0 to get a random free port
+            logger.info('bound socket {} to local port {}'.format(sock, p))
             isbound = True
             return p
         except:

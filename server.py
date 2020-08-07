@@ -11,7 +11,7 @@ from time import sleep
 import multiprocessing as mp
 
 from src.car_state import car_state
-from src.l2race_utils import bind_socket_to_range, set_logging_level, loop_timer, become_daemon, \
+from src.l2race_utils import find_unbound_port_in_range, set_logging_level, loop_timer, become_daemon, \
     find_unbound_port_in_range
 from src.my_args import server_args
 from src.car_model import car_model
