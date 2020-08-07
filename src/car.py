@@ -67,7 +67,7 @@ class car:
         if self.other_cars_image is None:
             self.other_cars_image=self.loadAndScaleCarImage('other_car',screen)
 
-        rotated = pygame.transform.rotate(self.other_cars_image, state.body_angle_deg)
+        rotated = pygame.transform.rotate(self.other_cars_image, -state.body_angle_deg)
         rect = rotated.get_rect()
         screen.blit(rotated, ((state.position_m/M_PER_PIXEL) - (int(rect.width / 2), int(rect.height / 2))))
         # label name
