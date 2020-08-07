@@ -86,7 +86,8 @@ class track_server_process(mp.Process):
         except Exception:
             pass
         self.server_queue.close()
-        self.track_socket.close()
+        if self.track_socket: # TODO: Is it the right way to handle it? Or does it just make debugging difficoult?
+            self.track_socket.close()
 
 
     def run(self):
@@ -338,11 +339,11 @@ if __name__ == '__main__':
                 q.join_thread()
         track_queues.clear()
 
-    def cleanup():
+    def cleanup_all():
         logger.debug('cleaning up server main process')
         stop_all_track_processes()
 
-    atexit.register(cleanup)
+    atexit.register(cleanup_all)
 
     # become_daemon() # todo for service mode
 

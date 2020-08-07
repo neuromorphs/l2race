@@ -174,7 +174,7 @@ def random_port_permutation(portrange):
             'client port range {} should be of form start-end, e.g. 50100-50200'.format(portrange))
     start_port = int(s[0])
     end_port = int(s[1])
-    r= np.random.permutation(np.arange(start_port, end_port))
+    r = np.random.permutation(np.arange(start_port, end_port))
     return r
 
 def find_unbound_port_in_range(portrange:str):
