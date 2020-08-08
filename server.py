@@ -3,7 +3,6 @@
 import argparse
 import atexit
 import copy
-import logging
 import socket, pickle
 from queue import Empty
 from typing import Dict, Tuple, List, Optional
@@ -14,16 +13,17 @@ from time import sleep
 import multiprocessing as mp
 
 from src.car_state import car_state
-from src.l2race_utils import find_unbound_port_in_range, set_logging_level, loop_timer, become_daemon, \
+from src.l2race_utils import set_logging_level, loop_timer, become_daemon, \
     find_unbound_port_in_range
 from src.my_args import server_args
 from src.car_model import car_model
-from src.car import car
 from src.globals import *
 from src.track import track, list_tracks
 from src.l2race_utils import my_logger
-logger=my_logger(__name__)
-SKIP_CHECK_SERVER_QUEUE=0 # use to reduce checking queue, but causes timeout problems with adding car if too big. 0 to disable
+
+logger = my_logger(__name__)
+SKIP_CHECK_SERVER_QUEUE = 0  # use to reduce checking queue, but causes timeout problems with adding car if too big. 0 to disable
+
 
 def get_args():
     parser = argparse.ArgumentParser(
@@ -35,36 +35,38 @@ def get_args():
     args = parser.parse_args()
     return args
 
-def send_message(socket:socket, lock:mp.Lock, client_addr: Tuple[str,int], msg:object):
+
+def send_message(socket: socket, lock: mp.Lock, client_addr: Tuple[str, int], msg: object):
     try:
-        logger.debug('sending msg {} to client {}'.format(msg,client_addr))
-        p=pickle.dumps(msg)
+        logger.debug('sending msg {} to client {}'.format(msg, client_addr))
+        p = pickle.dumps(msg)
         if lock: lock.acquire()
         try:
             socket.sendto(p, client_addr)
         except OSError as e:
-            logger.error('failed sending msg {} to client {}: {}'.format(msg,client_addr,e))
+            logger.error('failed sending msg {} to client {}: {}'.format(msg, client_addr, e))
     finally:
         if lock: lock.release()
 
+
 class track_server_process(mp.Process):
-    def __init__(self, queue_from_server:mp.Queue, server_port_lock:mp.Lock(), server_socket:socket, track_name=None, port: int=None):
+    def __init__(self, queue_from_server: mp.Queue, server_port_lock: mp.Lock(), server_socket: socket, track_name=None, port: int = None):
         super(track_server_process, self).__init__(name='track_server_process-{}'.format(track_name))
-        self.server_queue=queue_from_server
-        self.server_port_lock=server_port_lock
-        self.server_socket=server_socket # used for initial communication to client who has not yet sent anything to us on the new port
+        self.server_queue = queue_from_server
+        self.server_port_lock = server_port_lock
+        self.server_socket = server_socket  # used for initial communication to client who has not yet sent anything to us on the new port
         self.track_name = track_name
-        self.track=None  # create after start since Process.spawn cannot pickle it
-        self.car_dict:Dict[Tuple[str,int],car_model] = None # maps from client_addr to car_model (or None if a spectator)
+        self.track = None  # create after start since Process.spawn cannot pickle it
+        self.car_dict: Dict[Tuple[str, int], car_model] = None  # maps from client_addr to car_model (or None if a spectator)
         # each client process should bind it's own unique local port (on remote client) so should be unique in dict
-        self.car_states_list:List[car_state]=None # list of all car states, to send to clients and put in each car's state
-        self.spectator_list:List[Tuple[str,int]] = None # maps from client_addr to car_model (or None if a spectator)
-        self.track_socket:Optional[socket] = None # make a new datagram socket
-        self.local_port_number=port
-        self.track_socket_address=None # get the port info for our local port
-        self.exit=False
-        self.last_message_time=timer() # used to terminate ourselves if no messages for some time
-        self.skip_checking_server_queue_count=0
+        self.car_states_list: List[car_state] = None  # list of all car states, to send to clients and put in each car's state
+        self.spectator_list: List[Tuple[str, int]] = None  # maps from client_addr to car_model (or None if a spectator)
+        self.track_socket: Optional[socket] = None  # make a new datagram socket
+        self.local_port_number = port
+        self.track_socket_address = None  # get the port info for our local port
+        self.exit = False
+        self.last_message_time = timer()  # used to terminate ourselves if no messages for some time
+        self.skip_checking_server_queue_count = 0
 
         atexit.register(self.cleanup)
 
@@ -72,10 +74,10 @@ class track_server_process(mp.Process):
         logger.debug('cleaning up {} process'.format(self.track_name))
         if self.car_dict:
             for c in self.car_dict.keys():
-                self.send_client_msg(c,'track_shutdown','track server has shut down')
+                self.send_client_msg(c, 'track_shutdown', 'track server has shut down')
         if self.spectator_list:
-            for s in self. spectator_list:
-                self.send_client_msg(s,'track_shutdown','track server has shut down')
+            for s in self.spectator_list:
+                self.send_client_msg(s, 'track_shutdown', 'track server has shut down')
         # empty queue
         if self.server_queue and not self.server_queue.empty:
             item = self.server_queue.get(block=False)
@@ -89,72 +91,71 @@ class track_server_process(mp.Process):
         except Exception:
             pass
         self.server_queue.close()
-        if self.track_socket: # TODO: Is it the right way to handle it? Or does it just make debugging difficoult?
+        if self.track_socket:  # TODO: Is it the right way to handle it? Or does it just make debugging difficult?
             self.track_socket.close()
-
 
     def run(self):
         # logger.setLevel(logging.DEBUG)
         logger.info("Starting track process track {}".format(self.track_name))
-        self.track=track(self.track_name)
-        self.car_dict = dict() # maps from client_addr to car_model (or None if a spectator)
-        self.car_states_list=list() # list of all car states, to send to clients and put in each car's state
-        self.spectator_list = list() # maps from client_addr to car_model (or None if a spectator)
-        self.track_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM) # make a new datagram socket
-        self.track_socket.settimeout(0) # put track socket in nonblocking mode to just poll for client messages
+        self.track = track(self.track_name)
+        self.car_dict = dict()  # maps from client_addr to car_model (or None if a spectator)
+        self.car_states_list = list()  # list of all car states, to send to clients and put in each car's state
+        self.spectator_list = list()  # maps from client_addr to car_model (or None if a spectator)
+        self.track_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)  # make a new datagram socket
+        self.track_socket.settimeout(0)  # put track socket in nonblocking mode to just poll for client messages
         # find range of ports we can try to open for client to connect to
         try:
-            self.track_socket.bind(('0.0.0.0',self.local_port_number))
+            self.track_socket.bind(('0.0.0.0', self.local_port_number))
         except Exception as e:
             logger.error('track process aborting: could not bind to the local port {} that server told us to use: got {}'.format(self.local_port_number, e))
             raise e
-        self.track_socket_address=self.track_socket.getsockname() # get the port info for our local port
-        logger.info('for track {} bound free local UDP port address {}'.format(self.track_name,self.local_port_number))
-        last_time=timer()
+        self.track_socket_address = self.track_socket.getsockname()  # get the port info for our local port
+        logger.info('for track {} bound free local UDP port address {}'.format(self.track_name, self.local_port_number))
+        last_time = timer()
 
         # Track process makes a single socket bound to a single port for all the clients (cars and spectators).
         # To handle multiple clients, when it gets a message from a client, it responds to the client using the client address.
 
-        looper=loop_timer(MODEL_UPDATE_RATE_HZ)
+        looper = loop_timer(MODEL_UPDATE_RATE_HZ)
         while not self.exit:
-            now=timer()
-            dt=now-last_time
-            last_time=now
-            if now-self.last_message_time>KILL_ZOMBIE_TRACK_TIMEOUT_S:
-                logger.warning('track process {} got no input for {}s, terminating'.format(self.track_name,KILL_ZOMBIE_TRACK_TIMEOUT_S))
-                self.exit=True
+            now = timer()
+            dt = now - last_time
+            last_time = now
+            if now - self.last_message_time > KILL_ZOMBIE_TRACK_TIMEOUT_S:
+                logger.warning('track process {} got no input for {}s, terminating'.format(self.track_name, KILL_ZOMBIE_TRACK_TIMEOUT_S))
+                self.exit = True
                 self.cleanup()
                 continue
-            self.process_server_queue() # 'add_car' 'add_spectator'
+            self.process_server_queue()  # 'add_car' 'add_spectator'
 
             # now we do main simulation/response
             # update all the car models
-            for client,model in self.car_dict.items():
-                if isinstance(model,car_model):
+            for client, model in self.car_dict.items():
+                if isinstance(model, car_model):
                     model.update(dt)
                 # poll for UDP messages
             # update the global list of car states that cars share
             self.car_states_list.clear()
             for model in self.car_dict.values():
                 # put copy of each state in list but strip off the contained list of other car states
-                model_copy:car_state=copy.copy(model.car_state)
-                model_copy.other_car_states=[] # empty List
+                model_copy: car_state = copy.copy(model.car_state)
+                model_copy.other_car_states = []  # empty List
                 self.car_states_list.append(model_copy)
 
             # keep self.car_states_list to send to spectators, but from it,
             # for each car, fill its car_state.other_car_states with the self.car_states_list but with its own
             # state removed, i.e., the list for each car contains only the other cars
-            for s in self.car_states_list: # for each car_state
-                s.other_car_states.clear() # clear the car's list of other states
-                for s2 in self.car_states_list: # again for each car_state
-                    if not s2==s: # if current state is not the one we are filling
-                        s.other_car_states.append(s2) # put the other car in it.
+            for s in self.car_states_list:  # for each car_state
+                s.other_car_states.clear()  # clear the car's list of other states
+                for s2 in self.car_states_list:  # again for each car_state
+                    if not s2 == s:  # if current state is not the one we are filling
+                        s.other_car_states.append(s2)  # put the other car in it.
             # now we have self.car_states list with empty other cars, and each car_state has the list of other cars
 
             # process incoming UDP messages from clients, e.g. to update command
             while True:
                 try:
-                    msg,payload,client=self.receive_msg()
+                    msg, payload, client = self.receive_msg()
                     self.handle_client_msg(msg, payload, client)
                 except socket.timeout:
                     break
@@ -167,51 +168,48 @@ class track_server_process(mp.Process):
                 looper.sleep_leftover_time()
             except KeyboardInterrupt:
                 logger.info('KeyboardInterrupt, stopping server')
-                self.exit=True
+                self.exit = True
                 continue
-
 
         self.cleanup()
         logger.info('ended track {}'.format(self.track_name))
 
     def receive_msg(self):
         """ receives a message from client using track's socket"""
-        p,client=self.track_socket.recvfrom(2048)
-        (msg,payload)=pickle.loads(p)
-        logger.debug('got msg={} with payload={} from client {}'.format(msg,payload,client))
-        return msg,payload,client
+        p, client = self.track_socket.recvfrom(2048)
+        (msg, payload) = pickle.loads(p)
+        logger.debug('got msg={} with payload={} from client {}'.format(msg, payload, client))
+        return msg, payload, client
 
-        self.send_client_msg(client,'string_message',message)
-
-    def send_client_msg(self,client, msg,payload):
+    def send_client_msg(self, client, msg, payload):
         """ sends message back to client using the track's socket"""
-        send_message(self.track_socket, None, client, (msg,payload))
+        send_message(self.track_socket, None, client, (msg, payload))
 
     def handle_client_msg(self, msg, payload, client):
         """ handles the client messages """
-        logger.debug('handling msg={} with payload={} from client {}'.format(msg,payload,client))
-        self.last_message_time=timer()
+        logger.debug('handling msg={} with payload={} from client {}'.format(msg, payload, client))
+        self.last_message_time = timer()
         # check if spectator or car
-        if msg=='command':
-            car_model=self.car_dict.get(client)
+        if msg == 'command':
+            car_model = self.car_dict.get(client)
             if car_model is None:
                 logger.warning('car model=None for client {}'.format(client))
                 return
-            car_model.car_state.command=payload # update our car_state command input
+            car_model.car_state.command = payload  # update our car_state command input
             # respond with complete state of all cars
             self.send_states(client)
-        elif msg=='send_states':
-           self.send_states(client)
-        elif msg=='remove_car':
-            car_model=self.car_dict.get(client)
+        elif msg == 'send_states':
+            self.send_states(client)
+        elif msg == 'remove_car':
+            car_model = self.car_dict.get(client)
             if not car_model is None:
                 logger.info('removing car {} from track {}'.format(car_model.car_name, self.track_name))
                 del self.car_dict[client]
-        elif msg=='remove_spectator':
-            logger.info('removing spectator {} from track {}'.format(client,self.track_name))
+        elif msg == 'remove_spectator':
+            logger.info('removing spectator {} from track {}'.format(client, self.track_name))
             self.spectator_list.remove(client)
         else:
-            logger.warning('unknowm cmd {} received; ignoring'.format(msg))
+            logger.warning('unknown cmd {} received; ignoring'.format(msg))
 
     def send_states(self, client):
         msg = 'state'
@@ -222,39 +220,40 @@ class track_server_process(mp.Process):
         """ adds a car to this track """
         if self.car_dict.get(client_addr):
             logger.warning('client at {} already has a car model, replacing it with a new model'.format(client_addr))
-        logger.info('adding car model for car named {} from client {} to track {}'.format(car_name,client_addr,self.track_name))
-        mod= car_model(track=self.track, car_name=car_name, client_ip=client_addr)
-        self.car_dict[client_addr]=mod
+        logger.info('adding car model for car named {} from client {} to track {}'.format(car_name, client_addr, self.track_name))
+        mod = car_model(track=self.track, car_name=car_name, client_ip=client_addr)
+        self.car_dict[client_addr] = mod
 
     def add_spectator_to_track(self, client_addr):
         """ adds a spectator to this track """
-        logger.debug('adding spectator from client {} to track {}'.format(client_addr,self.track_name))
+        logger.debug('adding spectator from client {} to track {}'.format(client_addr, self.track_name))
         self.spectator_list.append(client_addr)
 
     def process_server_queue(self):
-        if SKIP_CHECK_SERVER_QUEUE>0:
-            self.skip_checking_server_queue_count+=1
-            if self.skip_checking_server_queue_count%SKIP_CHECK_SERVER_QUEUE!=0: return
+        if SKIP_CHECK_SERVER_QUEUE > 0:
+            self.skip_checking_server_queue_count += 1
+            if self.skip_checking_server_queue_count % SKIP_CHECK_SERVER_QUEUE != 0: return
         while not self.server_queue.empty():
-            (cmd,payload)=self.server_queue.get_nowait()
-            self.handle_server_msg(cmd,payload)
+            (cmd, payload) = self.server_queue.get_nowait()
+            self.handle_server_msg(cmd, payload)
         pass
 
-    def handle_server_msg(self, cmd,payload):
-        logger.debug('got queue message from server manager cmd={} payload={}'.format(cmd,payload))
-        self.last_message_time=timer()
-        if cmd=='stop':
+    def handle_server_msg(self, cmd, payload):
+        logger.debug('got queue message from server manager cmd={} payload={}'.format(cmd, payload))
+        self.last_message_time = timer()
+        if cmd == 'stop':
             logger.info('track {} stopping'.format(self.track_name))
             self.cleanup()
-            self.exit=True
-        elif cmd=='add_car':
-            (car_name, client_addr)=payload
+            self.exit = True
+        elif cmd == 'add_car':
+            (car_name, client_addr) = payload
             self.add_car_to_track(car_name, client_addr)
-        elif cmd=='add_spectator':
-            client_addr=payload
+        elif cmd == 'add_spectator':
+            client_addr = payload
             self.add_spectator_to_track(client_addr)
         else:
             raise RuntimeWarning('unknown cmd {}'.format(cmd))
+
 
 if __name__ == '__main__':
     try:
@@ -273,19 +272,19 @@ if __name__ == '__main__':
     args = get_args()
     set_logging_level(args)
 
-
     server_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-    server_socket.bind(('', SERVER_PORT)) # bind to empty host, so we can receive from anyone on this port
+    server_socket.bind(('', SERVER_PORT))  # bind to empty host, so we can receive from anyone on this port
     logger.info("waiting on {}".format(str(server_socket)))
-    server_port_lock=mp.Lock() # proceeses get passed this lock to initiate connections using it (but only once, at start)
+    server_port_lock = mp.Lock()  # processes get passed this lock to initiate connections using it (but only once, at start)
 
-    track_names=list_tracks()
-    track_processes:Dict[str,track_server_process] = {k:None for k in track_names} # each entry holds the track objects for each track name
-    track_queues:Dict[str,mp.Queue]={k:None for k in track_names} # each entry is the queue to send to track process
+    track_names = list_tracks()
+    track_processes: Dict[str, track_server_process] = {k: None for k in track_names}  # each entry holds the track objects for each track name
+    track_queues: Dict[str, mp.Queue] = {k: None for k in track_names}  # each entry is the queue to send to track process
+
 
     def make_track_process(track_name, client_addr) -> mp.Process:
-        p=track_processes.get(track_name)
-        if not (p is None)\
+        p = track_processes.get(track_name)
+        if not (p is None) \
                 and p.is_alive():
             track_port_number = p.local_port_number
             send_game_port_to_client(client_addr, track_port_number)
@@ -296,40 +295,44 @@ if __name__ == '__main__':
             send_game_port_to_client(client_addr, track_port_number)
             logger.info('starting a new track_server_process for track {} for client at {} using local port {}'
                         .format(track_name, client_addr, track_port_number))
-            q=mp.Queue()
-            track_queues[track_name]=q
+            q = mp.Queue()
+            track_queues[track_name] = q
             track_process = track_server_process(queue_from_server=q,
                                                  server_port_lock=server_port_lock,
                                                  server_socket=server_socket,
                                                  track_name=track_name,
                                                  port=track_port_number)
-            track_processes[track_name]=track_process
+            track_processes[track_name] = track_process
             track_processes[track_name].start()
             return track_process
 
-    def send_game_port_to_client(client_addr:Tuple[str,int], port:int):
-        logger.info('sending game_port message to client {} telling it to use our local port number {}'.format(client_addr,port))
+
+    def send_game_port_to_client(client_addr: Tuple[str, int], port: int):
+        logger.info('sending game_port message to client {} telling it to use our local port number {}'.format(client_addr, port))
         # first message to client is the game port number
         # send client the port they should use for this track
         send_message(socket=server_socket, lock=server_port_lock,
                      client_addr=client_addr,
-                     msg=('game_port',port))
+                     msg=('game_port', port))
+
 
     def add_car_to_track(track_name, car_name, client_addr):
         make_track_process(track_name=track_name, client_addr=client_addr)
-        logger.info('putting message to track process for track {} to add car named {} for client {}'.format(track_name,car_name,client_addr))
+        logger.info('putting message to track process for track {} to add car named {} for client {}'.format(track_name, car_name, client_addr))
         q = track_queues.get(track_name)
         if q:
             q.put(('add_car', (car_name, client_addr)))
 
+
     def add_spectator_to_track(track_name, client_addr):
         make_track_process(track_name=track_name, client_addr=client_addr)
-        q=track_queues[track_name]
+        q = track_queues[track_name]
         if q:
-            q.put(('add_spectator',client_addr))
+            q.put(('add_spectator', client_addr))
+
 
     def stop_all_track_processes():
-        for t,q in track_queues.items():
+        for t, q in track_queues.items():
             if q:
                 logger.info('telling track {} to stop'.format(t))
                 try:
@@ -338,9 +341,9 @@ if __name__ == '__main__':
                     pass
         sleep(1)
         logger.info('joining processes')
-        for t,p in track_processes.items():
+        for t, p in track_processes.items():
             if p: p.join(1)
-        for t,p in track_processes.items():
+        for t, p in track_processes.items():
             if p and p.is_alive():
                 logger.info('terminating zombie track process {}'.format(p))
                 p.terminate()
@@ -352,9 +355,11 @@ if __name__ == '__main__':
                 q.join_thread()
         track_queues.clear()
 
+
     def cleanup_all():
         logger.debug('cleaning up server main process')
         stop_all_track_processes()
+
 
     atexit.register(cleanup_all)
 
@@ -374,12 +379,11 @@ if __name__ == '__main__':
     # 2. Client sends newcar to SERVER_PORT
     # 3. Server responds to same port on client with ack and new port
     # 4. Client talks to track process on new port
-    # That way, client initiates communication on new port and should be able to recieve on it
+    # That way, client initiates communication on new port and should be able to receive on it
 
+    # handling processes based on https://www.cloudcity.io/blog/2019/02/27/things-i-wish-they-told-me-about-multiprocessing-in-python/
 
-     # handling proceeses based on https://www.cloudcity.io/blog/2019/02/27/things-i-wish-they-told-me-about-multiprocessing-in-python/
-
-    while True: # todo add KeyboardInterrupt exception handling, also SIG_TERM
+    while True:  # todo add KeyboardInterrupt exception handling, also SIG_TERM
         try:
             server_port_lock.acquire()
             data, client_addr = server_socket.recvfrom(1024)  # buffer size is 1024 bytes
@@ -402,14 +406,14 @@ if __name__ == '__main__':
         logger.info('received cmd "{}" with payload "{}" from {}'.format(cmd, payload, client_addr))
         # todo handle multiple cars on one track, provide option for unique track for testing single car
 
-        if cmd=='ping':
-            msg=('pong',None)
-            send_message(server_socket,server_port_lock,client_addr,msg)
-        elif cmd == 'add_car': # todo add arguments with newcar like driver/car name
-            (track_name, car_name)=payload
+        if cmd == 'ping':
+            msg = ('pong', None)
+            send_message(server_socket, server_port_lock, client_addr, msg)
+        elif cmd == 'add_car':  # todo add arguments with newcar like driver/car name
+            (track_name, car_name) = payload
             add_car_to_track(track_name, car_name, client_addr)
-        elif cmd=='add_spectator':
-            track_name=payload
+        elif cmd == 'add_spectator':
+            track_name = payload
             add_spectator_to_track(track_name, client_addr)
         else:
             logger.warning('model server received unknown cmd={}'.format(cmd))
