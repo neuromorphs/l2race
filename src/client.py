@@ -313,7 +313,7 @@ class client:
              # expect to get new car state
             try:
                 cmd,payload=self.receive_from_server()
-                self.process_message(cmd,payload)
+                self.handle_message(cmd, payload)
             except pickle.UnpicklingError as err:
                 logger.warning('{}: could not unpickle the response from server'.format(err))
                 continue
@@ -340,7 +340,6 @@ class client:
                 self.exit=True
 
         logger.info('ending main loop')
-        self.finish_race()
         self.cleanup()
         logger.info('quitting pygame')
         pygame.quit()
@@ -387,35 +386,32 @@ class client:
         for c in self.spectate_cars.values():
             c.draw(self.screen)
 
-    def update_other_cars(self, other_states:List[car_state]):
+    def update_state(self, all_states:List[car_state]):
         to_remove=[]
-        for s in other_states:
+        for s in all_states:
             pass # todo remove cars that have disappeared from the list of other car states.
-        for s in other_states:
-            name=s.static_info.name
-            c=self.spectate_cars.get(name)
-            if c is None:
+        for s in all_states:
+            name=s.static_info.name # get the car name from the remote state
+            if name==self.car_name:
+                self.car.car_state=s # update our own state
+            # update other cars on the track
+            c=self.spectate_cars.get(name) # get the car
+            if c is None: # if it doesn't exist, construct it
                 self.spectate_cars[name]=car(name=name,image_name='other_car.png', client_ip=s.static_info.client_ip)
-            self.spectate_cars[name].car_state=s
+            self.spectate_cars[name].car_state=s # set its state
 
-    def process_message(self, msg, payload):
-        if msg== 'car_state':
-            self.car.car_state=payload
-        elif msg=='all_states':
-            self.update_other_cars(payload)
+    def handle_message(self, msg, payload):
+        if msg=='state':
+            self.update_state(payload)
         elif msg=='game_port':
             self.gameSockAddr=(self.server_host,payload)
         elif msg== 'track_shutdown':
             logger.warning('{}, will try to look for it again'.format(payload))
             self.gotServer=False
+        elif msg=='string_message':
+            logger.info('recieved message "{}"'.format(payload))
         else:
             logger.warning('unexpected msg {} with payload {} received from server (should have gotten "car_state" message)'.format(msg, payload))
-
-
-    def finish_race(self):
-        logger.info('sending "finish_race" message to server')
-        if self.sock:
-            self.send_to_server(self.gameSockAddr, 'finish_race', None)
 
     def replay(self, race_name = None):
         # Load data

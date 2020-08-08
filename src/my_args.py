@@ -25,16 +25,18 @@ def client_args(parser):
     clientOutputGroup = parser.add_argument_group('Output options:')
     clientOutputGroup.add_argument("--record", action='store_true', help="record data to date-stamped filename, e.g. --record will write datestamped files named '{}-XXX.csv' in folder '{}, where XXX is a date/timestamp\'.".format(DATA_FILENAME_BASE, DATA_FOLDER_NAME))
     try:
-        import socket,getpass
+        # make hopefully unique car name
+        import socket,getpass,random,string
         hostname=socket.gethostname()
         username=getpass.getuser()
-        car_name=str(hostname)+':'+str(username)
+        car_name=str(hostname)+':'+str(username)+'-'
+        car_name+=''.join(random.choices(string.ascii_uppercase, k=2)) #https://stackoverflow.com/questions/2257441/random-string-generation-with-upper-case-letters-and-digits
     except:
         car_name=CAR_NAME
 
     clientTrackCarMode = parser.add_argument_group('Track car/spectate options:')
     clientTrackCarMode.add_argument("--track_name", type=str, default=TRACK_NAME, help="Name of track. Available tracks are in the 'media/tracks' folder. Available tracks are "+str(list_tracks()))
-    clientTrackCarMode.add_argument("--car_name", type=str, default=car_name, help="Name of this car.")
+    clientTrackCarMode.add_argument("--car_name", type=str, default=car_name, help="Name of this car (last 2 letters are randomly chosen each time).")
     clientTrackCarMode.add_argument("--spectate", action='store_true', help="Just be a spectator on the cars on the track.")
 
     # other options

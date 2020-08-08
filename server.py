@@ -181,6 +181,8 @@ class track_server_process(mp.Process):
         logger.debug('got msg={} with payload={} from client {}'.format(msg,payload,client))
         return msg,payload,client
 
+        self.send_client_msg(client,'string_message',message)
+
     def send_client_msg(self,client, msg,payload):
         """ sends message back to client using the track's socket"""
         send_message(self.track_socket, None, client, (msg,payload))
@@ -195,14 +197,11 @@ class track_server_process(mp.Process):
             if car_model is None:
                 logger.warning('car model=None for client {}'.format(client))
                 return
-            car_model.car_state.command=payload
-            msg='car_state'
-            payload=car_model.car_state
-            self.send_client_msg(client, msg,payload)
+            car_model.car_state.command=payload # update our car_state command input
+            # respond with complete state of all cars
+            self.send_states(client)
         elif msg=='send_states':
-            msg='all_states'
-            payload=self.car_states_list
-            self.send_client_msg(client, msg,payload)
+           self.send_states(client)
         elif msg=='remove_car':
             car_model=self.car_dict.get(client)
             if not car_model is None:
@@ -211,12 +210,13 @@ class track_server_process(mp.Process):
         elif msg=='remove_spectator':
             logger.info('removing spectator {} from track {}'.format(client,self.track_name))
             self.spectator_list.remove(client)
-        elif msg == 'finish_race':
-            logger.info('Removing {} from track'.format(self.car_dict[client].car_name))
-            del self.car_dict[client]
-            pass
         else:
             logger.warning('unknowm cmd {} received; ignoring'.format(msg))
+
+    def send_states(self, client):
+        msg = 'state'
+        payload = self.car_states_list  # client works out which one belongs to it from the client_ip
+        self.send_client_msg(client, msg, payload)
 
     def add_car_to_track(self, car_name, client_addr):
         """ adds a car to this track """
@@ -280,16 +280,16 @@ if __name__ == '__main__':
     server_port_lock=mp.Lock() # proceeses get passed this lock to initiate connections using it (but only once, at start)
 
     track_names=list_tracks()
-    track_processes:Dict[str,mp.Process] = {k:None for k in track_names} # each entry holds the track objects for each track name
+    track_processes:Dict[str,track_server_process] = {k:None for k in track_names} # each entry holds the track objects for each track name
     track_queues:Dict[str,mp.Queue]={k:None for k in track_names} # each entry is the queue to send to track process
 
     def make_track_process(track_name, client_addr) -> mp.Process:
-
-        if not (track_processes.get(track_name) is None)\
-                and track_processes.get(track_name).is_alive():
-            track_port_number = track_processes.get(track_name).local_port_number
+        p=track_processes.get(track_name)
+        if not (p is None)\
+                and p.is_alive():
+            track_port_number = p.local_port_number
             send_game_port_to_client(client_addr, track_port_number)
-            logger.info('track process {} already exists already and is alive')
+            logger.info('track process {} already exists already and is alive'.format(p.name))
             return track_processes.get(track_name)
         else:
             track_port_number = find_unbound_port_in_range(CLIENT_PORT_RANGE)
