@@ -4,13 +4,6 @@ import logging
 
 LOGGING_LEVEL=logging.INFO # set the overall default leval, change with --log option
 
-# DO NOT CHANGE UNLESS you change on server too
-# define screen area, track is scaled to fill this area, note 4:3 aspect ratio
-SCREEN_WIDTH_PIXELS=1024 #  pixels
-SCREEN_HEIGHT_PIXELS= 768 # pixels
-# meters per screen pixel, e.g. 4m car would be 40 pixels, so about 4% of width
-# increase M_PER_PIXEL to make cars smaller relative to track
-M_PER_PIXEL=0.15
 
 SERVER_PING_INTERVAL_S=1 # interval between trying for server
 SERVER_TIMEOUT_SEC = 1 # timeout in seconds for UDP socket reads during game running
@@ -53,13 +46,24 @@ TRACK_NAME='oval_easy' # tracks are stored in the 'media' folder. Data for a tra
 
 #######################################################
 #server and model settings. Client cannot affect these model server settings
+#
+# DO NOT CHANGE THESE VALUES
+#########################
+# DO NOT CHANGE UNLESS they are also changed on model server
+# define screen area, track is scaled to fill this area, note 4:3 aspect ratio
+SCREEN_WIDTH_PIXELS=1024 #  pixels
+SCREEN_HEIGHT_PIXELS= 768 # pixels
+# meters per screen pixel, e.g. 4m car would be 40 pixels, so about 4% of width
+# increase M_PER_PIXEL to make cars smaller relative to track
+M_PER_PIXEL=0.2
+
 SERVER_PORT = 50000 # client starts game on this port on the SERVER_HOST
 CLIENT_PORT_RANGE='50010-50020' # range of ports used for client that server uses for game
     # client needs to open this port range for receiving state from server and sending commands to server
 KILL_ZOMBIE_TRACK_TIMEOUT_S=10 # if track process gets no input for this long, it terminates itself
 DO_NOT_RESET_CAR_WHEN_IT_GOES_OFF_TRACK = False # set true for testing dynamics of car
 FRICTION_FACTOR = .5 # overall friction parameter multiplier for some models
-SAND_SLOWDOWN = 0.95  # If in sand, at every time the resulting velocity is multiplied by the slowdown factor
+SAND_SLOWDOWN = 0.975  # If in sand, at every update the resulting velocity is multiplied by the slowdown factor
 REVERSE_TO_FORWARD_GEAR = 0.25  # You get less acceleration on reverse gear than while moving forwards.
 MODEL_UPDATE_RATE_HZ=100 # rate that server attempts to update all the car models for each track process (models run serially in each track process)
 

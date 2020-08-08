@@ -2,6 +2,8 @@
 # TODO move to separate repo to hide from participants
 import logging
 from math import sin, radians, degrees, cos, copysign
+from typing import Tuple
+
 import numpy as np
 from scipy.integrate import RK23, RK45, LSODA, BDF, DOP853
 
@@ -81,10 +83,9 @@ class car_model:
     """
     Car model, hidden from participants, updated on server
     """
-    def __init__(self, track:track=None, car_name=None, ignore_off_track=DO_NOT_RESET_CAR_WHEN_IT_GOES_OFF_TRACK):
+    def __init__(self, track:track=None, car_name:str=None, client_ip:Tuple[str,int]=None, ignore_off_track:bool=DO_NOT_RESET_CAR_WHEN_IT_GOES_OFF_TRACK):
         # self.model=vehicleDynamics_ST()
         self.track = track
-        self.car_name = car_name
         # Randomly find position
         positions = ['position_1', 'position_2']
         position = random.choice(positions)
@@ -93,7 +94,8 @@ class car_model:
         else:
             (x_start, y_start) = self.track.start_position_2*M_PER_PIXEL
 
-        self.car_state = car_state(x=x_start, y=y_start, body_angle_deg=self.track.start_angle)
+        self.car_state = car_state(x=x_start, y=y_start, body_angle_deg=self.track.start_angle,
+                                   name=car_name, client_ip=client_ip)
         self.passed_anti_cheat_rect = True  # Prohibiting (significant) cutoff
         self.round_num = 0  # Counts the rounds
         # change MODEL_TYPE to select vehicle model type
@@ -111,8 +113,8 @@ class car_model:
         # select car with next line
         self.parameters=PARAMETERS()
 
-        self.car_state.width_m=self.parameters.w
-        self.car_state.length_m=self.parameters.l
+        self.car_state.static_info.width_m=self.parameters.w
+        self.car_state.static_info.length_m=self.parameters.l
         # set car accel and braking based on car type (not in parameters from commonroad-vehicle-models)
         self.accel_max=self.zeroTo60mpsTimeToAccelG(4) * G # 5 second 0-60 mph, very quick car is default
         self.brake_max=.9*G
@@ -146,7 +148,7 @@ class car_model:
         self.solver = None
         self.first_step=True
 
-        self.ignore_off_track=ignore_off_track
+        self.ignore_off_track=client_ip
 
         self.atol=self.atol*np.ones(30)
 

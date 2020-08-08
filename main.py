@@ -1,6 +1,8 @@
 from client import define_game
 from my_controller import my_controller
 
+# main class for clients that run a car on the l2race track.
+
 if __name__ == '__main__':
 
     '''
@@ -41,11 +43,7 @@ if __name__ == '__main__':
     The only case when a flag has precedence over a variable provided below is for disabling gui
     '''
     controller = my_controller()
-    game = define_game(gui='without_gui',
-                       track_name='oval_easy',
-                       car_name='Marcin',
-                       controller=controller)
-                       # record=True)
+    game = define_game()
     game.run()
     # game.replay('l2race-20200803-220912')
     # game.replay()

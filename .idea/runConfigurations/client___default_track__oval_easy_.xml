@@ -1,5 +1,5 @@
 <component name="ProjectRunConfigurationManager">
-  <configuration default="false" name="client test" type="PythonConfigurationType" factoryName="Python" singleton="false">
+  <configuration default="false" name="client - default track (oval_easy)" type="PythonConfigurationType" factoryName="Python" singleton="false">
     <module name="l2race" />
     <option name="INTERPRETER_OPTIONS" value="" />
     <option name="PARENT_ENVS" value="true" />
@@ -12,7 +12,7 @@
     <option name="ADD_CONTENT_ROOTS" value="true" />
     <option name="ADD_SOURCE_ROOTS" value="true" />
     <EXTENSION ID="PythonCoverageRunConfigurationExtension" runner="coverage.py" />
-    <option name="SCRIPT_NAME" value="$PROJECT_DIR$/client_interface.py" />
+    <option name="SCRIPT_NAME" value="F:\tobi\Dropbox (Personal)\GitHub\neuromorphs\l2race\main.py" />
     <option name="PARAMETERS" value="--fps=30 --log=WARNING --track=Sebring" />
     <option name="SHOW_COMMAND_LINE" value="false" />
     <option name="EMULATE_TERMINAL" value="false" />

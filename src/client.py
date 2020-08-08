@@ -4,7 +4,7 @@ Client l2race agent
 """
 import argparse
 import os
-from typing import Tuple, List, Optional
+from typing import Tuple, List, Optional, Dict
 
 import argcomplete as argcomplete
 import pygame
@@ -31,7 +31,7 @@ from src.my_joystick import my_joystick
 from src.my_keyboard import my_keyboard
 from src.track import track
 from src.car import car
-from src.my_args import client_args
+from src.my_args import client_args, write_args_info
 from src.l2race_utils import my_logger
 from src.pid_next_waypoint_car_controller import pid_next_waypoint_car_controller
 from src.car_command import car_command
@@ -73,7 +73,7 @@ def launch_gui():
                     'Ignore this warning if you do not want a GUI.')
 
 
-class Game:
+class client:
 
     def __init__(self,
                  track_name='track',
@@ -112,7 +112,6 @@ class Game:
         self.recorder:Optional[data_recorder]=None
 
         self.track_name:str = track_name
-        self.spectate_track:Optional[track] = None # used here for track when there is no car, otherwise track is part of the car object
         self.car_name:str=car_name
         self.car:Optional[car] = None # will make it later after we get info from server about car
         try:
@@ -126,9 +125,10 @@ class Game:
         #     self.controller = controller
 
         self.controller = controller
-        self.spectate_states:List[car_state]=list()
-
-        self.auto_input = None  # will make it later when car is created because it is needed for the car_controller
+        # spectator data structures
+        self.spectate_track:Optional[track] = None # used here for track when there is no car, otherwise track is part of the car object.
+        self.spectate_cars:Dict[str,car]=dict() # dict of other cars on the track, by name of the car. Each entry is a car() that we make here.
+        self.auto_input = None  # will make it later when car is created because it is needed for the car_controller.
 
     def cleanup(self):
         if self.gotServer:
@@ -228,7 +228,7 @@ class Game:
             self.gameSockAddr=(self.server_host, payload)
             logger.info('got game_port message from server telling us to use address {} to talk with server'.format(self.gameSockAddr))
             if not self.spectate:
-                self.car = car(name=self.car_name, screen=self.screen)
+                self.car = car(name=self.car_name, screen=self.screen, client_ip=self.gameSockAddr)
                 self.car.track = track(track_name=self.track_name)
                 if self.record:
                     if self.recorder is None:
@@ -384,13 +384,25 @@ class Game:
 
     def draw_spectate_view(self):
         self.spectate_track.draw(self.screen)
-        pass
+        for c in self.spectate_cars.values():
+            c.draw(self.screen)
+
+    def update_other_cars(self, other_states:List[car_state]):
+        to_remove=[]
+        for s in other_states:
+            pass # todo remove cars that have disappeared from the list of other car states.
+        for s in other_states:
+            name=s.static_info.name
+            c=self.spectate_cars.get(name)
+            if c is None:
+                self.spectate_cars[name]=car(name=name,image_name='other_car.png', client_ip=s.static_info.client_ip)
+            self.spectate_cars[name].car_state=s
 
     def process_message(self, msg, payload):
         if msg== 'car_state':
             self.car.car_state=payload
         elif msg=='all_states':
-            self.spectate_states=payload
+            self.update_other_cars(payload)
         elif msg=='game_port':
             self.gameSockAddr=(self.server_host,payload)
         elif msg== 'track_shutdown':
@@ -480,12 +492,8 @@ class Game:
             #     self.exit=True
 
 
-
-
-
-
 # A wrapper around Game class to make it easier for a user to provide arguments
-def define_game(gui='with_gui',
+def define_game(gui=True,  # set to False to prevent gooey dialog
                 track_name=None,
                 controller=None,
                 spectate=False,
@@ -498,21 +506,21 @@ def define_game(gui='with_gui',
                 record=None):
 
     if controller is None:
-        controller = pid_next_waypoint_car_controller()
+        controller = pid_next_waypoint_car_controller
 
-    if gui == 'with_gui':
+    if gui:
         launch_gui()
         args = get_args()
-        game = Game(track_name=args.track_name,
-                    controller=controller,
-                    spectate=spectate,
-                    car_name=args.car_name,
-                    # server_host=args.host,
-                    # server_port=args.port,
-                    joystick_number=args.joystick,
-                    # fps=args.fps,
-                    # timeout_s=args.timeout_s,
-                    record=args.record)
+        game = client(track_name=args.track_name,
+                      controller=controller,
+                      spectate=args.spectate,
+                      car_name=args.car_name,
+                      server_host=args.host,
+                      server_port=args.port,
+                      joystick_number=args.joystick,
+                      fps=args.fps,
+                      timeout_s=args.timeout_s,
+                      record=args.record)
     else:
 
         IGNORE_COMMAND = '--ignore-gooey'
@@ -520,6 +528,17 @@ def define_game(gui='with_gui',
             sys.argv.remove(IGNORE_COMMAND)
 
         args = get_args()
+
+        if args.record:
+            infofile = write_args_info(args, 'data')
+
+            fh = logging.FileHandler(infofile)
+            fh.setLevel(logging.INFO)
+            formatter = logging.Formatter(
+                '%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+            fh.setFormatter(formatter)
+            logger.addHandler(fh)
+
 
         if track_name is None:
             track_name = args.track_name
@@ -557,39 +576,15 @@ def define_game(gui='with_gui',
         if record is None:
             record = args.record
 
-        game = Game(track_name=track_name,
-                    spectate=spectate,
-                    car_name=car_name,
-                    controller=controller,
-                    server_host=server_host,
-                    server_port=server_port,
-                    joystick_number=joystick_number,
-                    fps=fps,
-                    timeout_s=timeout_s,
-                    record=record)
+        game = client(track_name=track_name,
+                      spectate=spectate,
+                      car_name=car_name,
+                      controller=controller,
+                      server_host=server_host,
+                      server_port=server_port,
+                      joystick_number=joystick_number,
+                      fps=fps,
+                      timeout_s=timeout_s,
+                      record=record)
 
     return game
-
-
-
-
-if __name__ == '__main__':
-    launch_gui()
-
-    args = get_args()
-
-    set_logging_level(args)
-
-    game = Game(track_name=args.track_name,
-                spectate=args.spectate,
-                car_name=args.car_name,
-                server_host=args.host,
-                server_port=args.port,
-                joystick_number=args.joystick,
-                fps=args.fps,
-                timeout_s=args.timeout_s,
-                record=args.record)
-
-    # game = define_game()
-
-    game.run()

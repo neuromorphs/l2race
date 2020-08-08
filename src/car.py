@@ -1,7 +1,7 @@
 # class for Car, holds other important stuff
 import os
 from math import radians, cos, sin
-from typing import Optional
+from typing import Optional, Tuple
 
 import pygame
 import pygame.freetype
@@ -20,13 +20,11 @@ class car:
     Local model of car. It has CarState() that is updated by remote server, and methods for drawing car and other static information related to car that is not transmitted over socket.
     """
 
-    def __init__(self,name=CAR_NAME, image_name='car_1', screen:pygame.surface=None): # TODO initialize at starting line with correct angle; this is job of model server
-        self.car_state = car_state() # TODO change to init to starting line of track
-        self.track=track # TODO for now just use default track TODO check if Track should be field of Car()
-        # TODO change color of car to be unique, add name of car
-        self.image_name = image_name # TODO make part of constructor?
-        self.image=self.loadAndScaleCarImage(image_name, screen) # TODO should convert() the image once we have surface https://www.pygame.org/docs/tut/newbieguide.html
-        self.name = name
+    def __init__(self,name=CAR_NAME, image_name='car_1', screen:pygame.surface=None, client_ip:Tuple[str,int]=None):
+        self.car_state = car_state(name=name, client_ip=client_ip)
+        self.track=track
+        self.image_name = image_name
+        self.image=self.loadAndScaleCarImage(image_name, screen)
         pygame.freetype.init()
         self.game_font = pygame.freetype.SysFont(name = GAME_FONT_NAME, size = GAME_FONT_SIZE)
         self.other_cars_image=None
@@ -41,16 +39,16 @@ class car:
         rect = rotated.get_rect()
         screen.blit(rotated, ((self.car_state.position_m/M_PER_PIXEL) - (int(rect.width / 2), int(rect.height / 2))))
         # label name
-        self.game_font.render_to(screen, (self.car_state.position_m.x/M_PER_PIXEL, self.car_state.position_m.y/M_PER_PIXEL), self.name, [200,200,200]),
+        self.game_font.render_to(screen, (self.car_state.position_m.x/M_PER_PIXEL, self.car_state.position_m.y/M_PER_PIXEL), self.car_state.static_info.name, [200,200,200]),
 
         # draw acceleration
-        len=(self.car_state.accel_m_per_sec_2.x/G)*(self.car_state.length_m * 6) # self.car_state.command.throttle*self.car_state.length*2 # todo fix when accel include lateral component
+        len=(self.car_state.accel_m_per_sec_2.x/G)*(self.car_state.static_info.length_m * 6) # self.car_state.command.throttle*self.car_state.length*2 # todo fix when accel include lateral component
         body_rad=radians(self.car_state.body_angle_deg)
         body_vec=(len*cos(body_rad),len*sin(body_rad))
         pygame.draw.line(screen, [255,50,50],self.car_state.position_m/M_PER_PIXEL, (self.car_state.position_m+body_vec)/M_PER_PIXEL,1)
 
         # draw steering command
-        str_len= self.car_state.length_m / 2
+        str_len= self.car_state.static_info.length_m / 2
         str_orig=self.car_state.position_m+(cos(body_rad)*str_len,sin(body_rad)*str_len)
         str_rad=radians(self.car_state.body_angle_deg+self.car_state.steering_angle_deg)
         str_vec=(str_len*cos(str_rad),str_len*sin(str_rad))
@@ -71,7 +69,7 @@ class car:
         rect = rotated.get_rect()
         screen.blit(rotated, ((state.position_m/M_PER_PIXEL) - (int(rect.width / 2), int(rect.height / 2))))
         # label name
-        # self.game_font.render_to(screen, (state.position_m.x/M_PER_PIXEL, state.position_m.y/M_PER_PIXEL), state.__name__, [200,200,200]),
+        self.game_font.render_to(screen, (state.position_m.x/M_PER_PIXEL, state.position_m.y/M_PER_PIXEL), state.static_info.name, [200,200,200]),
 
 
 
@@ -96,6 +94,6 @@ class car:
         # scale it to its length in pixels (all units are in pixels which are meters)
         # TODO use global scale of M_PER_PIXEL correctly here
         rect = image.get_rect()
-        sc = self.car_state.length_m / (M_PER_PIXEL * rect.width)
+        sc = self.car_state.static_info.length_m / (M_PER_PIXEL * rect.width)
         image = pygame.transform.scale(image, (int(sc * rect.width), int(sc * rect.height)))
         return image

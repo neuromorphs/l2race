@@ -37,10 +37,10 @@ def parameters_vehicle2():
     p.w = 1.610  #vehicle width [m]
     
     #steering constraints
-    p.steering.min = -1.066  #minimum steering angle [rad]
-    p.steering.max = 1.066  #maximum steering angle [rad]
-    p.steering.v_min = -0.4  #minimum steering velocity [rad/s]
-    p.steering.v_max = 0.4  #maximum steering velocity [rad/s]
+    p.steering.min = -.5  #minimum steering angle [rad]
+    p.steering.max = .5  #maximum steering angle [rad]
+    p.steering.v_min = -2  #minimum steering velocity [rad/s]
+    p.steering.v_max = 2  #maximum steering velocity [rad/s]
 
     #longitudinal constraints
     p.longitudinal.v_min = -13.6  #minimum velocity [m/s]
