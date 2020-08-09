@@ -1,5 +1,5 @@
-from client import define_game
-from my_controller import my_controller
+from src.client import define_game
+from src.my_controller import my_controller
 
 # main class for clients that run a car on the l2race track.
 
