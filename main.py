@@ -1,5 +1,9 @@
+import importlib
+
+from globals import AUTODRIVE_MODULE, AUTODRIVE_CLASS
 from src.client import define_game
-from src.my_controller import my_controller
+from src.l2race_utils import my_logger
+logger=my_logger(__name__)
 
 # main class for clients that run a car on the l2race track.
 
@@ -42,8 +46,17 @@ if __name__ == '__main__':
     If also no corresponding flag was provided the program takes a default value
     The only case when a flag has precedence over a variable provided below is for disabling gui
     '''
-    controller = my_controller()
-    game = define_game()
+
+    try:
+        i = importlib.import_module(AUTODRIVE_MODULE)
+        c=getattr(i, AUTODRIVE_CLASS)
+        controller = c() # set it to a class in globals.py
+    except Exception as e:
+        logger.error('cannot import AUTODRIVE_CLASS named {} from module AUTODRIVE_MODULE named {}, got {}'.format(AUTODRIVE_CLASS, AUTODRIVE_MODULE,e))
+        controller=None
+
+
+    game = define_game(ctrl=controller)
     game.run()
     # game.replay('l2race-20200803-220912')
     # game.replay()

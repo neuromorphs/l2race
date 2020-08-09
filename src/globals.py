@@ -4,9 +4,6 @@ import logging
 
 LOGGING_LEVEL=logging.INFO # set the overall default leval, change with --log option
 
-
-SERVER_PING_INTERVAL_S=1 # interval between trying for server
-SERVER_TIMEOUT_SEC = 1 # timeout in seconds for UDP socket reads during game running
 import scipy.constants
 G=scipy.constants.value('standard acceleration of gravity')
 
@@ -15,13 +12,21 @@ G=scipy.constants.value('standard acceleration of gravity')
 
 # SERVER_HOST='telluridevm.iniforum.ch' # metanet 16-core model server
 SERVER_HOST='localhost'
+SERVER_PING_INTERVAL_S=1 # interval between trying for server
+SERVER_TIMEOUT_SEC = 1 # timeout in seconds for UDP socket reads during game running
 
-FPS=30 # frames per second for simulation and animation
-GAME_FONT_NAME='Consolas'
-GAME_FONT_SIZE=16
+# your autodrive controller module (i.e. folder) and class name, must be a class that has read method that returns the car_command() object
+AUTODRIVE_MODULE='src.pid_next_waypoint_car_controller'
+AUTODRIVE_CLASS='pid_next_waypoint_car_controller'
+
+#display
+FPS=20 # frames per second for simulation and animation
+GAME_FONT_NAME='Consolas' # local display font, default is Consolas
+GAME_FONT_SIZE=16 # default is 16
+
 # Joystick connectivity
 CHECK_FOR_JOYSTICK_INTERVAL = 100 # check for missing joystick every this many cycles
-JOYSTICK_NUMBER = 0 # todo in case multiple joysticks, use this to set the desired one, starts from zero
+JOYSTICK_NUMBER = 0 # in case multiple joysticks, use this to set the desired one, starts from zero
 
 # recording data
 DATA_FILENAME_BASE= 'l2race'
@@ -31,7 +36,8 @@ DATA_FOLDER_NAME= 'data'
 CAR_NAME='l2racer' # label stuck on car
 TRACK_NAME='oval_easy' # tracks are stored in the 'media' folder. Data for a track must be extracted using scripts in Track_Preparation before using in l2race
 # Other possible track names:
-# track_names = ['Sebring',
+# track_names = [
+#          'Sebring',
 #          'oval',
 #          'oval_easy',
 #          'track_1',

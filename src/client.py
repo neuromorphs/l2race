@@ -79,7 +79,7 @@ class client:
                  track_name='track',
                  spectate=False,
                  car_name=CAR_NAME,
-                 controller=pid_next_waypoint_car_controller(),
+                 controller=None,
                  server_host=SERVER_HOST,
                  server_port=SERVER_PORT,
                  joystick_number=JOYSTICK_NUMBER,
@@ -492,7 +492,7 @@ class client:
 # A wrapper around Game class to make it easier for a user to provide arguments
 def define_game(gui=True,  # set to False to prevent gooey dialog
                 track_name=None,
-                controller=None,
+                ctrl=None,
                 spectate=False,
                 car_name=None,
                 server_host=None,
@@ -502,14 +502,17 @@ def define_game(gui=True,  # set to False to prevent gooey dialog
                 timeout_s=None,
                 record=None):
 
-    if controller is None:
-        controller = pid_next_waypoint_car_controller
+    if ctrl is None:
+        controller = pid_next_waypoint_car_controller()
+        logger.info('autodrive contoller was None, so was set to default {}'.format(ctrl.__class__))
+    else:
+        controller=ctrl # construct instance of the controller. The controllers car() is set later, once the server gives us the state
 
     if gui:
         launch_gui()
         args = get_args()
         game = client(track_name=args.track_name,
-                      controller=controller,
+                      controller=ctrl,
                       spectate=args.spectate,
                       car_name=args.car_name,
                       server_host=args.host,
@@ -576,7 +579,7 @@ def define_game(gui=True,  # set to False to prevent gooey dialog
         game = client(track_name=track_name,
                       spectate=spectate,
                       car_name=car_name,
-                      controller=controller,
+                      controller=ctrl,
                       server_host=server_host,
                       server_port=server_port,
                       joystick_number=joystick_number,
