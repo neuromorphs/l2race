@@ -124,11 +124,10 @@ class client:
         # else:
         #     self.controller = controller
 
-        self.controller = controller
         # spectator data structures
         self.spectate_track:Optional[track] = None # used here for track when there is no car, otherwise track is part of the car object.
         self.spectate_cars:Dict[str,car]=dict() # dict of other cars on the track, by name of the car. Each entry is a car() that we make here.
-        self.auto_input = None  # will make it later when car is created because it is needed for the car_controller.
+        self.autodrive_controller = controller  # automatic self driving controller specified in constructor
 
     def cleanup(self):
         if self.gotServer:
@@ -235,8 +234,7 @@ class client:
                         self.recorder = data_recorder(car=self.car)
                     self.recorder.open_new_recording()
                 # self.car.loadAndScaleCarImage()   # happens inside car
-                self.controller.car=self.car
-                self.auto_input =self.controller
+                self.autodrive_controller.car =self.car
                 logger.info('initial car state is {}'.format(self.car.car_state))
             else:
                 self.spectate_track=track(track_name=self.track_name)
@@ -279,8 +277,11 @@ class client:
 
             # User input
             external_input = self.input.read()
-            if external_input.auto:
-                command = self.auto_input.read()
+            if external_input.autodrive_enabled:
+                if self.auto is None:
+                    logger.error('Tried to use autodriver control but there is no controller defined; disabling autodrive')
+                    external_input.autodrive_enabled=False
+                command = self.autodrive_controller.read()
                 command.add_command(external_input)
                 command.complete_default()
             else:
@@ -461,7 +462,7 @@ class client:
         # Run a loop to print data
         for index, row in data.iterrows():
 
-            self.car.car_state.command.auto = row['cmd.auto']
+            self.car.car_state.command.autodrive_enabled = row['cmd.auto']
             self.car.car_state.command.steering = row['cmd.steering']
             self.car.car_state.command.throttle = row['cmd.throttle']
             self.car.car_state.command.brake = row['cmd.brake']

@@ -116,7 +116,7 @@ class car_state:
     def get_record_csvrow(self):
         l=[
             self.time,
-            1 if self.command.auto else 0,
+            1 if self.command.autodrive_enabled else 0,
             self.command.steering,
             self.command.throttle,
             self.command.brake,
