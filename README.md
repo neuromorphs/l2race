@@ -64,19 +64,42 @@ The server computes the car dynamics model in response to your command input and
 From root of l2race, start the server and client from separate terminals (or from pycharm; see below).
 
 ### start client
+
+The command 
+```tags
+python -m main --host=telluridevm.iniforum.ch
+```
+will start the client (your view of track with your car) running on the server we setup for the workshop called _telluridevm.iniforum.ch_. It is a powerful 16-core machine with plenty of CPU for running the complex car models.
+
+Here is a run example:
 ```shell script
-(l2race) F:\tobi\Dropbox (Personal)\GitHub\neuromorphs\l2race>python -m server
+(l2race) F:\tobi\Dropbox (Personal)\GitHub\neuromorphs\l2race>python -m main --host=telluridevm.iniforum.ch
 pygame 2.0.0.dev10 (SDL 2.0.12, python 3.7.7)
 Hello from the pygame community. https://www.pygame.org/contribute.html
-WARNING:commonroad.vehicleDynamics_MB:check_cython: F:\tobi\Dropbox (Personal)\GitHub\neuromorphs\l2race\commonroad\vehicleDynamics_MB.py is still just a slowly interpreted script.
-WARNING:__main__:Gooey GUI builder not available, will use command line arguments.
-Install with "pip install Gooey". See README
-WARNING:__main__:Gooey GUI not available, using command line arguments.
-You can try to install with "pip install Gooey"
-INFO:__main__:waiting on <socket.socket fd=1512, family=AddressFamily.AF_INET, type=SocketKind.SOCK_DGRAM, proto=0, laddr=('0.0.0.0', 50000)>
+2020-08-09 19:07:28,967 - commonroad.vehicleDynamics_MB - WARNING - check_cython: F:\tobi\Dropbox (Personal)\GitHub\neuromorphs\l2race\commonroad\vehicleDynamics_MB.py is still just a slowly interpreted script. (vehicleDynamics_MB.py:21)
+2020-08-09 19:07:29,142 - src.client - WARNING - Gooey GUI builder not available, will use command line arguments.
+Install with "pip install Gooey". See README (client.py:63)
+2020-08-09 19:07:29,143 - src.client - WARNING - Gooey GUI not available, using command line arguments. 
+You can try to install with "pip install Gooey".
+Ignore this warning if you do not want a GUI. (client.py:71)
+2020-08-09 19:07:29,283 - src.client - INFO - using pygame version 2.0.0.dev10 (client.py:92)
+2020-08-09 19:07:29,328 - src.my_joystick - INFO - joystick named "Xbox One S Controller" found with 6 axes and 11 buttons (my_joystick.py:66)
+Joystick commands:
+steer with left joystick left|right
+throttle is right paddle, brake is left paddle
+B toggles reverse gear
+Y toggles automatic control (if implemented)
+Menu button resets car
+X R restarts client from scratch (if server went down)
+Windows button quits
+
+2020-08-09 19:07:31,335 - src.client - WARNING - Caught exception No IGD found. when trying to open l2race client ports (client.py:249)
+
 ```
 
-Start the server:
+### Start the server
+
+If you want to run the server on your local machine, do it like this:
 
 ```shell script
 (l2race) F:\tobi\Dropbox (Personal)\GitHub\neuromorphs\l2race>python -m server
@@ -97,42 +120,52 @@ It should not start running the client and you should see this:
 
 ## client options
 ````shell script
-(l2race) F:\tobi\Dropbox (Personal)\GitHub\neuromorphs\l2race>python -m client -h
-usage: client.py [-h] [--host HOST] [--port PORT] [--fps FPS]
-                 [--joystick JOYSTICK] [--record] [--car_name CAR_NAME]
-                 [--track_name TRACK_NAME] [--spectate]
-                 [--timeout_s TIMEOUT_S] [--log LOG]
+"C:\Program Files\JetBrains\PyCharm 2020.1.4\bin\runnerw64.exe" C:\Users\tobid\anaconda3\envs\l2race\python.exe "F:/tobi/Dropbox (Personal)/GitHub/neuromorphs/l2race/main.py" -h
+pygame 2.0.0.dev10 (SDL 2.0.12, python 3.7.7)
+Hello from the pygame community. https://www.pygame.org/contribute.html
+2020-08-09 19:19:49,236 - commonroad.vehicleDynamics_MB - WARNING - check_cython: F:\tobi\Dropbox (Personal)\GitHub\neuromorphs\l2race\commonroad\vehicleDynamics_MB.py is still just a slowly interpreted script. (vehicleDynamics_MB.py:21)
+usage: main.py [-h] [--host HOST] [--port PORT] [--timeout_s TIMEOUT_S]
+               [--fps FPS] [--joystick JOYSTICK] [--record]
+               [--track_name TRACK_NAME] [--car_name CAR_NAME] [--spectate]
+               [--log LOG]
 
 l2race client: run this if you are a racer.
 
 optional arguments:
   -h, --help            show this help message and exit
+  --log LOG             Set logging level. From most to least verbose, choices
+                        are "DEBUG", "INFO", "WARNING". (default: INFO)
 
-Client arguments::
+Server options::
   --host HOST           IP address or DNS name of model server. (default:
                         localhost)
   --port PORT           Server port address for initiating connections.
                         (default: 50000)
+  --timeout_s TIMEOUT_S
+                        Socket timeout in seconds for communication with model
+                        server. (default: 1)
+
+Interface arguments::
   --fps FPS             Frame rate on client side (server always sets time to
                         real time). (default: 30)
   --joystick JOYSTICK   Desired joystick number, starting with 0. (default: 0)
+
+Output options::
   --record              record data to date-stamped filename, e.g. --record
                         will write datestamped files named 'l2race-XXX.csv' in
                         folder 'data, where XXX is a date/timestamp'.
                         (default: False)
-  --car_name CAR_NAME   Name of this car. (default: tobi-joule-amd:tobid)
+
+Track car/spectate options::
   --track_name TRACK_NAME
                         Name of track. Available tracks are in the
                         'media/tracks' folder. Available tracks are ['oval',
                         'oval_easy', 'Sebri', 'track_1', 'track_2', 'track_3',
                         'track_4', 'track_5', 'track_6'] (default: oval_easy)
+  --car_name CAR_NAME   Name of this car (last 2 letters are randomly chosen
+                        each time). (default: tobi-joule-amd:tobid-XC)
   --spectate            Just be a spectator on the cars on the track.
                         (default: False)
-  --timeout_s TIMEOUT_S
-                        Socket timeout in seconds for communication with model
-                        server. (default: 1)
-  --log LOG             Set logging level. From most to least verbose, choices
-                        are "DEBUG", "INFO", "WARNING". (default: INFO)
 
 Run with no arguments to open dialog for server IP
 
@@ -148,6 +181,6 @@ Run with no arguments to open dialog for server IP
 
 l2race includes pycharm _.idea_ files that have many useful run configurations already set up.
 
-## Recording data
+# Recording data
 
 The _--record_ option automatically records a .csv file with timestamped filename to the _data_ folder. This file has the time, commnands, and car state.
