@@ -1,0 +1,11 @@
+[Unit]
+Description="l2race-server - Model server for Telluride L2RACE challenge"
+
+[Service]
+Type=simple
+WorkingDirectory=%h/l2race
+Environment="PATH=%h/anaconda3/bin"
+ExecStart=%h/anaconda3/envs/l2race/bin/python -m server
+
+[Install]
+WantedBy=multi-user.target
