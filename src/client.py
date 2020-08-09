@@ -278,8 +278,8 @@ class client:
             # User input
             external_input = self.input.read()
             if external_input.autodrive_enabled:
-                if self.auto is None:
-                    logger.error('Tried to use autodriver control but there is no controller defined; disabling autodrive')
+                if self.autodrive_controller is None:
+                    logger.error('Tried to use autodrive control but there is no controller defined; disabling autodrive')
                     external_input.autodrive_enabled=False
                 command = self.autodrive_controller.read()
                 command.add_command(external_input)

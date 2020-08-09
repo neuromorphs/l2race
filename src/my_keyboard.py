@@ -36,12 +36,12 @@ class my_keyboard:
         #     return self.car_input
 
         if pressed[pygame.K_y]:
-            self.car_input.auto = True
+            self.car_input.autodrive_enabled = True
             if not self.auto_pressed:
                 logger.info('autodriver enabled')
                 self.auto_pressed=True
         else:
-            self.car_input.auto = False
+            self.car_input.autodrive_enabled = False
             if self.auto_pressed:
                 logger.info('autodriver disabled')
                 self.auto_pressed=False
