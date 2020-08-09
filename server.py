@@ -203,7 +203,7 @@ class track_server_process(mp.Process):
         elif msg == 'remove_car':
             car_model = self.car_dict.get(client)
             if not car_model is None:
-                logger.info('removing car {} from track {}'.format(car_model.car_name, self.track_name))
+                logger.info('removing car {} from track {}'.format(car_model.car_state.static_info.name, self.track_name))
                 del self.car_dict[client]
         elif msg == 'remove_spectator':
             logger.info('removing spectator {} from track {}'.format(client, self.track_name))

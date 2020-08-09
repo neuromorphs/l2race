@@ -8,7 +8,7 @@ logger = my_logger(__name__)
 def printhelp():
     print('Keyboard commands:\n'
           'drive with LEFT/UP/RIGHT/DOWN or AWDS keys\n'
-          'keep SPACE pressed to drive on reverse gear\n'
+          'hold SPACE pressed to reverse\n'
           'y toggles automatic control (if implemented)\n'
           'r resets car\n'
           'R restarts client from scratch (if server went down)\n'
@@ -20,7 +20,8 @@ class my_keyboard:
         pygame.init()
         self.car_input = car_command()
         printhelp()
-        self.backspace_down=False
+        # self.backspace_down=False
+        self.auto_pressed=False # used for logging output
 
     def read(self):
         pressed = pygame.key.get_pressed()
@@ -36,8 +37,14 @@ class my_keyboard:
 
         if pressed[pygame.K_y]:
             self.car_input.auto = True
+            if not self.auto_pressed:
+                logger.info('autodriver enabled')
+                self.auto_pressed=True
         else:
             self.car_input.auto = False
+            if self.auto_pressed:
+                logger.info('autodriver disabled')
+                self.auto_pressed=False
 
         if pressed[pygame.K_UP] or pressed[pygame.K_w]:
            self.car_input.throttle=1.
