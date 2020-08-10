@@ -16,6 +16,7 @@ The key points are to learn a controller from limited 'real world' data and to u
  - Windows, linux, macOS all seem to work
  - anaconda or miniconda https://www.anaconda.com/products/individual
  - Use Python 3.7.x (for pygame 2.0, using prebuilt python wheel archive)
+ - We use pycharm for development, which includes some useful launchers to start local server, client, client to our remote model server.
 
 Conda is your friend! Make a new environment to work in l2race.
 You can install the requirements in this environment using its own pip.
@@ -26,7 +27,9 @@ conda env create -f environment.yml
 ```
 
 If this does not work for some reason (some libraries are still not available from conda repos), then you can also use pip to install the requirements into your conda environment.
-Make a new environment (see https://docs.conda.io/projects/conda/en/latest/user-guide/tasks/manage-environments.html#)
+Make a new environment (see https://docs.conda.io/projects/conda/en/latest/user-guide/tasks/manage-environments.html#). 
+
+First, install miniconda or conda, then make an empty python 3.7 environment:
 ```shell script
 conda create --name l2race python=3.7
 ```
@@ -44,9 +47,13 @@ Install the requiremepnts:
 ```shell script
 pip install -r requirements.txt
 ``` 
-### pygame
-For pygame 2.0-dev10 (needed for python 3.7), see wheels at https://www.piwheels.org/project/pygame/ or https://github.com/pygame/pygame/releases . Then use pip install wheel-file. Download the wheel for pygame 2.0 for python 3.7 and your OS.
+#### pygame
+The necessary pygame 2.0 seems to install into windows and linux and macOS directly with pip now.
 
+If you still have problems, you can see the pygame 2.0-dev10 (needed for python 3.7) wheels at https://www.piwheels.org/project/pygame/ or https://github.com/pygame/pygame/releases.  (A _wheel_ is a kind of archi8ve of python stuff with all dependencies; they are named according to the platform and OS). Then use pip install wheel-file. Download the wheel for pygame 2.0 for python 3.7 and your OS.
+
+
+#### requirements.txt notes
 _requirements.txt_ was built automatically using https://stackoverflow.com/questions/31684375/automatically-create-requirements-txt
 ```shell script
 pip install pipreqs
@@ -94,8 +101,13 @@ X R restarts client from scratch (if server went down)
 Windows button quits
 
 2020-08-09 19:07:31,335 - src.client - WARNING - Caught exception No IGD found. when trying to open l2race client ports (client.py:249)
-
+.....
 ```
+If you are using the remote server or a local server, the clienht should start running and you should see something like this:
+
+![screenshot](media/oval_track_screenshot.png)
+
+You can ignore any warnings about gooey and IGD. (Gooey is a GUI launcher. If you have gooey installed, it will start the client with a GUI that is prepopulated with defaults and your command line options. But it is not necessary. IGD is a tool that attempts to open necessary ports for l2race via UPnP. Usually you don't need to open these ports now.)
 
 ### Start the server
 
@@ -112,11 +124,8 @@ WARNING:__main__:Gooey GUI not available, using command line arguments.
 You can try to install with "pip install Gooey"
 ```
 
-Don't worry about missing Gooey; install it if you want to have a GUI pop up to launch the client and server.
+Don't worry about missing Gooey; install it if you want to have a GUI pop up to launch the  server.
 
-It should not start running the client and you should see this:
-
-![screenshot](media/oval_track_screenshot.png)
 
 ## client options
 ````shell script
