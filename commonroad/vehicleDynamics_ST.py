@@ -1,19 +1,24 @@
+import math
 from .steeringConstraints import steeringConstraints
 from .accelerationConstraints import accelerationConstraints
 from .vehicleDynamics_KS import vehicleDynamics_KS
 # from .vehicleParameters import VehicleParameters, vehicle_params_type
 
-import math
-from . import vehicleParameters
+KS_TO_ST_SPEED_M_PER_SEC=2.0
 
-# from typing import *
-
-from numba import jit, float64, deferred_type
-import numba as nb
-fa=nb.types.List(nb.float64, reflected=False) # define numba type of list of float
-
-# Moritz Klischat: limit the steering angle based on the current velocity and/or acceleration input. Then it should at least not be possible to turn at any speed
 def friction_steering_constraint(acceleration, yaw_rate, steering_velocity, velocity, steering_angle, p):
+    ''' Moritz Klischat: limits the steering angle based on the current velocity and/or acceleration input. Then it should at least not be possible to turn at any speed
+
+     :param acceleration - longtitudinal acceleration m/s^2
+     :param yaw_rate - rad/sec
+     :param velocity - speed along body axis m/s
+     :param steering_angle - angle of front steering wheels in rad
+     :param p - the vehicle model parameters
+
+     :returns steering velocity in rad/s
+     '''
+    if velocity<KS_TO_ST_SPEED_M_PER_SEC:
+        return steering_velocity
     yaw_rate_max = (p.longitudinal.a_max ** 2 - acceleration ** 2) / (velocity ** 2)
     if yaw_rate ** 2 >= yaw_rate_max and steering_velocity * steering_angle > 0:
         steering_velocity = 0
@@ -87,7 +92,7 @@ def vehicleDynamics_ST(x,uInit,p):
     u[0] = friction_steering_constraint(u[1], x[5], u[0], x[3], x[4], p)
 
     # switch to kinematic model for small velocities
-    if abs(x[3]) < 2.0: # tobi added for reverse gear and increased to 1m/s to reduce numerical instability at low speed by /speed - hint from matthias
+    if abs(x[3]) < KS_TO_ST_SPEED_M_PER_SEC: # tobi added for reverse gear and increased to 1m/s to reduce numerical instability at low speed by /speed - hint from matthias
         #wheelbase
         lwb = p.a + p.b
         

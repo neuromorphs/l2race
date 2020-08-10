@@ -2,13 +2,11 @@ import logging
 from cpython cimport array
 import math
 
-from ..src.l2race_utils import my_logger
+from src.l2race_utils import my_logger
+logger = my_logger(__name__)
 from .steeringConstraints import steeringConstraints
 from .accelerationConstraints import accelerationConstraints
 from .vehicleDynamics_KS import vehicleDynamics_KS
-# from .vehicleParameters import VehicleParameters, vehicle_params_type
-
-from . import vehicleParameters
 
 logger = my_logger(__name__)
 logger.setLevel(logging.DEBUG)
@@ -19,9 +17,21 @@ if cython.compiled:
 else:
     logger.warning("check_cython: {} is still just a slowly interpreted script.".format(__file__))
 
+cdef float KS_TO_ST_SPEED_M_PER_SEC=2.0
 
-# Moritz Klischat: limit the steering angle based on the current velocity and/or acceleration input. Then it should at least not be possible to turn at any speed
 cpdef float friction_steering_constraint(float acceleration, float yaw_rate, float steering_velocity, float velocity, float steering_angle, object p):
+    ''' Moritz Klischat: limits the steering angle based on the current velocity and/or acceleration input. Then it should at least not be possible to turn at any speed
+
+     :param acceleration - longtitudinal acceleration m/s^2
+     :param yaw_rate - rad/sec
+     :param velocity - speed along body axis m/s
+     :param steering_angle - angle of front steering wheels in rad
+     :param p - the vehicle model parameters
+
+     :returns steering velocity in rad/s
+     '''
+    if velocity<KS_TO_ST_SPEED_M_PER_SEC:
+        return steering_velocity
     cdef yaw_rate_max = (p.longitudinal.a_max ** 2 - acceleration ** 2) / (velocity ** 2)
     if yaw_rate ** 2 >= yaw_rate_max and steering_velocity * steering_angle > 0:
         steering_velocity = 0
@@ -91,19 +101,18 @@ cpdef double[:] vehicleDynamics_ST(double[:] x,double[:] uInit,object p):
 
  # init 'left hand side' output
 
-    #wheelbase
-    cdef lwb = p.a + p.b
     # cdef array.array f_template=array.array('d', [])
-    cdef array.array f_st
+    cdef array.array f_st, f_ks2
 
 
 # switch to kinematic model for small velocities
-    if abs(x[3]) < 2.0: # tobi added for reverse gear and increased to 1m/s to reduce numerical instability at low speed by /speed - hint from matthias
-
+    if abs(x[3]) < KS_TO_ST_SPEED_M_PER_SEC: # tobi added for reverse gear and increased to 1m/s to reduce numerical instability at low speed by /speed - hint from matthias
+        #wheelbase
+        lwb = p.a + p.b
         #system dynamics
         x_ks = [x[0],  x[1],  x[2],  x[3],  x[4]]
         f_ks = vehicleDynamics_KS(x_ks,u,p)
-        f_ks2 = [f_ks[0],  f_ks[1],  f_ks[2],  f_ks[3],  f_ks[4], u[1]/lwb*math.tan(x[2]) + x[3]/(lwb*math.cos(x[2])**2)*u[0],0]
+        f_ks2=array.array('d', [f_ks[0],  f_ks[1],  f_ks[2],  f_ks[3],  f_ks[4], u[1]/lwb*math.tan(x[2]) + x[3]/(lwb*math.cos(x[2])**2)*u[0],0])
         return f_ks2
     else:
         #system dynamics
