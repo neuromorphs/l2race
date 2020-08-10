@@ -1,11 +1,11 @@
 # the actual model of car, run on server
 # TODO move to separate repo to hide from participants
-import logging
 from math import sin, radians, degrees, cos, copysign
 from typing import Tuple
-
+from timeit import default_timer as timer
 import numpy as np
 from scipy.integrate import RK23, RK45, LSODA, BDF, DOP853
+import random
 
 from src.car_command import car_command
 from src.car_state import car_state
@@ -29,10 +29,7 @@ from commonroad.init_MB import init_MB
 from commonroad.vehicleDynamics_KS import vehicleDynamics_KS # kinematic single track, no slip
 from commonroad.vehicleDynamics_ST import vehicleDynamics_ST # single track bicycle with slip
 from commonroad.vehicleDynamics_MB import vehicleDynamics_MB # fancy multibody model
-from timeit import default_timer as timer
 
-import random
-import numpy as np
 
 LOGGING_INTERVAL_CYCLES=0 # 0 to disable # 1000 # log output only this often
 MODEL=vehicleDynamics_ST# vehicleDynamics_KS vehicleDynamics_ST vehicleDynamics_MB

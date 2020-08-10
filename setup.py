@@ -9,7 +9,7 @@ with open("README.md", "r") as fh:
 setuptools.setup(
     name="l2race-tellurideneuromorphs", # Replace with your own username
     version="0.0.1",
-    author="Marcin Paluch, Antonio Rios, Chang Gao, Tobi Delbruck",
+    author="Marcin Paluch, Antonio Rios, Tobi Delbruck",
     author_email="tobi@ini.uzh.ch",
     description="L2RACE challenge Telluride Neuromorphic workshop",
     long_description=long_description,
@@ -27,6 +27,7 @@ setuptools.setup(
 setup(
     ext_modules = cythonize([
         "commonroad/vehicleDynamics_MB.pyx",
+        "commonroad/vehicleDynamics_ST.pyx",
         "commonroad/tireModel.pyx",
         # "commonroad/longitudinalParameters.py",
         "commonroad/accelerationConstraints.pyx",

@@ -275,7 +275,7 @@ cpdef double[:] vehicleDynamics_MB(double[:] x,double[:] uInit,object p):
           
           
     #dynamics common with single-track model
-    cdef array.array f=array.array('d') # init 'right hand side'
+    cdef array.array f=array.array('d') # init 'left hand side' output
     #switch to kinematic model for small velocities
     if abs(x[3]) < KS_SWITCH_SPEED:
         #wheelbase
