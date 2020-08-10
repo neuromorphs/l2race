@@ -119,6 +119,9 @@ class client:
         except:
             self.input = my_keyboard()
 
+        self.server_message=None # holds messsages sent from server to be displayed
+        self.last_server_message_time=time.time()
+
         # if controller is None:
         #     self.controller = pid_next_waypoint_car_controller()
         # else:
@@ -139,10 +142,12 @@ class client:
             self.sock.close()
             self.sock=None
 
-    def render_multi_line(self, text, x, y): # todo clean up
+    def render_multi_line(self, text, x, y, color=None): # todo clean up
+        if color is None:
+            color=(200,200,200)
         lines = text.splitlines()
         for i, l in enumerate(lines):
-            self.game_font.render_to(self.screen, (x, y + GAME_FONT_SIZE * i), l, [200,200,200]),
+            self.game_font.render_to(self.screen, (x, y + GAME_FONT_SIZE * i), l, color),
             pass
 
     def ping_server(self):
@@ -375,6 +380,8 @@ class client:
             self.draw_car_view()
         else:
             self.draw_spectate_view()
+
+        self.draw_server_message()
         pygame.display.flip()
 
     def draw_car_view(self):
@@ -386,6 +393,18 @@ class client:
         self.spectate_track.draw(self.screen)
         for c in self.spectate_cars.values():
             c.draw(self.screen)
+
+    def draw_server_message(self):
+        if self.server_message is None:
+            return
+        if time.time()-self.last_server_message_time>10:
+            self.server_message=None
+            return
+        if self.server_message.startswith('ERROR'):
+            color=(255,10,10)
+        else:
+            color=None
+        self.render_multi_line(str(self.server_message), 10, SCREEN_HEIGHT_PIXELS-50, color=color)
 
     def update_state(self, all_states:List[car_state]):
         to_remove=[]
@@ -411,6 +430,8 @@ class client:
             self.gotServer=False
         elif msg=='string_message':
             logger.info('recieved message "{}"'.format(payload))
+            self.last_server_message_time=time.time()
+            self.server_message=payload
         else:
             logger.warning('unexpected msg {} with payload {} received from server (should have gotten "car_state" message)'.format(msg, payload))
 

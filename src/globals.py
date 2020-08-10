@@ -72,5 +72,6 @@ FRICTION_FACTOR = .5 # overall friction parameter multiplier for some models
 SAND_SLOWDOWN = 0.975  # If in sand, at every update the resulting velocity is multiplied by the slowdown factor
 REVERSE_TO_FORWARD_GEAR = 0.25  # You get less acceleration on reverse gear than while moving forwards.
 MODEL_UPDATE_RATE_HZ=100 # rate that server attempts to update all the car models for each track process (models run serially in each track process)
-
+MAX_CARS_PER_TRACK=6 # only this many cars can run on each track
+MAX_SPECTATORS_PER_TRACK=10 # only this many spectators can connect to each track
 

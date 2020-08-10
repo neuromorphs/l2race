@@ -71,10 +71,12 @@ class track_server_process(mp.Process):
         atexit.register(self.cleanup)
 
     def cleanup(self):
-        logger.debug('cleaning up {} process'.format(self.track_name))
+        logger.info('cleaning up {} process'.format(self.track_name))
+        self.send_all_clients_string_message('track has shut down')
+        # todo, make following a method
         if self.car_dict:
             for c in self.car_dict.keys():
-                self.send_client_msg(c, 'track_shutdown', 'track server has shut down')
+                self.send_client_msg(c,'track_shutdown', 'track server has shut down')
         if self.spectator_list:
             for s in self.spectator_list:
                 self.send_client_msg(s, 'track_shutdown', 'track server has shut down')
@@ -185,6 +187,19 @@ class track_server_process(mp.Process):
         """ sends message back to client using the track's socket"""
         send_message(self.track_socket, None, client, (msg, payload))
 
+    def send_client_string_message(self,client, msg):
+        logger.info('sending client {} string_message {}'.format(client,msg))
+        self.send_client_msg(client, 'string_message',msg)
+
+    def send_all_clients_string_message(self, msg):
+        logger.info('sending all clients the string_message {}'.format(msg))
+        if self.car_dict:
+            for c in self.car_dict.keys():
+                self.send_client_string_message(c, msg)
+        if self.spectator_list:
+            for s in self.spectator_list:
+                self.send_client_string_message(s, msg)
+
     def handle_client_msg(self, msg, payload, client):
         """ handles the client messages """
         logger.debug('handling msg={} with payload={} from client {}'.format(msg, payload, client))
@@ -218,6 +233,9 @@ class track_server_process(mp.Process):
 
     def add_car_to_track(self, car_name, client_addr):
         """ adds a car to this track """
+        if len(self.car_dict)>=MAX_CARS_PER_TRACK:
+            self.send_client_string_message(client_addr, 'ERROR: already have maximum of {} cars'.format(MAX_CARS_PER_TRACK))
+            return
         if self.car_dict.get(client_addr):
             logger.warning('client at {} already has a car model, replacing it with a new model'.format(client_addr))
         logger.info('adding car model for car named {} from client {} to track {}'.format(car_name, client_addr, self.track_name))
@@ -226,6 +244,9 @@ class track_server_process(mp.Process):
 
     def add_spectator_to_track(self, client_addr):
         """ adds a spectator to this track """
+        if len(self.spectator_list)>=MAX_SPECTATORS_PER_TRACK:
+            self.send_client_string_message(client_addr, 'ERROR: already have maximum of {} spectators'.format(MAX_SPECTATORS_PER_TRACK))
+            return
         logger.debug('adding spectator from client {} to track {}'.format(client_addr, self.track_name))
         self.spectator_list.append(client_addr)
 
@@ -363,8 +384,6 @@ if __name__ == '__main__':
 
     atexit.register(cleanup_all)
 
-    # become_daemon() # todo for service mode
-
     # We fork an mp process for each track that might have one or more cars and spectators.
 
     # There is only a single instance of each track. Any clients that want to use that track share it.
@@ -383,7 +402,7 @@ if __name__ == '__main__':
 
     # handling processes based on https://www.cloudcity.io/blog/2019/02/27/things-i-wish-they-told-me-about-multiprocessing-in-python/
 
-    while True:  # todo add KeyboardInterrupt exception handling, also SIG_TERM
+    while True:
         try:
             server_port_lock.acquire()
             data, client_addr = server_socket.recvfrom(1024)  # buffer size is 1024 bytes
@@ -404,12 +423,11 @@ if __name__ == '__main__':
             continue
 
         logger.info('received cmd "{}" with payload "{}" from {}'.format(cmd, payload, client_addr))
-        # todo handle multiple cars on one track, provide option for unique track for testing single car
 
         if cmd == 'ping':
             msg = ('pong', None)
             send_message(server_socket, server_port_lock, client_addr, msg)
-        elif cmd == 'add_car':  # todo add arguments with newcar like driver/car name
+        elif cmd == 'add_car':
             (track_name, car_name) = payload
             add_car_to_track(track_name, car_name, client_addr)
         elif cmd == 'add_spectator':
