@@ -50,7 +50,13 @@ def send_message(socket: socket, lock: mp.Lock, client_addr: Tuple[str, int], ms
 
 
 class track_server_process(mp.Process):
-    def __init__(self, queue_from_server: mp.Queue, server_port_lock: mp.Lock(), server_socket: socket, track_name=None, port: int = None):
+    def __init__(self,
+                 queue_from_server: mp.Queue,
+                 server_port_lock: mp.Lock(),
+                 server_socket: socket,
+                 track_name=None,
+                 port: int = None,
+                 allow_off_track=False):
         super(track_server_process, self).__init__(name='track_server_process-{}'.format(track_name))
         self.server_queue = queue_from_server
         self.server_port_lock = server_port_lock
@@ -67,6 +73,8 @@ class track_server_process(mp.Process):
         self.exit = False
         self.last_message_time = timer()  # used to terminate ourselves if no messages for some time
         self.skip_checking_server_queue_count = 0
+
+        self.allow_off_track = allow_off_track
 
         atexit.register(self.cleanup)
 
@@ -239,7 +247,7 @@ class track_server_process(mp.Process):
         if self.car_dict.get(client_addr):
             logger.warning('client at {} already has a car model, replacing it with a new model'.format(client_addr))
         logger.info('adding car model for car named {} from client {} to track {}'.format(car_name, client_addr, self.track_name))
-        mod = car_model(track=self.track, car_name=car_name, client_ip=client_addr)
+        mod = car_model(track=self.track, car_name=car_name, client_ip=client_addr, allow_off_track=self.allow_off_track)
         self.car_dict[client_addr] = mod
 
     def add_spectator_to_track(self, client_addr):
@@ -303,7 +311,7 @@ if __name__ == '__main__':
     track_queues: Dict[str, mp.Queue] = {k: None for k in track_names}  # each entry is the queue to send to track process
 
 
-    def make_track_process(track_name, client_addr) -> mp.Process:
+    def make_track_process(track_name, client_addr, allow_off_track=False) -> mp.Process:
         p = track_processes.get(track_name)
         if not (p is None) \
                 and p.is_alive():
@@ -322,7 +330,8 @@ if __name__ == '__main__':
                                                  server_port_lock=server_port_lock,
                                                  server_socket=server_socket,
                                                  track_name=track_name,
-                                                 port=track_port_number)
+                                                 port=track_port_number,
+                                                 allow_off_track=allow_off_track)
             track_processes[track_name] = track_process
             track_processes[track_name].start()
             return track_process
@@ -337,8 +346,8 @@ if __name__ == '__main__':
                      msg=('game_port', port))
 
 
-    def add_car_to_track(track_name, car_name, client_addr):
-        make_track_process(track_name=track_name, client_addr=client_addr)
+    def add_car_to_track(track_name, car_name, client_addr, allow_off_track=False):
+        make_track_process(track_name=track_name, client_addr=client_addr, allow_off_track=allow_off_track)
         logger.info('putting message to track process for track {} to add car named {} for client {}'.format(track_name, car_name, client_addr))
         q = track_queues.get(track_name)
         if q:
@@ -429,7 +438,7 @@ if __name__ == '__main__':
             send_message(server_socket, server_port_lock, client_addr, msg)
         elif cmd == 'add_car':
             (track_name, car_name) = payload
-            add_car_to_track(track_name, car_name, client_addr)
+            add_car_to_track(track_name, car_name, client_addr, allow_off_track=args.allow_off_track)
         elif cmd == 'add_spectator':
             track_name = payload
             add_spectator_to_track(track_name, client_addr)

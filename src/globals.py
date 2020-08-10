@@ -67,7 +67,6 @@ SERVER_PORT = 50000 # client starts game on this port on the SERVER_HOST
 CLIENT_PORT_RANGE='50010-50020' # range of ports used for client that server uses for game
     # client needs to open this port range for receiving state from server and sending commands to server
 KILL_ZOMBIE_TRACK_TIMEOUT_S=10 # if track process gets no input for this long, it terminates itself
-DO_NOT_RESET_CAR_WHEN_IT_GOES_OFF_TRACK = False # set true for testing dynamics of car
 FRICTION_FACTOR = .5 # overall friction parameter multiplier for some models
 SAND_SLOWDOWN = 0.975  # If in sand, at every update the resulting velocity is multiplied by the slowdown factor
 REVERSE_TO_FORWARD_GEAR = 0.25  # You get less acceleration on reverse gear than while moving forwards.
