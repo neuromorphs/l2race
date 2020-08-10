@@ -2,4 +2,8 @@
 "\e[A":history-search-backward
 ## arrow down
 "\e[B":history-search-forward
+#set bell-style visible
+#set blink-matching-paren on
+#set colored-stats on
+#set completion-ignore-case on
 
