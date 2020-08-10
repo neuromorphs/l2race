@@ -84,6 +84,7 @@ class car_model:
         # Variables passed_anti_cheat_rect, round_num serves monitoring the completed rounds by the car
         self.passed_anti_cheat_rect = True  # Prohibiting (significant) cutoff
         self.round_num = 0  # Counts the rounds
+        self.s_rounds = ''  # String to keep information about completed rounds
 
         # change MODEL_TYPE to select vehicle model type (vehicle dynamics - how car_state is calculated from car parameters)
         self.model = MODEL  # 'KS' 'ST' 'MB' # model type KS: kinematic single track, ST: single track (with slip), MB: fancy multibody
@@ -231,9 +232,6 @@ class car_model:
                                                                                                    ('(too_slow)' if too_slow else ''))
             self.car_state.server_msg += '\n' + s
 
-
-
-
         # make additional constrains for moving foreward and on reverse gear
         self.constrain_speed(command)
 
@@ -250,6 +248,11 @@ class car_model:
         # update driver's observed state from model
         # set l2race driver observed car_state from car model
         self.update_car_state(dt_sec, accel)
+
+        s = self.track.car_completed_round(car_model=self)
+        if s is not None:
+            self.s_rounds = s
+        self.car_state.server_msg += '\n' + self.s_rounds
 
         if LOGGING_INTERVAL_CYCLES > 0 and self.cycle_count % LOGGING_INTERVAL_CYCLES == 0:
             print('\ncar_model.py: cycle {}, dt={:.2f}ms, soln_time={:.3f}ms: {}'.format(self.cycle_count, dt_sec * 1e3,

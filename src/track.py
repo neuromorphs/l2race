@@ -178,6 +178,7 @@ class track:
         return d
 
     def car_completed_round(self, car_model):
+        s = None
         x_map = int(car_model.car_state.position_m.x / M_PER_PIXEL)
         y_map = int(car_model.car_state.position_m.y / M_PER_PIXEL)
 
@@ -188,21 +189,29 @@ class track:
             if car_model.passed_anti_cheat_rect:
 
                 car_model.passed_anti_cheat_rect = False
-                current_time = timer()
-                car_model.car_state.time_results.append(current_time)
+                current_time_car = car_model.time
+                car_model.car_state.time_results.append(current_time_car)
                 if car_model.round_num == 0:
-                    logger.info('Start!')
+                    print('OOOOOOOOOOOOOOO')
+                    s = 'Start!'
+                    logger.info(s)
                 elif car_model.round_num == 1:
-                    logger.info('Completed ' + str(car_model.round_num) + ' round!')
-                    s = 'Your time in the last round was  {:.2f}s'\
-                        .format(current_time-car_model.car_state.time_results[car_model.round_num-1])
-                    logger.info(s)
+                    s0 = 'Completed ' + str(car_model.round_num) + ' round!'
+                    logger.info(s0)
+                    s1 = 'Your time in the last round was  {:.2f}s'\
+                        .format(current_time_car-car_model.car_state.time_results[car_model.round_num-1])
+                    logger.info(s1)
+                    s = s0 + '\n' + s1
                 else:
-                    logger.info('Completed ' + str(car_model.round_num) + ' rounds!')
-                    s = 'Your time in the last round was  {:.2f}s'\
-                        .format(current_time-car_model.car_state.time_results[car_model.round_num-1])
-                    logger.info(s)
+                    s0 = 'Completed ' + str(car_model.round_num) + ' rounds!'
+                    logger.info(s0)
+                    s1 = 'Your time in the last round was  {:.2f}s'\
+                        .format(current_time_car-car_model.car_state.time_results[car_model.round_num-1])
+                    logger.info(s1)
+                    s = s0 + '\n' + s1
                 car_model.round_num += 1
 
         else:
             pass
+
+        return s
