@@ -30,7 +30,6 @@ class car_state:
 
     def __init__(self, name:str='l2racer', client_ip:Tuple[str,int]=None, length_m:float=4., width_m:float=2.,
                  x:float=0, y:float=0., body_angle_deg:float=0):
-        # todo constructor should put car at starting line, not middle of screen
         # intrinsic state
         # Screen coordinate system is computer vision standard, 0,0 is UL corner and y increases *downwards*.
         # It causes some confusion about angles.
@@ -44,7 +43,7 @@ class car_state:
         self.steering_angle_deg = 0.0 # degrees of front wheel steering, increases CW/right with zero straight ahead
         self.body_angle_deg = 0.0 # degrees, increases CW (on screen!) with zero pointing to right/east
         self.yaw_rate_deg_per_sec = 0.0 # degrees/sec, increases CW on screen
-        self.drift_angle_deg=0.0 # drift angle, (beta) relative to heading direction. Zero for no drift. +-90 for drifting entirely sideways. + is drift to left,- to right. TODO check description correct
+        self.drift_angle_deg=0.0 # drift angle, (beta) relative to heading direction. Zero for no drift. +-90 for drifting entirely sideways. + is drift to left,- to right.
 
         self.static_info=self.static_info(name=name,length_m=length_m,width_m=width_m,client_ip=client_ip)
 
@@ -57,9 +56,7 @@ class car_state:
 
         self.time_results = []
 
-        # other car(s) # todo add structure to send other car states to client for rendering
-
-        self.other_car_states: List[car_state] = list()  # list of other car_state for other cars
+        self.other_car_states: List[car_state] = list()  # TODO since we are now sending each client the complete state, this list not used list of other car_state for other cars
 
         self.server_msg='' # message from server to be displayed to driver
 

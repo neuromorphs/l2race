@@ -85,14 +85,13 @@ class car:
             logger.warning('supply car image name {} without .png suffix'.format(image_name))
             image_name=image_name[:-4]
         current_dir = os.path.dirname(os.path.abspath(__file__))
-        image_path = os.path.join(current_dir, "../media/" + image_name + ".png") # todo name of car and file should come from server
+        image_path = os.path.join(current_dir, "../media/" + image_name + ".png")
         if isinstance(screen,pygame.Surface):
             image = pygame.image.load(image_path).convert_alpha(screen)  # load image of car
         else:
             image = pygame.image.load(image_path)  # load image of car
 
-        # scale it to its length in pixels (all units are in pixels which are meters)
-        # TODO use global scale of M_PER_PIXEL correctly here
+        # scale it to its length in pixels (units are in pixels which are scaled from meters by M_PER_PIXEL)
         rect = image.get_rect()
         sc = self.car_state.static_info.length_m / (M_PER_PIXEL * rect.width)
         image = pygame.transform.scale(image, (int(sc * rect.width), int(sc * rect.height)))
