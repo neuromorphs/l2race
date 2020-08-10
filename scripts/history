@@ -1,0 +1,23 @@
+  190  conda env create -f environment.yml
+  191  conda activate l2race
+  194  conda create -n l2race python=3.7
+  196  pip install -r requirements.txt 
+  285  sudo cp l2race-server.service /etc/systemd/system/
+  286  systemctl --user start l2race-server
+  287  systemctl daemon-reload 
+  288  sudo systemctl daemon-reload 
+  289  systemctl --user start l2race-server
+  295  loginctl enable-linger tobi
+  296  systemctl --user enable l2race-server
+  302  systemctl --user enable l2race-server
+  312  systemctl --user enable l2race-server
+  313  systemctl --user start l2race-server
+  314  journalctl --user
+  315  journalctl --user-unit l2race-server
+  316  systemctl --user stop l2race-server
+  317  journalctl --user-unit l2race-server
+  318  systemctl --user start l2race-server
+  319  journalctl --follow --user-unit l2race-server
+  459  cp ~/.config/systemd/user/l2race-server.service scripts/
+  460  cp ~/.bash_aliases scripts/
+  461  cp ~/.inputrc scripts/
