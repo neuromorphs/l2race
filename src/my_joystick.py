@@ -19,8 +19,8 @@ def printhelp():
     print('Joystick commands:\n'
           'steer with left joystick left|right\n'
           'throttle is right paddle, brake is left paddle\n'
-          'B toggles reverse gear\n'
-          'Y toggles automatic control (if implemented)\n'
+          'B activates reverse gear\n'
+          'Y activates autordrive control (if implemented)\n'
           'Menu button resets car\n'
           'X R restarts client from scratch (if server went down)\n'
           'Windows button quits\n'
@@ -70,15 +70,9 @@ class my_joystick:
         pygame.event.get() # must call get() to handle internal queue
 
         self.car_input.restart_client=self.joy.get_button(2) # X button
-        revPressed = self.joy.get_button(1)  # B button
-        toggle_auto = self.joy.get_button(3) # Y button
-        # if toggle_auto:
-        #     self.car_input.auto = not self.car_input.auto
+        self.car_input.reverse = self.joy.get_button(1)  # B button
+        self.car_input.autodrive_enabled = self.joy.get_button(3) # Y button
 
-        self.car_input.autodrive_enabled = toggle_auto
-        if revPressed and not self._rev_was_pressed:  # if it was not pressed last time and is pressed now, toggle reverse
-            self.car_input.reverse = not self.car_input.reverse
-        self._rev_was_pressed = revPressed
         if self.name==my_joystick.XBOX_ONE_BLUETOOTH_JOYSTICK or self.name==my_joystick.XBOX_ELITE:
             self.car_input.steering = self.joy.get_axis(0) #self.axes[0], returns + for right push, which should make steering angle positive, i.e. CW
             self.car_input.throttle = (1 + self.joy.get_axis(5)) / 2. # (1+self.axes[5])/2
