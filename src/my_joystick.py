@@ -71,7 +71,8 @@ class my_joystick:
 
         self.car_input.restart_client=self.joy.get_button(2) # X button
         self.car_input.reverse = self.joy.get_button(1)  # B button
-        self.car_input.autodrive_enabled = self.joy.get_button(3) # Y button
+        if not self.car_input.reverse:
+            self.car_input.autodrive_enabled = self.joy.get_button(3) # Y button
 
         if self.name==my_joystick.XBOX_ONE_BLUETOOTH_JOYSTICK or self.name==my_joystick.XBOX_ELITE:
             self.car_input.steering = self.joy.get_axis(0) #self.axes[0], returns + for right push, which should make steering angle positive, i.e. CW
