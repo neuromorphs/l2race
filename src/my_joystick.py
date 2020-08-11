@@ -21,9 +21,9 @@ def printhelp():
           'throttle is right paddle, brake is left paddle\n'
           'B activates reverse gear\n'
           'Y activates autordrive control (if implemented)\n'
-          'Menu button resets car\n'
-          'X R restarts client from scratch (if server went down)\n'
-          'Windows button quits\n'
+          'Menu button (to left of XYBA buttons) resets car\n'
+          'X restarts client from scratch (if server went down)\n'
+          'Windows button (by left joystick) quits\n'
           )
 
 
@@ -71,7 +71,7 @@ class my_joystick:
 
         self.car_input.restart_client=self.joy.get_button(2) # X button
         self.car_input.reverse = self.joy.get_button(1)  # B button
-        if not self.car_input.reverse:
+        if not self.car_input.reverse: # only if not in reverse
             self.car_input.autodrive_enabled = self.joy.get_button(3) # Y button
 
         if self.name==my_joystick.XBOX_ONE_BLUETOOTH_JOYSTICK or self.name==my_joystick.XBOX_ELITE:
