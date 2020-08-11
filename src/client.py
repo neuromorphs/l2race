@@ -60,7 +60,7 @@ def launch_gui():
         from scripts.regsetup import description
         from gooey import Gooey  # pip install Gooey
     except Exception:
-        logger.warning('Gooey GUI builder not available, will use command line arguments.\n'
+        logger.info('Gooey GUI builder not available, will use command line arguments.\n'
                        'Install with "pip install Gooey". See README')
 
     try:
@@ -68,7 +68,7 @@ def launch_gui():
         logger.info('Use --ignore-gooey to disable GUI and run with command line arguments')
         ga()
     except:
-        logger.warning('Gooey GUI not available, using command line arguments. \n'
+        logger.info('Gooey GUI not available, using command line arguments. \n'
                        'You can try to install with "pip install Gooey".\n'
                     'Ignore this warning if you do not want a GUI.')
 
@@ -96,7 +96,11 @@ class client:
         self.heightPixels = heightPixels
         self.screen = pygame.display.set_mode(size=(self.widthPixels, self.heightPixels), flags=0)
         pygame.freetype.init()
-        self.game_font = pygame.freetype.SysFont(GAME_FONT_NAME, GAME_FONT_SIZE)
+        try:
+            self.game_font = pygame.freetype.SysFont(GAME_FONT_NAME, GAME_FONT_SIZE)
+        except:
+            logger.warning('cannot get specified globals.py font {}, using pygame default font'.format(GAME_FONT_NAME))
+            self.game_font =pygame.font.Font(pygame.font.get_default_font(), GAME_FONT_SIZE)
         self.clock = pygame.time.Clock()
         self.exit = False
         self.input=None

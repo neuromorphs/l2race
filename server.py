@@ -293,14 +293,14 @@ if __name__ == '__main__':
         from scripts.regsetup import description
         from gooey import Gooey  # pip install Gooey
     except Exception:
-        logger.warning('Gooey GUI builder not available, will use command line arguments.\n'
+        logger.info('Gooey GUI builder not available, will use command line arguments.\n'
                        'Install with "pip install Gooey". See README')
     try:
         ga = Gooey(get_args, program_name="l2race server", default_size=(575, 600))
         logger.info('Use --ignore-gooey to disable GUI and run with command line arguments')
         ga()
     except:
-        logger.warning('Gooey GUI not available, using command line arguments. \n'
+        logger.info('Gooey GUI not available, using command line arguments. \n'
                        'You can try to install with "pip install Gooey"')
     args = get_args()
     set_logging_level(args)
