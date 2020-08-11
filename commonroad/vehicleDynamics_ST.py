@@ -14,6 +14,8 @@ fa=nb.types.List(nb.float64, reflected=False) # define numba type of list of flo
 
 # Moritz Klischat: limit the steering angle based on the current velocity and/or acceleration input. Then it should at least not be possible to turn at any speed
 def friction_steering_constraint(acceleration, yaw_rate, steering_velocity, velocity, steering_angle, p):
+    if velocity==0:
+        return steering_velocity
     yaw_rate_max = (p.longitudinal.a_max ** 2 - acceleration ** 2) / (velocity ** 2)
     if yaw_rate ** 2 >= yaw_rate_max and steering_velocity * steering_angle > 0:
         steering_velocity = 0
