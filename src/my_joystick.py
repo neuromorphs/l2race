@@ -67,6 +67,9 @@ class my_joystick:
         printhelp()
 
     def read(self):
+        '''
+        :returns the car_command
+        '''
         pygame.event.get() # must call get() to handle internal queue
 
         self.car_input.restart_client=self.joy.get_button(2) # X button

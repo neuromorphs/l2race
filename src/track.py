@@ -28,6 +28,7 @@ def list_tracks():
 
 # Version of the track based on the extracting contour and loading png
 def get_position_on_map(car_state=None, x=None, y=None):
+    #todo document params and return value code
     if car_state is not None:
         x_map = int(car_state.position_m.x / M_PER_PIXEL)
         y_map = int(car_state.position_m.y / M_PER_PIXEL)
@@ -42,6 +43,7 @@ def get_position_on_map(car_state=None, x=None, y=None):
 
 
 def closest_node(x, y, x_vector, y_vector):
+    #todo document params and return value code
     dist_2 = (x_vector - x) ** 2 + (y_vector - y) ** 2
     return np.argmin(dist_2)
 
@@ -85,12 +87,14 @@ class track:
         surface.blit(self.track_image, (0, 0))
 
     def get_surface_type(self, car_state=None, x=None, y=None):
+        #todo document params and return value code
         x, y = get_position_on_map(car_state=car_state, x=x, y=y)
         if x < 0 or x >= self.track_map.shape[1] or y < 0 or y > self.track_map.shape[0]:
             return 0
         return self.track_map[y, x]
 
     def get_nearest_waypoint_idx(self, car_state=None, x=None, y=None):
+        #todo document params and return value code
         x_map, y_map = get_position_on_map(car_state=car_state, x=x, y=y)
 
         # https://codereview.stackexchange.com/questions/28207/finding-the-closest-point-to-a-list-of-points
@@ -119,6 +123,7 @@ class track:
                                   x=None,
                                   y=None,
                                   nearest_waypoint_idx=None):
+        #todo document params and return value code
 
         x_map, y_map = get_position_on_map(car_state=car_state, x=x, y=y)
 
@@ -147,6 +152,7 @@ class track:
                                         x_car=None,
                                         y_car=None,
                                         nearest_waypoint_idx=None):
+        #todo document params and return value code
         x_map, y_map = get_position_on_map(car_state=car_state, x=x_car, y=y_car)
 
         if nearest_waypoint_idx is None:
@@ -178,6 +184,7 @@ class track:
         return d
 
     def car_completed_round(self, car_model):
+        #todo document params and return value code
         s = None
         x_map = int(car_model.car_state.position_m.x / M_PER_PIXEL)
         y_map = int(car_model.car_state.position_m.y / M_PER_PIXEL)

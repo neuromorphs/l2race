@@ -50,6 +50,7 @@ def send_message(socket: socket, lock: mp.Lock, client_addr: Tuple[str, int], ms
 
 
 class track_server_process(mp.Process):
+    ''' The main process that runs each track.'''
     def __init__(self,
                  queue_from_server: mp.Queue,
                  server_port_lock: mp.Lock(),
@@ -127,6 +128,7 @@ class track_server_process(mp.Process):
         # To handle multiple clients, when it gets a message from a client, it responds to the client using the client address.
 
         looper = loop_timer(MODEL_UPDATE_RATE_HZ)
+        looper.LOG_INTERVAL_SEC=60
         while not self.exit:
             now = timer()
             dt = now - last_time
@@ -184,8 +186,10 @@ class track_server_process(mp.Process):
         self.cleanup()
         logger.info('ended track {}'.format(self.track_name))
 
-    def receive_msg(self):
-        """ receives a message from client using track's socket"""
+    def receive_msg(self) -> (str, object, Tuple[str, int]):
+        """
+        receives a message from client using track's socket
+        :returns msg, payload, client - msg is a str, payload is an object, and client is Tuple[str,int] """
         p, client = self.track_socket.recvfrom(2048)
         (msg, payload) = pickle.loads(p)
         logger.debug('got msg={} with payload={} from client {}'.format(msg, payload, client))
