@@ -1,6 +1,6 @@
 import importlib
 
-from globals import AUTODRIVE_MODULE, AUTODRIVE_CLASS
+from src.globals import AUTODRIVE_MODULE, AUTODRIVE_CLASS
 from src.client import define_game
 from src.l2race_utils import my_logger
 logger=my_logger(__name__)
