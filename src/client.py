@@ -284,8 +284,8 @@ class client:
                 if event.type == pygame.QUIT:
                     self.exit = True
 
-            # User input
-            external_input = self.input.read()
+            # User input TODO move to method to get user or autodrive input
+            external_input = self.input.read()  # todo cange to return car_command and user_command outputs (i.e. split into part that we send to server and part that is user input)
             if external_input.autodrive_enabled:
                 if self.autodrive_controller is None:
                     logger.error('Tried to use autodrive control but there is no controller defined; disabling autodrive')
@@ -320,6 +320,7 @@ class client:
             else:
                 self.send_to_server(self.gameSockAddr,'send_states',None)
 
+            # TODO move to method that uses select to check for response if any
              # expect to get new car state
             try:
                 cmd,payload=self.receive_from_server()
@@ -363,6 +364,12 @@ class client:
         logger.debug('sending msg {} with payload {} to {}'.format(msg,payload,addr))
         p = pickle.dumps((msg, payload))
         self.sock.sendto(p, addr)
+
+    def process_top_ten_list(self,payload):
+        pass
+
+    def ask_for_top_ten_list(self):
+        pass
 
     def drain_udp_messages(self):
         """remove the data present on the socket. From https://stackoverflow.com/questions/1097974/how-to-empty-a-socket-in-python """
