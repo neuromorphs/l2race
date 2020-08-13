@@ -159,7 +159,7 @@ class client:
         self.drain_udp_messages()
         self.send_to_server(self.serverStartAddr,'ping',None)
         try:
-            (msg,payload)=self.receive_from_server()
+            (msg,payload)=self.receive_from_server(blocking=True)
         except socket.timeout:
             logger.warning('ping timeout')
             return False
@@ -194,8 +194,8 @@ class client:
                 if event.type == pygame.QUIT:
                     self.exit = True # TODO clean up, seems redundant. what sets pygame.QUIT?
                     break
-            command = self.input.read()
-            if command.quit:
+            car_command,user_input = self.input.read()
+            if user_input.quit:
                 logger.info('startup aborted before connecting to server')
                 pygame.quit()
             if not self.ping_server():
@@ -261,100 +261,110 @@ class client:
 
         atexit.register(self.cleanup)
 
-        iterationCounter = 0
         logger.info('starting main loop')
         looper=loop_timer(self.fps)
         while not self.exit:
-            self.connect_to_server() # TODO wrong, will not look again if server connection lost, should go back to this
             try:
-                self.clock.tick(self.fps) # updates pygame clock, makes sure frame rate is at most this many fps; limit runtime to self.ticks Hz update rate
+                looper.sleep_leftover_time()
             except KeyboardInterrupt:
                 logger.info('KeyboardInterrupt, stopping client')
                 self.exit=True
-                continue
-            iterationCounter+=1
-            if iterationCounter%CHECK_FOR_JOYSTICK_INTERVAL==0 and not isinstance(self.input, my_joystick):
+            if looper.loop_counter%CHECK_FOR_JOYSTICK_INTERVAL==0 and not isinstance(self.input, my_joystick):
                 try:
                     self.input = my_joystick() # check for joystick that might get turned on during play
                 except:
                     pass
 
+            # Drawing
+            self.draw()
+
+            self.connect_to_server()
             # Event queue
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:
                     self.exit = True
 
             # User input TODO move to method to get user or autodrive input
-            external_input = self.input.read()  # todo cange to return car_command and user_command outputs (i.e. split into part that we send to server and part that is user input)
-            if external_input.autodrive_enabled:
-                if self.autodrive_controller is None:
-                    logger.error('Tried to use autodrive control but there is no controller defined; disabling autodrive')
-                    external_input.autodrive_enabled=False
-                command = self.autodrive_controller.read()
-                command.add_command(external_input)
-                command.complete_default()
-            else:
-                command = external_input
-                command.complete_default()
-
-            if command.quit:
-                logger.info('quit recieved, ending main loop')
-                self.exit=True
-                break
-
-            if not self.spectate:
-                if command.reset_car:
-                    # car state reset handled on server side, here just put in forward gear
-                    logger.info('sending message to reset car state to server, putting in foward gear on client')
-                    self.input.car_input.reverse=False
-
-                if command.restart_client:
-                    logger.info('restarting client')
-                    self.gotServer = False
-                    if self.recorder:
-                        self.recorder.close_recording()
-                    continue
-
-                # send control to server
-                self.send_to_server(self.gameSockAddr, 'command',command)
-            else:
-                self.send_to_server(self.gameSockAddr,'send_states',None)
+            self.process_user_or_autodrive_input()
 
             # TODO move to method that uses select to check for response if any
              # expect to get new car state
             try:
-                cmd,payload=self.receive_from_server()
+                cmd,payload=self.receive_from_server(blocking=False)
+                if cmd is None:
+                    continue
                 self.handle_message(cmd, payload)
-            except pickle.UnpicklingError as err:
-                logger.warning('{}: could not unpickle the response from server'.format(err))
-                continue
-            except TypeError as te:
-                logger.warning(str(te)+": ignoring and waiting for next state")
-                continue
+                if not self.spectate and self.recorder:
+                    self.recorder.write_sample()
+
             except socket.timeout:
                 logger.warning('Timeout on socket receive from server, using previous car state. '
                                'Check server to make sure it is still running')
+            except pickle.UnpicklingError as err:
+                logger.warning('{}: could not unpickle the response from server'.format(err))
+            except TypeError as te:
+                logger.warning(str(te)+": ignoring and waiting for next state")
             except ConnectionResetError:
                 logger.warning('Connection to {} was reset, will look for server again'.format(self.gameSockAddr))
                 self.gotServer = False
-                continue
 
-            if not self.spectate and self.recorder:
-                self.recorder.write_sample()
-
-            # Drawing
-            self.draw()
-            try:
-                looper.sleep_leftover_time()
-            except KeyboardInterrupt:
-                logger.info('KeyboardInterrupt, stopping client')
-                self.exit=True
 
         logger.info('ending main loop')
         self.cleanup()
         logger.info('quitting pygame')
         pygame.quit()
         quit()
+
+
+
+    def process_user_or_autodrive_input(self):
+        ''' gets user or agent input and sends to model server'''
+        car_command,user_input = self.input.read()
+        if car_command.autodrive_enabled:
+            if self.autodrive_controller is None:
+                logger.error('Tried to use autodrive control but there is no controller defined; disabling autodrive')
+                car_command.autodrive_enabled=False
+            command = self.autodrive_controller.read()
+            command.add_command(car_command)
+            command.complete_default()
+        else:
+            command = car_command
+            command.complete_default()
+
+        if user_input.quit:
+            logger.info('quit recieved, ending main loop')
+            self.exit=True
+            return
+
+        if not self.spectate:
+            if user_input.restart_car:
+                self.restart_car('user asked to restart car')
+
+            if user_input.restart_client:
+                logger.info('restarting client')
+                self.gotServer = False
+                if self.recorder:
+                    self.recorder.close_recording()
+
+            # send control to server
+            self.send_to_server(self.gameSockAddr, 'command',command)
+        else:
+            self.send_to_server(self.gameSockAddr,'send_states',None)
+
+    def receive_from_server(self, blocking=False) -> Tuple[Optional[str],Optional[object]]:
+        ''' attempt to receive msg from server
+        :param blocking - set true for blocking receive. If false, returns None,None if there is nothing for us
+        :returns (cmd,payload), or None,None if nonblocking and nothing is ready
+        '''
+        if not blocking:
+            inputready, o, e = select.select([self.sock],[],[], 0.0)
+            if len(inputready)==0: return None,None # nothing for us now
+        data, server_addr = self.sock.recvfrom(8192) # todo check if large enough for payload inclding all other car state
+        (cmd,payload) = pickle.loads(data)
+        logger.debug('got message {} with payload {} from server {}'.format(cmd,payload,server_addr))
+        return cmd,payload
+
+
 
     def send_to_server(self, addr:Tuple[str,int], msg:str, payload:object):
         ''' send cmd,payload to server at specified (ip,port)'''
@@ -378,13 +388,7 @@ class client:
         while True:
             inputready, o, e = select.select(input,[],[], 0.0)
             if len(inputready)==0: break
-            for s in inputready: s.recv(1)
-
-    def receive_from_server(self):
-        data, server_addr = self.sock.recvfrom(8192) # todo check if large enough for payload inclding all other car state
-        (cmd,payload) = pickle.loads(data)
-        logger.debug('got message {} with payload {} from server {}'.format(cmd,payload,server_addr))
-        return cmd,payload
+            for s in inputready: s.recv(8192)
 
     def draw(self):
         if not self.spectate:
@@ -396,6 +400,9 @@ class client:
         pygame.display.flip()
 
     def draw_car_view(self):
+        if self.car is None:
+            logger.warning('car is None')
+            return
         self.car.track.draw(self.screen)
         self.car.draw(self.screen)
         self.render_multi_line(str(self.car.car_state), 10, 10)
@@ -468,18 +475,18 @@ class client:
                 return
 
         # Get race recording
-        print(file_path)
+        logger.debug(file_path)
         data = pd.read_csv(file_path, skiprows=7)
 
         # Get used car name
         s = str(pd.read_csv(file_path, skiprows=5, nrows=1))
         self.car_name = re.search('"(.*)"', s).group(1)
-        print(self.car_name)
+        logger.debug(self.car_name)
 
         # Get used track
         s = str(pd.read_csv(file_path, skiprows=6, nrows=1))
         self.track_name = re.search('"(.*)"', s).group(1)
-        print(self.track_name)
+        logger.debug(self.track_name)
 
         # print(file_path)
         # print(data.head())
@@ -513,13 +520,12 @@ class client:
 
             # Drawing
             self.draw()
-            sleep(0.1)
-            # try:
-            #     looper.sleep_leftover_time()
-            # except KeyboardInterrupt:
-            #     logger.info('KeyboardInterrupt, stopping client')
-            #     self.exit=True
+            sleep(1/self.fps)
 
+    def restart_car(self,message:str=None):
+        # car restart handled on server side
+        logger.info('sending message to restart car to server')
+        self.send_to_server(self.gameSockAddr,'restart_car',message)
 
 # A wrapper around Game class to make it easier for a user to provide arguments
 def define_game(gui=True,  # set to False to prevent gooey dialog

@@ -2,6 +2,7 @@ import logging
 from cpython cimport array
 import math
 
+from src.globals import KS_TO_ST_SPEED_M_PER_SEC
 from src.l2race_utils import my_logger
 logger = my_logger(__name__)
 from .steeringConstraints import steeringConstraints
@@ -17,7 +18,6 @@ if cython.compiled:
 else:
     logger.warning("check_cython: {} is still just a slowly interpreted script.".format(__file__))
 
-cdef float KS_TO_ST_SPEED_M_PER_SEC=2.0
 
 cpdef float friction_steering_constraint(float acceleration, float yaw_rate, float steering_velocity, float velocity, float steering_angle, object p):
     ''' Moritz Klischat: limits the steering angle based on the current velocity and/or acceleration input. Then it should at least not be possible to turn at any speed
@@ -87,7 +87,7 @@ cpdef double[:] vehicleDynamics_ST(double[:] x,double[:] uInit,object p):
     #x1 = x-position in a global coordinate system
     #x2 = y-position in a global coordinate system
     #x3 = steering angle of front wheels
-    #x4 = velocity in x-direction
+    #x4 = velocity scalar along body (positive forward)
     #x5 = yaw angle
     #x6 = yaw rate
     #x7 = slip angle at vehicle center
@@ -106,7 +106,7 @@ cpdef double[:] vehicleDynamics_ST(double[:] x,double[:] uInit,object p):
 
 
 # switch to kinematic model for small velocities
-    if abs(x[3]) < KS_TO_ST_SPEED_M_PER_SEC: # tobi added for reverse gear and increased to 1m/s to reduce numerical instability at low speed by /speed - hint from matthias
+    if x[3] < KS_TO_ST_SPEED_M_PER_SEC: # tobi added for reverse gear and increased to 1m/s to reduce numerical instability at low speed by /speed - hint from matthias
         #wheelbase
         lwb = p.a + p.b
         #system dynamics

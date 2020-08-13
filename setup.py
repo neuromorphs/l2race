@@ -24,6 +24,7 @@ setuptools.setup(
     python_requires='>=3.7',
 )
 
+# needs to be run on server after touchinng any of the pyx files with "python setup.py build_ext --inplace"
 setup(
     ext_modules = cythonize([
         "commonroad/vehicleDynamics_MB.pyx",

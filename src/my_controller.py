@@ -1,10 +1,14 @@
 # driver controller
 import logging
-from src.car import car
-from src.car_command import car_command
+from typing import Tuple
+
 import numpy as np
 
 logger = logging.getLogger(__name__)
+from src.car import car
+from src.car_command import car_command
+from src.user_input import user_input
+
 
 
 class my_controller:
@@ -21,14 +25,15 @@ class my_controller:
         Then, the user should implement a controller that generate a new car command to apply to the car
         """
         self.car = my_car
-        self.car_command = car_command()
+        self.car_command:car_command = car_command()
+        self.user_input:user_input = user_input()
 
         self.angle = 0
 
         self.factor_angle = 0.01
         self.factor_distance = 0.01
 
-    def read(self):
+    def read(self) -> Tuple[car_command,user_input]:
 
         self.car_command = car_command()
         '''computes the control and returns it as a standard keyboard/joystick command'''
@@ -54,5 +59,5 @@ class my_controller:
         if self.car.car_state.speed_m_per_sec<12.0:
             self.car_command.throttle = 1.0
 
-        return self.car_command
+        return self.car_command, self.user_input
 

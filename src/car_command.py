@@ -9,9 +9,6 @@ class car_command:
         self.throttle=0  # bounded to 0-1 from 0 to maximum possible, acts on car longitudinal acceleration according to hidden car and its motor dynamics
         self.brake=0  # bounded from 0-1
         self.reverse=False # boolean reverse gear
-        self.reset_car=False # in debugging mode, restarts car at starting line
-        self.restart_client=False # abort current run (server went down?) and restart from scratch
-        self.quit=False # quit input from controller, mapped to ESC for keyboard and menu button for xbox controller
         self.autodrive_enabled = False # boolean activate or deactivate the autonomous driving, mapped to A key or Y Xbox controller button
 
     def __str__(self):
@@ -31,12 +28,6 @@ class car_command:
             self.brake=0  # bounded from 0-1
         if self.reverse is None:
             self.reverse=False # boolean reverse gear
-        if self.reset_car is None:
-            self.reset_car=False # in debugging mode, restarts car at starting line
-        if self.restart_client is None:
-            self.restart_client=False # abort current run (server went down?) and restart from scratch
-        if self.quit is None:
-            self.quit=False # quit input from controller, mapped to ESC for keyboard and menu button for xbox controller
         if self.autodrive_enabled is None:
             self.autodrive_enabled = False # activate or deactivate the autonomous driving, mapped to A key or Y Xbox controller button
 
@@ -50,12 +41,6 @@ class car_command:
             self.brake=command.brake  # bounded from 0-1
         if self.reverse is None:
             self.reverse=command.reverse # boolean reverse gear
-        if self.reset_car is None:
-            self.reset_car=command.reset_car # in debugging mode, restarts car at starting line
-        if self.restart_client is None:
-            self.restart_client=command.restart_client # abort current run (server went down?) and restart from scratch
-        if self.quit is None:
-            self.quit=command.quit # quit input from controller, mapped to ESC for keyboard and menu button for xbox controller
         if self.autodrive_enabled is None:
             self.autodrive_enabled = command.autodrive_enabled # activate or deactivate the autonomous driving, mapped to A key or Y Xbox controller button
 

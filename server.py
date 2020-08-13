@@ -227,6 +227,8 @@ class track_server_process(mp.Process):
             self.send_states(client)
         elif msg == 'send_states':
             self.send_states(client)
+        elif msg == 'restart_car':
+             self.restart_car(client, payload)
         elif msg == 'remove_car':
             car_model = self.car_dict.get(client)
             if not car_model is None:
@@ -286,6 +288,18 @@ class track_server_process(mp.Process):
             self.add_spectator_to_track(client_addr)
         else:
             raise RuntimeWarning('unknown cmd {}'.format(cmd))
+
+    def restart_car(self, client,message):
+        model=self.car_dict.get(client)
+        if model:
+            name=model.car_state.static_info.name
+            logger.info('got request from client {} to restart its car named {} on track {} with message'
+                        .format(client, name, self.track_name,message))
+            model.restart()
+        else:
+            logger.warning('request to restart car from client {} has no car model')
+            return
+
 
 
 if __name__ == '__main__':
