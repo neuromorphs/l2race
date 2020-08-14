@@ -29,7 +29,7 @@ from commonroad.init_MB import init_MB
 from commonroad.vehicleDynamics_KS import vehicleDynamics_KS  # kinematic single track, no slip
 from commonroad.vehicleDynamics_ST import vehicleDynamics_ST  # single track bicycle with slip
 from commonroad.vehicleDynamics_MB import vehicleDynamics_MB  # fancy multibody model
-from commonroad.vehicleDynamics_ST import KS_TO_ST_SPEED_M_PER_SEC
+
 
 LOGGING_INTERVAL_CYCLES = 0  # 0 to disable # 1000 # log output only this often
 MODEL = vehicleDynamics_ST  # vehicleDynamics_KS vehicleDynamics_ST vehicleDynamics_MB
