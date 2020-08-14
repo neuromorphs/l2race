@@ -1,7 +1,6 @@
 # arguments for l2race client and server
 import os
 
-import src.car_model
 from src.globals import *
 import logging
 

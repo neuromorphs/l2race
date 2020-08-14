@@ -3,11 +3,11 @@
 import logging
 from math import sin, radians, degrees, cos, copysign
 from typing import Tuple
-
-import numpy as np
 from scipy.integrate import RK23, RK45, LSODA, BDF, DOP853
+from timeit import default_timer as timer
+import random
+import numpy as np
 
-from src.car_command import car_command
 from src.car_state import car_state
 from src.globals import *
 from src.l2race_utils import my_logger
@@ -29,10 +29,7 @@ from commonroad.init_MB import init_MB
 from commonroad.vehicleDynamics_KS import vehicleDynamics_KS  # kinematic single track, no slip
 from commonroad.vehicleDynamics_ST import vehicleDynamics_ST  # single track bicycle with slip
 from commonroad.vehicleDynamics_MB import vehicleDynamics_MB  # fancy multibody model
-from timeit import default_timer as timer
-
-import random
-import numpy as np
+from commonroad.vehicleDynamics_ST import KS_TO_ST_SPEED_M_PER_SEC
 
 LOGGING_INTERVAL_CYCLES = 0  # 0 to disable # 1000 # log output only this often
 MODEL = vehicleDynamics_ST  # vehicleDynamics_KS vehicleDynamics_ST vehicleDynamics_MB
@@ -78,7 +75,7 @@ class car_model:
         x_start, y_start = self.choose_initial_position()
 
         # Create car_state object - object keeping all the information user can access
-        self.car_state = car_state(x=x_start, y=y_start, body_angle_deg=self.track.start_angle,
+        self.car_state:car_state = car_state(x=x_start, y=y_start, body_angle_deg=self.track.start_angle,
                                    name=car_name, client_ip=client_ip)
 
         # Variables passed_anti_cheat_rect, round_num serves monitoring the completed rounds by the car
@@ -157,7 +154,7 @@ class car_model:
         command = self.car_state.command
 
         # If client wants to reset the car, reset the car
-        if command.reset_car: self.reset()
+        # if command.reset_car: self.reset()  # handled by "restart_car" command to server now
 
         # Go from driver input to commanded steering and acceleration
         accel, steer_vel_rad_per_sec = self.external_to_model_input(command)
@@ -285,9 +282,15 @@ class car_model:
             steerVel = 0
         return steerVel
 
-    def reset(self):
-        logger.info('resetting car')
-        self.__init__(self.track)
+    def car_name(self):
+        if self.car_state:
+            return self.car_state.static_info.name
+        else:
+            return None
+
+    def restart(self):
+        logger.info('restarting car named {}'.format(self.car_name()))
+        self.__init__(track=self.track,car_name=self.car_name(),client_ip=self.car_state.static_info.client_ip)
 
     def external_to_model_input(self, command):
         # Compute commanded longitudinal acceleration from throttle and brake input
@@ -318,20 +321,15 @@ class car_model:
         return accel
 
     # We impose additional constrains on the speed of a car
-    # These constrains prevent car from accelerating through breaking
-    # and prevent instability when the velocity gets to negative TODO: find better solution for this last point
+    # These constrains prevent car from accelerating through braking
+    # and prevent instability when the velocity gets too negative TODO: find better solution for this last point
     def constrain_speed(self, command):
-        if not command.reverse:
-            # Forward
-            if self.model_state[ISPEED] < 0:
-                self.model_state[ISPEED] = 0
-
-        else:
+        if command.reverse:
             # Backward
-            if self.model_state[ISPEED] > 0:
-                self.model_state[ISPEED] = 0
-            if self.model_state[ISPEED] < -2.0:  # TODO: That is only temporary workaround
-                self.model_state[ISPEED] = 2.0
+            if self.model_state[ISPEED] > KS_TO_ST_SPEED_M_PER_SEC: # moving forward too fast and try to go in reverse, then set throttle to zero
+                command.throttle=0
+            if self.model_state[ISPEED] < -KS_TO_ST_SPEED_M_PER_SEC:  # TODO: That is only temporary workaround
+                self.model_state[ISPEED] = -KS_TO_ST_SPEED_M_PER_SEC
 
     # Car will experience big friction and slowdown if it is in sand region
     def sand_deceleration(self):

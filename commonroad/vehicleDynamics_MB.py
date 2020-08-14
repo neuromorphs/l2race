@@ -1,5 +1,6 @@
 import logging
 
+from src.globals import KS_TO_ST_SPEED_M_PER_SEC
 from .steeringConstraints import steeringConstraints
 from .accelerationConstraints import accelerationConstraints
 from .vehicleDynamics_KS import vehicleDynamics_KS
@@ -11,8 +12,6 @@ from typing import *
 from src.l2race_utils import my_logger
 logger = my_logger(__name__)
 logger.setLevel(logging.DEBUG)
-
-KS_SWITCH_SPEED=0.25
 
 import cython
 if cython.compiled:
@@ -57,7 +56,7 @@ def vehicleDynamics_MB(x,uInit,p):
     #x1 = x-position in a global coordinate system
     #x2 = y-position in a global coordinate system
     #x3 = steering angle of front wheels
-    #x4 = velocity in x-direction
+    #x4 = velocity scalar along body (positive forward)
     #x5 = yaw angle
     #x6 = yaw rate
 
@@ -100,7 +99,7 @@ def vehicleDynamics_MB(x,uInit,p):
 
     #compute slip angle at cg
     #switch to kinematic model for small velocities
-    if abs(x[3]) < KS_SWITCH_SPEED:
+    if abs(x[3]) < KS_TO_ST_SPEED_M_PER_SEC:
         beta = 0
     else:
         beta = math.atan(x[10]/x[3]) 

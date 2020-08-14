@@ -1,10 +1,9 @@
 import math
+
+from src.globals import KS_TO_ST_SPEED_M_PER_SEC
 from .steeringConstraints import steeringConstraints
 from .accelerationConstraints import accelerationConstraints
 from .vehicleDynamics_KS import vehicleDynamics_KS
-
-KS_TO_ST_SPEED_M_PER_SEC=2.0
-
 
 def friction_steering_constraint(acceleration, yaw_rate, steering_velocity, velocity, steering_angle, p):
     ''' Moritz Klischat: limits the steering angle based on the current velocity and/or acceleration input. Then it should at least not be possible to turn at any speed
@@ -74,7 +73,7 @@ def vehicleDynamics_ST(x,uInit,p):
     #x1 = x-position in a global coordinate system
     #x2 = y-position in a global coordinate system
     #x3 = steering angle of front wheels
-    #x4 = velocity in x-direction
+    #x4 = velocity scalar along body (positive forward)
     #x5 = yaw angle
     #x6 = yaw rate
     #x7 = slip angle at vehicle center
@@ -85,14 +84,13 @@ def vehicleDynamics_ST(x,uInit,p):
     #consider steering constraints
     u = [
         steeringConstraints(x[2],uInit[0],p.steering),
-        # accelerationConstraints(x[3],uInit[1],p.longitudinal)
         accelerationConstraints(x[3],uInit[1],p.longitudinal)
     ]
 
     u[0] = friction_steering_constraint(u[1], x[5], u[0], x[3], x[4], p)
 
     # switch to kinematic model for small velocities
-    if abs(x[3]) < 2.0: # tobi added for reverse gear and increased to 1m/s to reduce numerical instability at low speed by /speed - hint from matthias
+    if x[3] < KS_TO_ST_SPEED_M_PER_SEC: # tobi added for reverse gear and increased to 1m/s to reduce numerical instability at low speed by /speed - hint from matthias
         #wheelbase
         lwb = p.a + p.b
         
