@@ -17,11 +17,24 @@ logger = my_logger(__name__)
 
 class car:
     """
-    Local model of car. It has CarState() that is updated by remote server, and methods for drawing car and other static information related to car that is not transmitted over socket.
+    Local model of car. It has car_state() that is updated by remote server, and methods for drawing car and other static information related to car that is not transmitted over socket.
     """
 
-    def __init__(self,name=CAR_NAME, image_name='car_1', screen:pygame.surface=None, client_ip:Tuple[str,int]=None):
+    def __init__(self, name=CAR_NAME,
+                 image_name='car_1',
+                 track:Optional[track]=None,
+                 screen:pygame.surface=None,
+                 client_ip:Tuple[str,int]=None):
+        ''' Constructs a new car.
+
+        :param name - the car name
+        :param image_name - the image name, without trailing .png
+        :param track - existing track() instance
+        :param screen - the pygame drawing surface
+        :param client_ip - our IP address
+        '''
         self.car_state = car_state(name=name, client_ip=client_ip)
+
         self.track=track
         self.image_name = image_name
         self.image=self.loadAndScaleCarImage(image_name, screen)
@@ -55,21 +68,19 @@ class car:
         str_pos1=str_orig-str_vec
         str_pos2=str_orig+str_vec
         pygame.draw.line(screen, [50,250,250],str_pos1/M_PER_PIXEL, str_pos2/M_PER_PIXEL,2)
-        self.draw_other_cars(screen)
 
-    def draw_other_cars(self, screen:pygame.surface):
-        for s in self.car_state.other_car_states:
-            self.draw_other_car(screen,s)
-
-    def draw_other_car(self, screen:pygame.surface, state:car_state):
-        if self.other_cars_image is None:
-            self.other_cars_image=self.loadAndScaleCarImage('other_car',screen)
-
-        rotated = pygame.transform.rotate(self.other_cars_image, -state.body_angle_deg)
-        rect = rotated.get_rect()
-        screen.blit(rotated, ((state.position_m/M_PER_PIXEL) - (int(rect.width / 2), int(rect.height / 2))))
-        # label name
-        self.game_font.render_to(screen, (state.position_m.x/M_PER_PIXEL, state.position_m.y/M_PER_PIXEL), state.static_info.name, [200,200,200]),
+        # other cars are drawn by client now using its list of spectate_cars
+    #     self.draw_other_cars(screen)
+    #
+    # def draw_other_car(self, screen:pygame.surface, state:car_state):
+    #     if self.other_cars_image is None:
+    #         self.other_cars_image=self.loadAndScaleCarImage('other_car',screen)
+    #
+    #     rotated = pygame.transform.rotate(self.other_cars_image, -state.body_angle_deg)
+    #     rect = rotated.get_rect()
+    #     screen.blit(rotated, ((state.position_m/M_PER_PIXEL) - (int(rect.width / 2), int(rect.height / 2))))
+    #     # label name
+    #     self.game_font.render_to(screen, (state.position_m.x/M_PER_PIXEL, state.position_m.y/M_PER_PIXEL), state.static_info.name, [200,200,200]),
 
 
 
@@ -82,7 +93,7 @@ class car:
 
         """
         if image_name.endswith('.png'):
-            logger.warning('supply car image name {} without .png suffix'.format(image_name))
+            logger.info('you can supply car image name {} without .png suffix'.format(image_name))
             image_name=image_name[:-4]
         current_dir = os.path.dirname(os.path.abspath(__file__))
         image_path = os.path.join(current_dir, "../media/" + image_name + ".png")

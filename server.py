@@ -151,18 +151,7 @@ class track_server_process(mp.Process):
             for model in self.car_dict.values():
                 # put copy of each state in list but strip off the contained list of other car states
                 model_copy: car_state = copy.copy(model.car_state)
-                model_copy.other_car_states = []  # empty List
                 self.car_states_list.append(model_copy)
-
-            # keep self.car_states_list to send to spectators, but from it,
-            # for each car, fill its car_state.other_car_states with the self.car_states_list but with its own
-            # state removed, i.e., the list for each car contains only the other cars
-            for s in self.car_states_list:  # for each car_state
-                s.other_car_states.clear()  # clear the car's list of other states
-                for s2 in self.car_states_list:  # again for each car_state
-                    if not s2 == s:  # if current state is not the one we are filling
-                        s.other_car_states.append(s2)  # put the other car in it.
-            # now we have self.car_states list with empty other cars, and each car_state has the list of other cars
 
             # process incoming UDP messages from clients, e.g. to update command
             while True:

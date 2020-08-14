@@ -42,6 +42,7 @@ import re
 from time import sleep
 
 logger = my_logger(__name__)
+# logger.setLevel(logging.DEBUG) # uncomment to debug
 
 def get_args():
     parser = argparse.ArgumentParser(
@@ -132,7 +133,7 @@ class client:
         #     self.controller = controller
 
         # spectator data structures
-        self.spectate_track:Optional[track] = None # used here for track when there is no car, otherwise track is part of the car object.
+        self.track_instance:track=track(track_name=self.track_name)
         self.spectate_cars:Dict[str,car]=dict() # dict of other cars on the track, by name of the car. Each entry is a car() that we make here.
         self.autodrive_controller = controller  # automatic self driving controller specified in constructor
 
@@ -231,13 +232,12 @@ class client:
                      'will try again in {}s ...[{}]'.format(err, self.serverStartAddr, SERVER_PING_INTERVAL_S, ntries)
                 logger.warning(err_str)
                 continue
-
+            port=int(payload)
             self.gotServer = True
-            self.gameSockAddr=(self.server_host, payload)
+            self.gameSockAddr:Tuple[str,int]=(self.server_host, port)
             logger.info('got game_port message from server telling us to use address {} to talk with server'.format(self.gameSockAddr))
             if not self.spectate:
-                self.car = car(name=self.car_name, screen=self.screen, client_ip=self.gameSockAddr)
-                self.car.track = track(track_name=self.track_name)
+                self.car = car(name=self.car_name,  track=self.track_instance, screen=self.screen, client_ip=self.gameSockAddr)
                 if self.record:
                     if self.recorder is None:
                         self.recorder = data_recorder(car=self.car)
@@ -245,8 +245,6 @@ class client:
                 # self.car.loadAndScaleCarImage()   # happens inside car
                 self.autodrive_controller.car =self.car
                 logger.info('initial car state is {}'.format(self.car.car_state))
-            else:
-                self.spectate_track=track(track_name=self.track_name)
 
     def run(self):
 
@@ -385,34 +383,34 @@ class client:
         """remove the data present on the socket. From https://stackoverflow.com/questions/1097974/how-to-empty-a-socket-in-python """
         logger.debug('draining existing received UDP messages')
         input = [self.sock]
-        while True:
-            inputready, o, e = select.select(input,[],[], 0.0)
-            if len(inputready)==0: break
-            for s in inputready: s.recv(8192)
+        try:
+            while True:
+                inputready, o, e = select.select(input,[],[], 0.0)
+                if len(inputready)==0: break
+                for s in inputready: s.recv(8192)
+        except Exception as e:
+            logger.warning('caught {} when draining received UDP port messaages'.format(e))
 
     def draw(self):
-        if not self.spectate:
-            self.draw_car_view()
-        else:
-            self.draw_spectate_view()
-
+        self.track_instance.draw(self.screen)
+        self.draw_other_cars()
         self.draw_server_message()
+        self.draw_own_car()
         pygame.display.flip()
 
-    def draw_car_view(self):
-        if self.car is None:
-            logger.warning('car is None')
-            return
-        self.car.track.draw(self.screen)
-        self.car.draw(self.screen)
-        self.render_multi_line(str(self.car.car_state), 10, 10)
 
-    def draw_spectate_view(self):
-        self.spectate_track.draw(self.screen)
+    def draw_own_car(self):
+        if self.car:
+            self.car.draw(self.screen)
+            self.render_multi_line(str(self.car.car_state), 10, 10)
+
+    def draw_other_cars(self):
+        ''' Draws all the others'''
         for c in self.spectate_cars.values():
             c.draw(self.screen)
 
     def draw_server_message(self):
+        ''' Draws message from server, if any '''
         if self.server_message is None:
             return
         if time.time()-self.last_server_message_time>10:
@@ -425,18 +423,34 @@ class client:
         self.render_multi_line(str(self.server_message), 10, SCREEN_HEIGHT_PIXELS-50, color=color)
 
     def update_state(self, all_states:List[car_state]):
-        to_remove=[]
+        # # make a list of all the cars in our list of spectate_cars
+        # plus our own car that are not in the state list we just got
+        current_state_car_names=[]
         for s in all_states:
-            pass # todo remove cars that have disappeared from the list of other car states.
+            current_state_car_names.append(s.static_info.name)
+        dict_car_names=[]
+        for s in self.spectate_cars.keys():
+            dict_car_names.append(s)
+        if self.car:
+            dict_car_names.append(self.car.car_state.static_info.name)
+        to_remove=[x for x in dict_car_names if x not in current_state_car_names]
+        for r in to_remove:
+            del self.spectate_cars[r]
         for s in all_states:
             name=s.static_info.name # get the car name from the remote state
             if name==self.car_name:
                 self.car.car_state=s # update our own state
+                continue # don't add ourselves to list of other (spectator) cars
             # update other cars on the track
             c=self.spectate_cars.get(name) # get the car
             if c is None: # if it doesn't exist, construct it
-                self.spectate_cars[name]=car(name=name,image_name='other_car.png', client_ip=s.static_info.client_ip)
+                self.spectate_cars[name]=car(name=name,
+                                             image_name='other_car.png',
+                                             track=self.track_instance,
+                                             client_ip=s.static_info.client_ip,
+                                             screen=self.screen)
             self.spectate_cars[name].car_state=s # set its state
+        # logger.debug('After update, have own car {} and other cars {}'.format(self.car.car_state.static_info.name if self.car else 'None', self.spectate_cars.keys()))
 
     def handle_message(self, msg, payload):
         if msg=='state':
@@ -492,8 +506,7 @@ class client:
         # print(data.head())
 
         # Define car and track
-        self.car = car(name=self.car_name, screen=self.screen)
-        self.car.track = track(track_name=self.track_name)
+        self.car = car(name=self.car_name, track_name=self.track_name, screen=self.screen) # todo check if we can reuse the track object, since this will make many instances currently
 
         # decimate data
         data = data.iloc[::4, :]

@@ -56,8 +56,6 @@ class car_state:
 
         self.time_results = []
 
-        self.other_car_states: List[car_state] = list()  # TODO since we are now sending each client the complete state, this list not used list of other car_state for other cars
-
         self.server_msg='' # message from server to be displayed to driver
 
     def __str__(self):
