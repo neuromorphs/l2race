@@ -96,7 +96,7 @@ class car:
             logger.info('you can supply car image name {} without .png suffix'.format(image_name))
             image_name=image_name[:-4]
         current_dir = os.path.dirname(os.path.abspath(__file__))
-        image_path = os.path.join(current_dir, "../media/" + image_name + ".png")
+        image_path = os.path.join(current_dir, "../media/cars" + image_name + ".png")
         if isinstance(screen,pygame.Surface):
             image = pygame.image.load(image_path).convert_alpha(screen)  # load image of car
         else:

@@ -4,7 +4,7 @@ Simulation of racecar from eye of god view. User algorithms must learn from only
 
 The key points are to learn a controller from limited 'real world' data and to use it for optimal control.
 
-![aminated gif](media/SampleRun_2020-07-25_075130_2.gif)
+![aminated gif](media/videos/SampleRun_2020-07-25_075130_2.gif)
 
  - [L2RACE challenge page](https://sites.google.com/view/telluride2020/challenges/l2race?authuser=0) on workshop site
  - The [L2RACE google driver folder](https://drive.google.com/drive/folders/1IJmfvKY2n24PQTGxc9Ek4ApufMVISC1C?usp=sharing).

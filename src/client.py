@@ -445,7 +445,7 @@ class client:
             c=self.spectate_cars.get(name) # get the car
             if c is None: # if it doesn't exist, construct it
                 self.spectate_cars[name]=car(name=name,
-                                             image_name='other_car.png',
+                                             image_name='car_other.png',
                                              track=self.track_instance,
                                              client_ip=s.static_info.client_ip,
                                              screen=self.screen)
