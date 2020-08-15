@@ -2,26 +2,21 @@
 Client l2race agent
 
 """
-import argparse
-import os
 from typing import Tuple, List, Optional, Dict
-
+import argparse
 import argcomplete as argcomplete
-import pygame
-from math import sin, radians, degrees, copysign
-
 import select
 from pygame.math import Vector2
-import logging
-import socket, pickle
 import pygame.freetype  # Import the freetype module.
-
 import pickle
 import socket
 import time
+from time import sleep
 import pygame
 import sys
 import atexit
+import pandas as pd
+import re
 
 from src.car_state import car_state
 from src.data_recorder import data_recorder
@@ -34,12 +29,7 @@ from src.car import car
 from src.my_args import client_args, write_args_info
 from src.l2race_utils import my_logger
 from src.pid_next_waypoint_car_controller import pid_next_waypoint_car_controller
-from src.car_command import car_command
 
-import numpy as np
-import pandas as pd
-import re
-from time import sleep
 
 logger = my_logger(__name__)
 # logger.setLevel(logging.DEBUG) # uncomment to debug
@@ -158,6 +148,7 @@ class client:
     def ping_server(self):
         logger.info('pinging server at {}'.format(self.serverStartAddr))
         self.drain_udp_messages()
+        t=time.time()
         self.send_to_server(self.serverStartAddr,'ping',None)
         try:
             (msg,payload)=self.receive_from_server(blocking=True)
@@ -174,7 +165,8 @@ class client:
             logger.warning('wrong response {} received for ping'.format(msg))
             return False
         else:
-            logger.info('pong received')
+            dt=time.time()-t
+            logger.info('pong received with latency {:.1f}ms'.format(dt*1000))
             return True
 
     def connect_to_server(self):
