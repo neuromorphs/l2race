@@ -34,7 +34,7 @@ def client_args(parser):
         car_name=CAR_NAME
 
     clientTrackCarMode = parser.add_argument_group('Track car/spectate options:')
-    clientTrackCarMode.add_argument("--track_name", type=str, default=TRACK_NAME, help="Name of track. Available tracks are in the 'media/tracks' folder. Available tracks are "+str(list_tracks()))
+    clientTrackCarMode.add_argument("--track_name", type=str, default=TRACK_NAME, choices=list_tracks(), help="Name of track. Available tracks are in the '{}' folder, defined by src.globals.TRACKS_FOLDER.".format(TRACKS_FOLDER))
     clientTrackCarMode.add_argument("--car_name", type=str, default=car_name, help="Name of this car (last 2 letters are randomly chosen each time).")
     clientTrackCarMode.add_argument("--spectate", action='store_true', help="Just be a spectator on the cars on the track.")
 

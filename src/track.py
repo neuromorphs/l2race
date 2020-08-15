@@ -7,7 +7,7 @@ import logging
 import cmath
 import numpy as np
 from svgpathtools import svg2paths
-from src.globals import SCREEN_WIDTH_PIXELS, SCREEN_HEIGHT_PIXELS, M_PER_PIXEL
+from src.globals import SCREEN_WIDTH_PIXELS, SCREEN_HEIGHT_PIXELS, M_PER_PIXEL, TRACKS_FOLDER
 from timeit import default_timer as timer
 
 logger = logging.getLogger(__name__)
@@ -49,7 +49,7 @@ def closest_node(x, y, x_vector, y_vector):
 
 
 class track:
-    def __init__(self, track_name='track', media_folder_path='./media/tracks/'):
+    def __init__(self, track_name='track', media_folder_path=TRACKS_FOLDER):
         self.name = track_name
         self.track_image = pygame.image.load(media_folder_path + track_name + '.png')
         self.track_map = np.load(media_folder_path + track_name + '_map.npy')
