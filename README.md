@@ -2,9 +2,9 @@
  
 Simulation of racecar from eye of god view. User algorithms must learn from only real time data to drive the car as quickly as possible around the track. Data can be collected by human driving or by developing a basic controller and using it to bootstrap more powerful controllers.
 
-The key points are to learn a controller from limited 'real world' data and to use it for optimal control.
+The key aims are to learn a controller from limited 'real world' data and to use it for optimal control.
 
-![aminated gif](media/videos/SampleRun_2020-07-25_075130_2.gif)
+![aminated gif](media/videos/first_2_car_race_marcin_chang_1.gif)
 
  - [L2RACE challenge page](https://sites.google.com/view/telluride2020/challenges/l2race?authuser=0) on workshop site
  - The [L2RACE google driver folder](https://drive.google.com/drive/folders/1IJmfvKY2n24PQTGxc9Ek4ApufMVISC1C?usp=sharing).
@@ -16,10 +16,12 @@ The key points are to learn a controller from limited 'real world' data and to u
  - Windows, linux, macOS all seem to work
  - anaconda or miniconda https://www.anaconda.com/products/individual
  - Use Python 3.7.x (for pygame 2.0, using prebuilt python wheel archive)
- - We use pycharm for development, which includes some useful launchers to start local server, client, client to our remote model server.
+ - We use pycharm for development, which includes some useful launchers to start local server, client, client to our remote model server. https://www.jetbrains.com/pycharm/download . You can use the community edition.
 
-Conda is your friend! Make a new environment to work in l2race.
-You can install the requirements in this environment using its own pip.
+
+## Setup
+Conda is your friend! Make a new environment called l2race to work in l2race and do everything in that environment!
+
 You can try to build the entire conda env l2race using
 
 ```shell script
@@ -37,7 +39,8 @@ Activate it:
 ```shell script
 conda activate l2race
 ```
-Make sure you are using the conda pip in your conda environment:
+You can install the requirements in this environment using its own pip.
+ Make sure you are using the conda pip in your conda environment:
 ```shell script
 where pip
 C:\Users\tobid\anaconda3\envs\l2race\Scripts\pip.exe
@@ -59,6 +62,12 @@ _requirements.txt_ was built automatically using https://stackoverflow.com/quest
 pip install pipreqs
 pipreqs --force .
 ```
+
+## pycharm
+You should be able to open l2race project from pycharm directly, since l2race includes the jetbrains/pycharm .idea folder.
+Once in pycharm, if you have already setup the l2race conda environment, then pycharm should find it. If not, set up the conda enviroment in pycharm using Project settings/Project interpreter and point to your l2race conda environment:
+
+![pycharm setup](media/pycharm_env.png)
 
 # Running l2race
 
