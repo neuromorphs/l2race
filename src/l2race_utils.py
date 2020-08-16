@@ -237,6 +237,19 @@ def video_writer(output_path, height, width, frame_rate=30):
             width, height))
     return out
 
+def get_local_ip_address(): # https://stackoverflow.com/questions/166506/finding-local-ip-addresses-using-pythons-stdlib
+    import socket
+    s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+    try:
+        # doesn't even have to be reachable
+        s.connect(('10.255.255.255', 1))
+        IP = s.getsockname()[0]
+    except Exception:
+        IP = '127.0.0.1'
+    finally:
+        s.close()
+    return IP
+
 def open_ports():
     import upnpy
     logger.info('Attempting to open necessary UDP ports with upnpy version {} (https://github.com/5kyc0d3r/upnpy, https://upnpy.readthedocs.io/en/latest/)'.format(upnpy.__version__))
@@ -245,8 +258,16 @@ def open_ports():
 
     # Discover UPnP devices on the network
     # Returns a list of devices e.g.: [Device <Broadcom ADSL Router>]
-    devices = upnp.discover()
-    logger.debug('found IGD devices list {}'.format(devices))
+    devices=None
+    tries=5
+    for t in range(tries):
+        try:
+            devices = upnp.discover(delay=2)
+            logger.debug('found IGD devices list {}'.format(devices))
+            break
+        except Exception as e:
+            logger.warning('(Try {} of {}): exception "{}" trying to discover IGD'.format(t, tries, e))
+            sleep(.5)
 
     # Select the IGD
     # alternatively you can select the device directly from the list
@@ -265,9 +286,15 @@ def open_ports():
     # If the service ID didn't contain illegal values we could access it via an attribute like this:
     # service = device.WANPPPConnection
 
-    # We will access it like a dictionary instead:
-    service = device['WANPPPConnection']
-    logger.debug('found WANPPPConnection service {}'.format(service))
+    service=None
+    for s in services:
+        if s.type_=='WANIPConnection':
+            service=s
+            logger.debug('found WANPPPConnection service {}'.format(service))
+            break
+
+    if service is None:
+        raise RuntimeError('Could not find service WANIPConnecton in UPnP router device {}'.format(device))
 
     # Get the actions available for the service
     # Returns a list of actions for the service:
@@ -339,6 +366,9 @@ def open_ports():
     # service.AddPortMapping.get_input_arguments()
     logger.debug('adding port mappings for CLIENT_PORT_RANGE {}'.format(CLIENT_PORT_RANGE))
 
+    my_ip=get_local_ip_address()
+    logger.debug('Determined our own IP address is {}'.format(my_ip))
+
     s = CLIENT_PORT_RANGE.split('-')
     if len(s) != 2:
         raise RuntimeError(
@@ -350,13 +380,13 @@ def open_ports():
             # Finally, add the new port mapping to the IGD
             # This specific action returns an empty dict: {}
             service.AddPortMapping(
-                NewRemoteHost='',
+                NewRemoteHost=[],
                 NewExternalPort=p,
                 NewProtocol='UDP',
                 NewInternalPort=p,
-                NewInternalClient='0.0.0.0',
+                NewInternalClient=my_ip,
                 NewEnabled=1,
-                NewPortMappingDescription='l2race mapping.',
+                NewPortMappingDescription='l2race client mapping',
                 NewLeaseDuration=3600
             )
         except Exception as e:
