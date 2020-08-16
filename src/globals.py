@@ -57,7 +57,8 @@ TRACKS_FOLDER='./media/tracks/' # location of tracks relative to root of l2race
 # DO NOT CHANGE THESE VALUES
 #########################
 # DO NOT CHANGE UNLESS they are also changed on model server
-# define screen area, track is scaled to fill this area, note 4:3 aspect ratio
+# Define screen area, track is scaled to fill this area, note 4:3 aspect ratio
+# Track information must also be generated at this size so client cannot change the values easily.
 SCREEN_WIDTH_PIXELS=1024 #  pixels
 SCREEN_HEIGHT_PIXELS= 768 # pixels
 # meters per screen pixel, e.g. 4m car would be 40 pixels, so about 4% of width
