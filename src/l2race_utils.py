@@ -7,7 +7,7 @@ from timeit import default_timer as timer
 from time import sleep as sleep
 
 
-from src.globals import CLIENT_PORT_RANGE
+from src.globals import CLIENT_PORT_RANGE, ENABLE_UPNP, UPNP_LEASE_TIME
 
 # customized logger with color output
 import logging
@@ -251,6 +251,14 @@ def get_local_ip_address(): # https://stackoverflow.com/questions/166506/finding
     return IP
 
 def open_ports():
+    '''
+    Enables port forwarding to our local machine through a router that supports UPnP protocol.
+    The ports in CLIENT_PORT_RANGE are tunneled to local ports through the router if it supports it.
+    '''
+
+    if not ENABLE_UPNP:
+        logger.info('ENABLE_UPNP=False in globals.py so not attempting to forward ports in CLIENT_PORT_RANGE')
+        return
     import upnpy
     logger.info('Attempting to open necessary UDP ports with upnpy version {} (https://github.com/5kyc0d3r/upnpy, https://upnpy.readthedocs.io/en/latest/)'.format(upnpy.__version__))
     logger.setLevel(logging.DEBUG)
@@ -387,7 +395,7 @@ def open_ports():
                 NewInternalClient=my_ip,
                 NewEnabled=1,
                 NewPortMappingDescription='l2race client mapping',
-                NewLeaseDuration=3600
+                NewLeaseDuration=UPNP_LEASE_TIME
             )
         except Exception as e:
             logger.warning('could not open port {}; caught "{}"'.format(p,e))

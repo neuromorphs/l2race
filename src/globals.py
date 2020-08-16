@@ -14,6 +14,8 @@ G=scipy.constants.value('standard acceleration of gravity')
 SERVER_HOST='localhost'
 SERVER_PING_INTERVAL_S=1 # interval between trying for server
 SERVER_TIMEOUT_SEC = 1 # timeout in seconds for UDP socket reads during game running
+ENABLE_UPNP=False # set True to try unpnp to forward CLIENT_PORT_RANGE ports to local machine
+UPNP_LEASE_TIME=1200 # the lease time for these ports in seconds
 
 # your autodrive controller module (i.e. folder) and class name, must be a class that has read method that returns the car_command() object
 AUTODRIVE_MODULE='src.pid_next_waypoint_car_controller'
