@@ -60,8 +60,8 @@ def launch_gui():
         ga()
     except:
         logger.info('Gooey GUI not available, using command line arguments. \n'
-                       'You can try to install with "pip install Gooey".\n'
-                    'Ignore this warning if you do not want a GUI.')
+                       'You can try to install with "pip install Gooey". '
+                    'Ignore this warning if you do not want a GUI launcher.')
 
 
 class client:
@@ -243,7 +243,7 @@ class client:
         try:
             open_ports()
         except Exception as ex:
-            logger.warning("Caught exception {} when trying to open l2race client ports".format(ex))
+            logger.warning("Caught exception '{}' when trying to open l2race client ports".format(ex))
 
         self.sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)  # UDP
         self.sock.settimeout(self.server_timeout_s)

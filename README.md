@@ -112,7 +112,7 @@ Windows button quits
 2020-08-09 19:07:31,335 - src.client - WARNING - Caught exception No IGD found. when trying to open l2race client ports (client.py:249)
 .....
 ```
-If you are using the remote server or a local server, the clienht should start running and you should see something like this:
+You can ignore the "No IGD found". It means that upnp library (http://miniupnp.free.fr/) could not find an Internet Gateway Domain plug and play manager to open port. If you are using the remote server or a local server, the clienht should start running and you should see something like this:
 
 ![screenshot](media/oval_track_screenshot.png)
 

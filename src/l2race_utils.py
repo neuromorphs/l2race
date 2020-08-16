@@ -239,22 +239,26 @@ def video_writer(output_path, height, width, frame_rate=30):
 
 def open_ports():
     import upnpy
-
+    logger.info('Attempting to open necessary UDP ports with upnpy version {} (https://github.com/5kyc0d3r/upnpy, https://upnpy.readthedocs.io/en/latest/)'.format(upnpy.__version__))
+    logger.setLevel(logging.DEBUG)
     upnp = upnpy.UPnP()
 
     # Discover UPnP devices on the network
     # Returns a list of devices e.g.: [Device <Broadcom ADSL Router>]
     devices = upnp.discover()
+    logger.debug('found IGD devices list {}'.format(devices))
 
     # Select the IGD
     # alternatively you can select the device directly from the list
     # device = devices[0]
     device = upnp.get_igd()
+    logger.debug('selected device {}'.format(device))
 
     # Get the services available for this device
     # Returns a list of services available for the device
     # e.g.: [<Service (WANPPPConnection) id="WANPPPConnection.1">, ...]
-    device.get_services()
+    services= device.get_services()
+    logger.debug('found services {}'.format(services))
 
     # We can now access a specific service on the device by its ID
     # The IDs for the services in this case contain illegal values so we can't access it by an attribute
@@ -262,7 +266,8 @@ def open_ports():
     # service = device.WANPPPConnection
 
     # We will access it like a dictionary instead:
-    service = device['WANPPPConnection.1']
+    service = device['WANPPPConnection']
+    logger.debug('found WANPPPConnection service {}'.format(service))
 
     # Get the actions available for the service
     # Returns a list of actions for the service:
@@ -277,7 +282,8 @@ def open_ports():
     #   <Action name="AddPortMapping">,
     #   <Action name="DeletePortMapping">,
     #   <Action name="GetExternalIPAddress">]
-    service.get_actions()
+    actions=service.get_actions()
+    logger.debug('found actions {}'.format(actions))
 
     # The action we are looking for is the "AddPortMapping" action
     # Lets see what arguments the action accepts
@@ -330,15 +336,15 @@ def open_ports():
     #         "allowed_value_list": []
     #     }
     # ]
-    service.AddPortMapping.get_input_arguments()
+    # service.AddPortMapping.get_input_arguments()
+    logger.debug('adding port mappings for CLIENT_PORT_RANGE {}'.format(CLIENT_PORT_RANGE))
 
     s = CLIENT_PORT_RANGE.split('-')
     if len(s) != 2:
         raise RuntimeError(
-            'client port range {} should be of form start-end, e.g. 50100-50200'.format(portrange))
+            'port range {} should be of form start-end, e.g. 50100-50200'.format(CLIENT_PORT_RANGE))
     start_port = int(s[0])
     end_port = int(s[1])
-    isbound = False
     for p in range(start_port, end_port):
         try:
             # Finally, add the new port mapping to the IGD
@@ -353,8 +359,6 @@ def open_ports():
                 NewPortMappingDescription='l2race mapping.',
                 NewLeaseDuration=3600
             )
-        except:
-            logger.warning('could not open port {}'.format(p))
-    if not isbound:
-        raise RuntimeError('could not bind to any port in range {}'.format(CLIENT_PORT_RANGE))
+        except Exception as e:
+            logger.warning('could not open port {}; caught "{}"'.format(p,e))
 
