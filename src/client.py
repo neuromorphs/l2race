@@ -530,17 +530,17 @@ class client:
 
         # Get race recording
         logger.debug(file_path)
-        data = pd.read_csv(file_path, skiprows=7)
+        data = pd.read_csv(file_path, skiprows=9)
 
         # Get used car name
         s = str(pd.read_csv(file_path, skiprows=5, nrows=1))
-        self.car_name = re.search('"(.*)"', s).group(1)
-        logger.debug(self.car_name)
+        self.track_name = re.search('"(.*)"', s).group(1)
+        logger.debug(self.track_name)
 
         # Get used track
         s = str(pd.read_csv(file_path, skiprows=6, nrows=1))
-        self.track_name = re.search('"(.*)"', s).group(1)
-        logger.debug(self.track_name)
+        self.car_name = re.search('"(.*)"', s).group(1)
+        logger.debug(self.car_name)
 
         # print(file_path)
         # print(data.head())
