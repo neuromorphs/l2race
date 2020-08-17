@@ -304,20 +304,31 @@ class car_model:
 
     # Compute commanded longitudinal acceleration from throttle and brake input
     def acceleration_from_input(self, command):
+
+        # Get acceleration from breaks - its direction depends on car velocity
+        if self.model_state[ISPEED] > 0:
+            accel_break = - command.brake * self.brake_max
+        elif self.model_state[ISPEED] < 0:
+            accel_break = command.brake * self.brake_max
+        else:
+            accel_break = 0
+
+        if abs(self.model_state[ISPEED])<0.1:
+            accel_break = accel_break*abs(self.model_state[ISPEED])*10
+
+        # Get acceleration from throttle - it direction depends on forward/reverse gear
         if not command.reverse:
             # Forward
-            accel = command.throttle * self.accel_max - command.brake * self.brake_max  # TODO BS params, a_max=11.5m/s^2 is bigger than g
-            if self.model_state[ISPEED] <= 0:
-                if accel < 0:
-                    accel = 0
-
+            accel_throttle = command.throttle * self.accel_max  # TODO BS params, a_max=11.5m/s^2 is bigger than g
         else:
             # Backward
-            accel = command.throttle * self.accel_max * REVERSE_TO_FORWARD_GEAR - command.brake * self.brake_max
-            accel = -accel
-            if self.model_state[ISPEED] >= 0:
-                if accel > 0:
-                    accel = 0
+            if self.model_state[ISPEED] > KS_TO_ST_SPEED_M_PER_SEC:  # moving forward too fast and try to go in reverse, then set throttle to zero
+                command.throttle = 0
+            accel_throttle = -command.throttle * self.accel_max * REVERSE_TO_FORWARD_GEAR
+
+        # Some the two accelerations
+        accel = accel_break + accel_throttle
+
         return accel
 
     # We impose additional constrains on the speed of a car
@@ -326,8 +337,6 @@ class car_model:
     def constrain_speed(self, command):
         if command.reverse:
             # Backward
-            if self.model_state[ISPEED] > KS_TO_ST_SPEED_M_PER_SEC: # moving forward too fast and try to go in reverse, then set throttle to zero
-                command.throttle = 0
             if self.model_state[ISPEED] < -KS_TO_ST_SPEED_M_PER_SEC:  # TODO: That is only temporary workaround
                 self.model_state[ISPEED] = -KS_TO_ST_SPEED_M_PER_SEC
 
