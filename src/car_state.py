@@ -54,7 +54,7 @@ class car_state:
         self.command = car_command()
         self.command.complete_default()
 
-        self.time_results = []
+        self.time_results:List[float] = []
 
         self.server_msg='' # message from server to be displayed to driver
 
