@@ -13,7 +13,7 @@ from src.user_input import user_input
 
 class my_controller:
     """
-    car controller: gets state and provides control signal.
+    car my_controller: gets state and provides control signal.
     This reference implementation is a basic P controller that aims for the next waypoint.
 
     """
@@ -34,9 +34,13 @@ class my_controller:
         self.factor_distance = 0.01
 
     def read(self) -> Tuple[car_command,user_input]:
+        """
+        computes the control and returns it as a standard keyboard/joystick command
+
+        :returns: The (car_command, user_input) tuple, with user_input set to no input.
+        """
 
         self.car_command = car_command()
-        '''computes the control and returns it as a standard keyboard/joystick command'''
 
         segment_distance = self.car.track.get_distance_to_nearest_segment(car_state=self.car.car_state)
         segment_angle = self.car.track.get_current_angle_to_road(car_state=self.car.car_state)

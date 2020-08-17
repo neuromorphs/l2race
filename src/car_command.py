@@ -1,6 +1,9 @@
 # structure to hold driver control input
 class car_command:
-    """ Car control commands from software agent or human driver
+    """
+    Car control commands from software agent or human driver, i.e., the throttle, steering, and brake input.
+
+    Also includes reverse and autodrive_enabled boolean flags.
     """
 
     def __init__(self):
