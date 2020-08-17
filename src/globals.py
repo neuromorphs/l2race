@@ -69,7 +69,8 @@ M_PER_PIXEL=0.10 # 0.2 makes the cars really small on track. 0.1 makes them fill
 
 SERVER_PORT = 50000 # client starts game on this port on the SERVER_HOST
 CLIENT_PORT_RANGE='50010-50020' # range of ports used for client that server uses for game
-    # client needs to open this port range for receiving state from server and sending commands to server
+    # client needs to open/forward this port range for receiving state from server and sending commands to server
+    # The ENABLE_UPNP flag turns on automatic forwarding but it does not work with all routers.
 KILL_ZOMBIE_TRACK_TIMEOUT_S=10 # if track process gets no input for this long, it terminates itself
 FRICTION_FACTOR = .5 # overall friction parameter multiplier for some models
 SAND_SLOWDOWN = 0.975  # If in sand, at every update the resulting velocity is multiplied by the slowdown factor

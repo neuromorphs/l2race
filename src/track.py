@@ -184,7 +184,13 @@ class track:
         return d
 
     def car_completed_round(self, car_model):
-        #todo document params and return value code
+        """
+        Determines if car crossed starting line and completed laps
+
+        :param car_model: the car model
+
+        :returns: string: result to display
+        """
         s = None
         x_map = int(car_model.car_state.position_m.x / M_PER_PIXEL)
         y_map = int(car_model.car_state.position_m.y / M_PER_PIXEL)
@@ -199,20 +205,19 @@ class track:
                 current_time_car = car_model.time
                 car_model.car_state.time_results.append(current_time_car)
                 if car_model.round_num == 0:
-                    print('OOOOOOOOOOOOOOO')
-                    s = 'Start!'
-                    logger.info(s)
+                    s = 'Start! '
+                    logger.info('Car crossed start line and is starting lap at {}s ***************************************************'.format(car_model.time))
                 elif car_model.round_num == 1:
-                    s0 = 'Completed ' + str(car_model.round_num) + ' round!'
+                    s0 = 'Car completed lap number {} at {}'.format(str(car_model.round_num), car_model.time)
                     logger.info(s0)
-                    s1 = 'Your time in the last round was  {:.2f}s'\
+                    s1 = 'Your time in the last lap was  {:.2f}s'\
                         .format(current_time_car-car_model.car_state.time_results[car_model.round_num-1])
                     logger.info(s1)
                     s = s0 + '\n' + s1
                 else:
-                    s0 = 'Completed ' + str(car_model.round_num) + ' rounds!'
+                    s0 = 'Car completed lap number {} at {}'.format(str(car_model.round_num), car_model.time)
                     logger.info(s0)
-                    s1 = 'Your time in the last round was  {:.2f}s'\
+                    s1 = 'Your time in the last lap was  {:.2f}s'\
                         .format(current_time_car-car_model.car_state.time_results[car_model.round_num-1])
                     logger.info(s1)
                     s = s0 + '\n' + s1
