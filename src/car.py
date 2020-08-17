@@ -27,11 +27,11 @@ class car:
                  client_ip:Tuple[str,int]=None):
         ''' Constructs a new car.
 
-        :param name - the car name
-        :param image_name - the image name, without trailing .png
-        :param track - existing track() instance
-        :param screen - the pygame drawing surface
-        :param client_ip - our IP address
+        :param name: - the car name
+        :param image_name: - the image name, without trailing .png
+        :param track: - existing track() instance
+        :param screen: - the pygame drawing surface
+        :param client_ip: - our IP address
         '''
         self.car_state = car_state(name=name, client_ip=client_ip)
 
@@ -44,6 +44,9 @@ class car:
         # self.rect = self.image.get_rect()
 
     def draw(self, screen):
+        """ Draws the car
+        :param screen: the pygame surface
+        """
         if self.image is None:
             logger.warning('no car image yet, cannot draw it')
             return
@@ -91,6 +94,10 @@ class car:
         Call only after car_state is filled by server since we need phyical length and width.
         If passed screen argument, then the image surface is optimized by .convert() to the surface for faster drawing.
 
+        :param image_name: the name of image in the media/cars folder without png suffix
+        :param screen: the pygame surface
+
+        :returns: the pygame image that can be rotated and blitted
         """
         if image_name.endswith('.png'):
             logger.info('you can supply car image name {} without .png suffix'.format(image_name))

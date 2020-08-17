@@ -20,7 +20,10 @@ class car_state:
     """
 
     class static_info:
-        ''' stuff that doesn't change, but is needed for rendering the car'''
+        """
+        stuff that doesn't change, but is needed for rendering the car - name, client_ip, and dimensions
+
+        """
         def __init__(self, name:str, client_ip:Tuple[str,int], length_m:float, width_m:float):
             self.name=name
             self.client_ip = client_ip
@@ -75,6 +78,8 @@ class car_state:
         return s
 
     def get_record_headers(self, car):
+        """ :returns: the CVS header lines
+        """
         import datetime, time, getpass
         header ='# recorded output from l2race\n# format version: {}\n'.format(VERSION)
         header+=datetime.datetime.now().strftime('# Creation_time="%I:%M%p %B %d %Y"\n')  # Tue Jan 26 13:57:06 CET 2016
@@ -109,6 +114,10 @@ class car_state:
         return header
 
     def get_record_csvrow(self):
+        """
+
+        :return: row of CSV file
+        """
         l=[
             self.time,
             1 if self.command.autodrive_enabled else 0,

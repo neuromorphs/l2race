@@ -50,6 +50,12 @@ def closest_node(x, y, x_vector, y_vector):
 
 class track:
     def __init__(self, track_name='track', media_folder_path=TRACKS_FOLDER):
+        """
+        Constructs a new track instance.
+
+        :param track_name: name of track without suffix, e.g. track_1
+        :param media_folder_path: optional media folder path
+        """
         self.name = track_name
         self.track_image = pygame.image.load(media_folder_path + track_name + '.png')
         self.track_map = np.load(media_folder_path + track_name + '_map.npy', allow_pickle='TRUE')
