@@ -52,7 +52,7 @@ class track:
     def __init__(self, track_name='track', media_folder_path=TRACKS_FOLDER):
         self.name = track_name
         self.track_image = pygame.image.load(media_folder_path + track_name + '.png')
-        self.track_map = np.load(media_folder_path + track_name + '_map.npy')
+        self.track_map = np.load(media_folder_path + track_name + '_map.npy', allow_pickle='TRUE')
         self.TrackInfo = np.load(media_folder_path + track_name + '_info.npy', allow_pickle='TRUE').item()
         self.waypoints_x = self.TrackInfo['waypoint_x']
         self.waypoints_y = self.TrackInfo['waypoint_y']
@@ -106,8 +106,8 @@ class track:
         waypoints_idx_considered = np.atleast_1d(np.array(waypoints_idx_considered).squeeze())
 
         if len(waypoints_idx_considered) == 0:
-            logger.warning('Error! No closest waypoints found!')
-            return None
+            waypoints_idx_considered = range(len(self.waypoints_x))
+
 
         idx = closest_node(x=x_map,
                            y=y_map,

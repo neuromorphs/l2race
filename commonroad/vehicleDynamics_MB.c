@@ -831,7 +831,7 @@ static const char *__pyx_filename;
 
 
 static const char *__pyx_f[] = {
-  "commonroad\\vehicleDynamics_MB.pyx",
+  "commonroad/vehicleDynamics_MB.pyx",
   "array.pxd",
   "stringsource",
   "type.pxd",

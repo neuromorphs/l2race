@@ -327,21 +327,21 @@ class car_model:
         if command.reverse:
             # Backward
             if self.model_state[ISPEED] > KS_TO_ST_SPEED_M_PER_SEC: # moving forward too fast and try to go in reverse, then set throttle to zero
-                command.throttle=0
+                command.throttle = 0
             if self.model_state[ISPEED] < -KS_TO_ST_SPEED_M_PER_SEC:  # TODO: That is only temporary workaround
                 self.model_state[ISPEED] = -KS_TO_ST_SPEED_M_PER_SEC
 
     # Car will experience big friction and slowdown if it is in sand region
     def sand_deceleration(self):
         surface_type = self.track.get_surface_type(x=self.model_state[IXPOS], y=self.model_state[IYPOS])
-        if (surface_type >= 8) and (surface_type <= 12):  # 8 and 12 are boundary lines
+        if (not self.allow_off_track) and (surface_type >= 8) and (surface_type <= 12):  # 8 and 12 are boundary lines
             self.model_state[ISPEED] = self.model_state[ISPEED] * SAND_SLOWDOWN
 
     # If car is off track the forward speed will be set to zero
     # However it can still move backwards
     def stop_off_track(self):
-        current_surface = self.track.get_surface_type(x=self.model_state[IXPOS], y=self.model_state[IYPOS])
-        if not self.allow_off_track and current_surface == 0:
+        surface_type = self.track.get_surface_type(x=self.model_state[IXPOS], y=self.model_state[IYPOS])
+        if not self.allow_off_track and surface_type == 0:
             if self.model_state[ISPEED] > 0:
                 self.model_state[ISPEED] = 0
 
@@ -372,13 +372,21 @@ class car_model:
 
         if self.model_state[IXPOS] > (SCREEN_WIDTH_PIXELS - 2) * M_PER_PIXEL:
             self.model_state[IXPOS] = (SCREEN_WIDTH_PIXELS - 2) * M_PER_PIXEL
+            if self.model_state[ISPEED] > 0:
+                self.model_state[ISPEED] = 0
         elif self.model_state[IXPOS] < 0:
             self.model_state[IXPOS] = 0
+            if self.model_state[ISPEED] > 0:
+                self.model_state[ISPEED] = 0
 
         if self.model_state[IYPOS] > (SCREEN_HEIGHT_PIXELS - 2) * M_PER_PIXEL:
             self.model_state[IYPOS] = (SCREEN_HEIGHT_PIXELS - 2) * M_PER_PIXEL
+            if self.model_state[ISPEED] > 0:
+                self.model_state[ISPEED] = 0
         elif self.model_state[IYPOS] < 0:
             self.model_state[IYPOS] = 0
+            if self.model_state[ISPEED] > 0:
+                self.model_state[ISPEED] = 0
 
     def func_KS(self, t, x, u, p):
         f = vehicleDynamics_KS(x, u, p)

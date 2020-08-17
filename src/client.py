@@ -584,7 +584,6 @@ def define_game(gui=True,  # set to False to prevent gooey dialog
             fh.setFormatter(formatter)
             logger.addHandler(fh)
 
-
         if track_name is None:
             track_name = args.track_name
 
