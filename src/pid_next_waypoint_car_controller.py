@@ -23,15 +23,15 @@ class pid_next_waypoint_car_controller:
         self.car_command = car_command()
 
         # internet values kp=0.1 ki=0.001 kd=2.8
-        self.steer_Kp = 0.08
+        self.steer_Kp = 0.8
         self.steer_Ki = 0.000015
-        self.steer_Kd = 2.8
+        self.steer_Kd = 3.8
 
         self.steer_p_error = 0
         self.steer_i_error = 0
         self.steer_d_error = 0
 
-        self.max_speed = 8.0
+        self.max_speed = 5.0
 
     def read(self):
 
