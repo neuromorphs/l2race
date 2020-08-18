@@ -53,7 +53,10 @@ class my_joystick:
             raise Exception('no joystick found')
 
         if platform.system() == 'Linux':
-            self.joy = joystick.Joystick(4-self.joystick_number)
+            if self.joystick_number == 0:
+                self.joy = joystick.Joystick(3)
+            else:
+                self.joy = joystick.Joystick(4 - self.joystick_number)
         else:
             self.joy = joystick.Joystick(self.joystick_number)
         self.joy.init()
@@ -74,21 +77,21 @@ class my_joystick:
         pygame.event.get() # must call get() to handle internal queue
 
         self.user_input.restart_client=self.joy.get_button(2) # X button
-        self.car_command.reverse = self.joy.get_button(1)  # B button
+        self.car_command.reverse = True if self.joy.get_button(1) == 1 else False  # B button
         if not self.car_command.reverse: # only if not in reverse
-            self.car_command.autodrive_enabled = self.joy.get_button(3) # Y button
+            self.car_command.autodrive_enabled = True if self.joy.get_button(3) == 1 else False # Y button
 
         if self.name==my_joystick.XBOX_ONE_BLUETOOTH_JOYSTICK or self.name==my_joystick.XBOX_ELITE:
             self.car_command.steering = self.joy.get_axis(0) #self.axes[0], returns + for right push, which should make steering angle positive, i.e. CW
-            self.car_command.throttle = (1 + self.joy.get_axis(5)) / 2. # (1+self.axes[5])/2
-            self.car_command.brake = (1 + self.joy.get_axis(2)) / 2. #(1+self.axes[2])/2
+            self.car_command.throttle = self.joy.get_axis(5) # (1 + self.joy.get_axis(5)) / 2. # (1+self.axes[5])/2
+            self.car_command.brake = self.joy.get_axis(2) # (1 + self.joy.get_axis(2)) / 2. #(1+self.axes[2])/2
             self.user_input.restart_car=self.joy.get_button(7) # menu button
             self.user_input.quit=self.joy.get_button(6) # windows button
 
         elif self.name==my_joystick.XBOX_WIRED:
             self.car_command.steering = self.joy.get_axis(0) #self.axes[0], returns + for right push, which should make steering angle positive, i.e. CW
-            self.car_command.throttle = (1 + self.joy.get_button(7)) / 2.  # (1+self.axes[5])/2
-            self.car_command.brake = (1 + self.joy.get_button(6)) / 2.  # (1+self.axes[2])/2
+            self.car_command.throttle = self.joy.get_button(7) #(1 + self.joy.get_button(7)) / 2.  # (1+self.axes[5])/2
+            self.car_command.brake = self.joy.get_button(6) #(1 + self.joy.get_button(6)) / 2.  # (1+self.axes[2])/2
             self.user_input.restart_car = self.joy.get_button(9)  # menu button
             self.user_input.quit = self.joy.get_button(8)  # windows button
 

@@ -59,6 +59,8 @@ class my_keyboard:
            self.car_command.brake=1.
         elif pressed[pygame.K_SPACE]:
             pass
+        elif pressed[pygame.K_y]:
+            pass
 
         if pressed[pygame.K_RIGHT] or pressed[pygame.K_d]:
             self.car_command.steering = +1. # steer in negative angle direction, i.e. CW
