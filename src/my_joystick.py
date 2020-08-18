@@ -68,9 +68,9 @@ class my_joystick:
         printhelp()
 
     def read(self) -> Tuple[car_command,user_input]:
-        '''
-        :returns the car_command
-        '''
+        """
+        :returns: the car_command,user_input
+        """
         pygame.event.get() # must call get() to handle internal queue
 
         self.user_input.restart_client=self.joy.get_button(2) # X button

@@ -30,8 +30,9 @@ from src.my_args import client_args, write_args_info
 from src.l2race_utils import my_logger
 from src.pid_next_waypoint_car_controller import pid_next_waypoint_car_controller
 
-
 logger = my_logger(__name__)
+
+
 # logger.setLevel(logging.DEBUG) # uncomment to debug
 
 def get_args():
@@ -52,7 +53,7 @@ def launch_gui():
         from gooey import Gooey  # pip install Gooey
     except Exception:
         logger.info('Gooey GUI builder not available, will use command line arguments.\n'
-                       'Install with "pip install Gooey". See README')
+                    'Install with "pip install Gooey". See README')
 
     try:
         ga = Gooey(get_args, program_name="l2race client", default_size=(575, 600))
@@ -60,7 +61,7 @@ def launch_gui():
         ga()
     except:
         logger.info('Gooey GUI not available, using command line arguments. \n'
-                       'You can try to install with "pip install Gooey". '
+                    'You can try to install with "pip install Gooey". '
                     'Ignore this warning if you do not want a GUI launcher.')
 
 
@@ -82,7 +83,7 @@ class client:
         pygame.init()
         logger.info('using pygame version {}'.format(pygame.version.ver))
         pygame.display.set_caption("l2race")
-        self.spectate=spectate
+        self.spectate = spectate
         self.widthPixels = widthPixels
         self.heightPixels = heightPixels
         self.screen = pygame.display.set_mode(size=(self.widthPixels, self.heightPixels), flags=0)
@@ -91,31 +92,31 @@ class client:
             self.game_font = pygame.freetype.SysFont(GAME_FONT_NAME, GAME_FONT_SIZE)
         except:
             logger.warning('cannot get specified globals.py font {}, using pygame default font'.format(GAME_FONT_NAME))
-            self.game_font =pygame.font.Font(pygame.font.get_default_font(), GAME_FONT_SIZE)
+            self.game_font = pygame.font.Font(pygame.font.get_default_font(), GAME_FONT_SIZE)
         self.clock = pygame.time.Clock()
         self.exit = False
-        self.input=None
-        self.fps=fps
-        self.sock:Optional[socket] = None # our socket used for communicating with server
-        self.server_host:str=server_host
-        self.server_port:int=server_port
-        self.serverStartAddr: Tuple[str,int] = (self.server_host, self.server_port) # manager address, different port on server used during game
-        self.gameSockAddr:Optional[Tuple[str,int]] = None # address used during game
-        self.server_timeout_s=timeout_s
+        self.input = None
+        self.fps = fps
+        self.sock: Optional[socket] = None  # our socket used for communicating with server
+        self.server_host: str = server_host
+        self.server_port: int = server_port
+        self.serverStartAddr: Tuple[str, int] = (self.server_host, self.server_port)  # manager address, different port on server used during game
+        self.gameSockAddr: Optional[Tuple[str, int]] = None  # address used during game
+        self.server_timeout_s = timeout_s
         self.gotServer = False
-        self.record:bool=record
-        self.recorder:Optional[data_recorder]=None
+        self.record: bool = record
+        self.recorder: Optional[data_recorder] = None
 
-        self.track_name:str = track_name
-        self.car_name:str=car_name
-        self.car:Optional[car] = None # will make it later after we get info from server about car
+        self.track_name: str = track_name
+        self.car_name: str = car_name
+        self.car: Optional[car] = None  # will make it later after we get info from server about car
         try:
             self.input = my_joystick(joystick_number)
         except:
             self.input = my_keyboard()
 
-        self.server_message=None # holds messsages sent from server to be displayed
-        self.last_server_message_time=time.time()
+        self.server_message = None  # holds messsages sent from server to be displayed
+        self.last_server_message_time = time.time()
 
         # if controller is None:
         #     self.controller = pid_next_waypoint_car_controller()
@@ -123,23 +124,35 @@ class client:
         #     self.controller = controller
 
         # spectator data structures
-        self.track_instance:track=track(track_name=self.track_name)
-        self.spectate_cars:Dict[str,car]=dict() # dict of other cars on the track, by name of the car. Each entry is a car() that we make here.
+        self.track_instance: track = track(track_name=self.track_name)
+        self.spectate_cars: Dict[str, car] = dict()  # dict of other cars on the track, by name of the car. Each entry is a car() that we make here.
         self.autodrive_controller = controller  # automatic self driving controller specified in constructor
 
     def cleanup(self):
+        """
+        Cleans up client before shutdown.
+        :return: None
+        """
         if self.gotServer:
             if self.spectate:
-                self.send_to_server(self.gameSockAddr,'remove_spectator',None)
+                self.send_to_server(self.gameSockAddr, 'remove_spectator', None)
             else:
-                self.send_to_server(self.gameSockAddr,'remove_car',self.car_name)
+                self.send_to_server(self.gameSockAddr, 'remove_car', self.car_name)
         if self.sock:
             self.sock.close()
-            self.sock=None
+            self.sock = None
 
-    def render_multi_line(self, text, x, y, color=None): # todo clean up
+    def render_multi_line(self, text, x, y, color=None):  # todo clean up
+        """
+        Renders a multiline string to the screen.
+        :param text: some string with embedded \n
+        :param x: x starting from left
+        :param y: y starting from top
+        :param color: Tuple[r,g,b] 0-255
+        :return: None
+        """
         if color is None:
-            color=(200,200,200)
+            color = (200, 200, 200)
         lines = text.splitlines()
         for i, l in enumerate(lines):
             self.game_font.render_to(self.screen, (x, y + GAME_FONT_SIZE * i), l, color),
@@ -148,10 +161,10 @@ class client:
     def ping_server(self):
         logger.info('pinging server at {}'.format(self.serverStartAddr))
         self.drain_udp_messages()
-        t=time.time()
-        self.send_to_server(self.serverStartAddr,'ping',None)
+        t = time.time()
+        self.send_to_server(self.serverStartAddr, 'ping', None)
         try:
-            (msg,payload)=self.receive_from_server(blocking=True)
+            (msg, payload) = self.receive_from_server(blocking=True)
         except socket.timeout:
             logger.warning('ping timeout')
             return False
@@ -161,21 +174,26 @@ class client:
         except Exception as e:
             logger.warning('ping other exception {}'.format(e))
             return False
-        if msg!='pong':
+        if msg != 'pong':
             logger.warning('wrong response {} received for ping'.format(msg))
             return False
         else:
-            dt=time.time()-t
-            logger.info('pong received with latency {:.1f}ms'.format(dt*1000))
+            dt = time.time() - t
+            logger.info('pong received with latency {:.1f}ms'.format(dt * 1000))
             return True
 
     def connect_to_server(self):
+        """
+        Connects to server  to start car on the track
+
+        :return: None
+        """
         if self.gotServer:
             return
-        logger.info('connecting to l2race model server at '+str(self.serverStartAddr)+' to add car or spectate')
+        logger.info('connecting to l2race model server at ' + str(self.serverStartAddr) + ' to add car or spectate')
         ntries = 0
-        looper=loop_timer(rate_hz=1./SERVER_PING_INTERVAL_S)
-        err_str=''
+        looper = loop_timer(rate_hz=1. / SERVER_PING_INTERVAL_S)
+        err_str = ''
         while not self.gotServer:
             looper.sleep_leftover_time()
             self.screen.fill([0, 0, 0])
@@ -185,67 +203,70 @@ class client:
             # Event queue
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:
-                    self.exit = True # TODO clean up, seems redundant. what sets pygame.QUIT?
+                    self.exit = True  # TODO clean up, seems redundant. what sets pygame.QUIT?
                     break
-            car_command,user_input = self.input.read()
+            car_command, user_input = self.input.read()
             if user_input.quit:
                 logger.info('startup aborted before connecting to server')
                 pygame.quit()
             if not self.ping_server():
-                err_str='No response to ping server at {}, will try again in {:.1f}s [{}]'.\
-                    format(self.serverStartAddr, 1./looper.rate_hz, looper.loop_counter)
+                err_str = 'No response to ping server at {}, will try again in {:.1f}s [{}]'. \
+                    format(self.serverStartAddr, 1. / looper.rate_hz, looper.loop_counter)
                 continue
             if not self.spectate:
                 cmd = 'add_car'
-                payload=(self.track_name, self.car_name)
+                payload = (self.track_name, self.car_name)
             else:
                 cmd = 'add_spectator'
-                payload=self.track_name
+                payload = self.track_name
             err_str = 'sending cmd={} with payload {} to server initial address {}, ' \
-                'waiting for server...[{}]' \
+                      'waiting for server...[{}]' \
                 .format(cmd, payload, self.serverStartAddr, ntries)
             logger.info(err_str)
             self.screen.fill([0, 0, 0])
             self.render_multi_line(err_str, 10, 10)
             pygame.display.flip()
-            self.send_to_server(self.serverStartAddr, cmd,payload)
+            self.send_to_server(self.serverStartAddr, cmd, payload)
 
             try:
                 # now get the game port as a response
                 logger.info('pausing for server track process to start (if not running already)')
-                time.sleep(2) # it takes significant time to start the track process. To avoid timeout, wait a bit here before checking
+                time.sleep(2)  # it takes significant time to start the track process. To avoid timeout, wait a bit here before checking
                 logger.info('receiving game_port message from server')
-                msg,payload=self.receive_from_server()
-                if msg!='game_port':
-                    logger.warning("got response (msg,command)=({},{}) but expected ('game_port',port_number); will try again in {}s".format(msg,payload, SERVER_PING_INTERVAL_S))
+                msg, payload = self.receive_from_server()
+                if msg != 'game_port':
+                    logger.warning("got response (msg,command)=({},{}) but expected ('game_port',port_number); will try again in {}s".format(msg, payload, SERVER_PING_INTERVAL_S))
                     continue
             except OSError as err:
                 err_str += '\n{}:\n error for response from {}; ' \
-                     'will try again in {}s ...[{}]'.format(err, self.serverStartAddr, SERVER_PING_INTERVAL_S, ntries)
+                           'will try again in {}s ...[{}]'.format(err, self.serverStartAddr, SERVER_PING_INTERVAL_S, ntries)
                 logger.warning(err_str)
                 continue
-            port=int(payload)
+            port = int(payload)
             self.gotServer = True
-            self.gameSockAddr:Tuple[str,int]=(self.server_host, port)
+            self.gameSockAddr: Tuple[str, int] = (self.server_host, port)
             logger.info('got game_port message from server telling us to use address {} to talk with server'.format(self.gameSockAddr))
             if not self.spectate:
-                self.car = car(name=self.car_name,  track=self.track_instance, screen=self.screen, client_ip=self.gameSockAddr)
+                self.car = car(name=self.car_name, track=self.track_instance, screen=self.screen, client_ip=self.gameSockAddr)
                 if self.record:
                     if self.recorder is None:
                         self.recorder = data_recorder(car=self.car)
                     self.recorder.open_new_recording()
                 # self.car.loadAndScaleCarImage()   # happens inside car
-                self.autodrive_controller.car =self.car
+                self.autodrive_controller.car = self.car
                 logger.info('initial car state is {}'.format(self.car.car_state))
 
     def run(self):
 
-        try:
-            self.render_multi_line('opening necessary UDP ports in CLIENT_PORT_RANGE {}...'.format(CLIENT_PORT_RANGE),10,10,[200,200,200])
-            pygame.display.flip()
-            open_ports()
-        except Exception as ex:
-            logger.warning("Caught exception '{}' when trying to open l2race client ports".format(ex))
+        if self.server_host == 'localhost':
+            logger.info('skipping opening ports for local server')
+        else:
+            try:
+                self.render_multi_line('opening necessary UDP ports in CLIENT_PORT_RANGE {}...'.format(CLIENT_PORT_RANGE), 10, 10, [200, 200, 200])
+                pygame.display.flip()
+                open_ports()
+            except Exception as ex:
+                logger.warning("Caught exception '{}' when trying to open l2race client ports".format(ex))
 
         self.sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)  # UDP
         self.sock.settimeout(self.server_timeout_s)
@@ -254,16 +275,16 @@ class client:
         atexit.register(self.cleanup)
 
         logger.info('starting main loop')
-        looper=loop_timer(self.fps)
+        looper = loop_timer(self.fps)
         while not self.exit:
             try:
                 looper.sleep_leftover_time()
             except KeyboardInterrupt:
                 logger.info('KeyboardInterrupt, stopping client')
-                self.exit=True
-            if looper.loop_counter%CHECK_FOR_JOYSTICK_INTERVAL==0 and not isinstance(self.input, my_joystick):
+                self.exit = True
+            if looper.loop_counter % CHECK_FOR_JOYSTICK_INTERVAL == 0 and not isinstance(self.input, my_joystick):
                 try:
-                    self.input = my_joystick() # check for joystick that might get turned on during play
+                    self.input = my_joystick()  # check for joystick that might get turned on during play
                 except:
                     pass
 
@@ -280,9 +301,9 @@ class client:
             self.process_user_or_autodrive_input()
 
             # TODO move to method that uses select to check for response if any
-             # expect to get new car state
+            # expect to get new car state
             try:
-                cmd,payload=self.receive_from_server(blocking=False)
+                cmd, payload = self.receive_from_server(blocking=False)
                 if cmd is None:
                     continue
                 self.handle_message(cmd, payload)
@@ -295,11 +316,10 @@ class client:
             except pickle.UnpicklingError as err:
                 logger.warning('{}: could not unpickle the response from server'.format(err))
             except TypeError as te:
-                logger.warning(str(te)+": ignoring and waiting for next state")
+                logger.warning(str(te) + ": ignoring and waiting for next state")
             except ConnectionResetError:
                 logger.warning('Connection to {} was reset, will look for server again'.format(self.gameSockAddr))
                 self.gotServer = False
-
 
         logger.info('ending main loop')
         self.cleanup()
@@ -307,15 +327,18 @@ class client:
         pygame.quit()
         quit()
 
-
-
     def process_user_or_autodrive_input(self):
-        ''' gets user or agent input and sends to model server'''
-        car_command,user_input = self.input.read()
+        """
+        Gets user or agent input and sends to model server, then does a non-blocking read
+        to see if there is any message from server.
+
+        :return: (cmd,payload) available from server, or None,None if nothing is available.
+        """
+        car_command, user_input = self.input.read()
         if car_command.autodrive_enabled:
             if self.autodrive_controller is None:
                 logger.error('Tried to use autodrive control but there is no controller defined; disabling autodrive')
-                car_command.autodrive_enabled=False
+                car_command.autodrive_enabled = False
             command = self.autodrive_controller.read()
             command.add_command(car_command)
             command.complete_default()
@@ -325,7 +348,7 @@ class client:
 
         if user_input.quit:
             logger.info('quit recieved, ending main loop')
-            self.exit=True
+            self.exit = True
             return
 
         if not self.spectate:
@@ -339,35 +362,42 @@ class client:
                     self.recorder.close_recording()
 
             # send control to server
-            self.send_to_server(self.gameSockAddr, 'command',command)
+            self.send_to_server(self.gameSockAddr, 'command', command)
         else:
-            self.send_to_server(self.gameSockAddr,'send_states',None)
+            self.send_to_server(self.gameSockAddr, 'send_states', None)
 
-    def receive_from_server(self, blocking=False) -> Tuple[Optional[str],Optional[object]]:
+    def receive_from_server(self, blocking=False) -> Tuple[Optional[str], Optional[object]]:
         ''' attempt to receive msg from server
         :param blocking - set true for blocking receive. If false, returns None,None if there is nothing for us
         :returns (cmd,payload), or None,None if nonblocking and nothing is ready
         '''
         if not blocking:
-            inputready, o, e = select.select([self.sock],[],[], 0.0)
-            if len(inputready)==0: return None,None # nothing for us now
-        data, server_addr = self.sock.recvfrom(8192) # todo check if large enough for payload inclding all other car state
-        (cmd,payload) = pickle.loads(data)
-        logger.debug('got message {} with payload {} from server {}'.format(cmd,payload,server_addr))
-        return cmd,payload
+            inputready, o, e = select.select([self.sock], [], [], 0.0)
+            if len(inputready) == 0: return None, None  # nothing for us now
+        data, server_addr = self.sock.recvfrom(8192)  # todo check if large enough for payload inclding all other car state
+        (cmd, payload) = pickle.loads(data)
+        logger.debug('got message {} with payload {} from server {}'.format(cmd, payload, server_addr))
+        return cmd, payload
 
+    def send_to_server(self, addr: Tuple[str, int], msg: str, payload: object):
+        """
+        Send msg,payload to server at specified (ip,port)
 
+        :param addr: (ip,port) of track port
+        :param msg: the string message type
+        :param payload: the payload object
 
-    def send_to_server(self, addr:Tuple[str,int], msg:str, payload:object):
-        ''' send cmd,payload to server at specified (ip,port)'''
+        :return: None
+
+        """
         if self.sock is None:
-            logger.warning('no socket to send message {} with payload {}'.format(msg,payload))
+            logger.warning('no socket to send message {} with payload {}'.format(msg, payload))
             return
-        logger.debug('sending msg {} with payload {} to {}'.format(msg,payload,addr))
+        logger.debug('sending msg {} with payload {} to {}'.format(msg, payload, addr))
         p = pickle.dumps((msg, payload))
         self.sock.sendto(p, addr)
 
-    def process_top_ten_list(self,payload):
+    def process_top_ten_list(self, payload):
         pass
 
     def ask_for_top_ten_list(self):
@@ -379,19 +409,22 @@ class client:
         input = [self.sock]
         try:
             while True:
-                inputready, o, e = select.select(input,[],[], 0.0)
-                if len(inputready)==0: break
+                inputready, o, e = select.select(input, [], [], 0.0)
+                if len(inputready) == 0: break
                 for s in inputready: s.recv(8192)
         except Exception as e:
             logger.warning('caught {} when draining received UDP port messaages'.format(e))
 
     def draw(self):
+        """
+        Top level drawing command.
+        :return: None
+        """
         self.track_instance.draw(self.screen)
         self.draw_other_cars()
         self.draw_server_message()
         self.draw_own_car()
         pygame.display.flip()
-
 
     def draw_own_car(self):
         if self.car:
@@ -404,70 +437,83 @@ class client:
             c.draw(self.screen)
 
     def draw_server_message(self):
-        ''' Draws message from server, if any '''
+        """ Draws message from server, if any """
         if self.server_message is None:
             return
-        if time.time()-self.last_server_message_time>10:
-            self.server_message=None
+        if time.time() - self.last_server_message_time > 10:
+            self.server_message = None
             return
         if self.server_message.startswith('ERROR'):
-            color=(255,10,10)
+            color = (255, 10, 10)
         else:
-            color=None
-        self.render_multi_line(str(self.server_message), 10, SCREEN_HEIGHT_PIXELS-50, color=color)
+            color = None
+        self.render_multi_line(str(self.server_message), 10, SCREEN_HEIGHT_PIXELS - 50, color=color)
 
-    def update_state(self, all_states:List[car_state]):
+    def update_state(self, all_states: List[car_state]):
+        """
+        Updates list of internal state.
+
+        :param all_states: the list of states of all cars from model server
+        :return: None
+        """
         # # make a list of all the cars in our list of spectate_cars
         # plus our own car that are not in the state list we just got
-        current_state_car_names=[]
+        current_state_car_names = []
         for s in all_states:
             current_state_car_names.append(s.static_info.name)
-        dict_car_names=[]
+        dict_car_names = []
         for s in self.spectate_cars.keys():
             dict_car_names.append(s)
         if self.car:
             dict_car_names.append(self.car.car_state.static_info.name)
-        to_remove=[x for x in dict_car_names if x not in current_state_car_names]
+        to_remove = [x for x in dict_car_names if x not in current_state_car_names]
         for r in to_remove:
             del self.spectate_cars[r]
         for s in all_states:
-            name=s.static_info.name # get the car name from the remote state
-            if name==self.car_name:
-                self.car.car_state=s # update our own state
-                continue # don't add ourselves to list of other (spectator) cars
+            name = s.static_info.name  # get the car name from the remote state
+            if name == self.car_name:
+                self.car.car_state = s  # update our own state
+                continue  # don't add ourselves to list of other (spectator) cars
             # update other cars on the track
-            c=self.spectate_cars.get(name) # get the car
-            if c is None: # if it doesn't exist, construct it
-                self.spectate_cars[name]=car(name=name,
-                                             image_name='car_other.png',
-                                             track=self.track_instance,
-                                             client_ip=s.static_info.client_ip,
-                                             screen=self.screen)
-            self.spectate_cars[name].car_state=s # set its state
+            c = self.spectate_cars.get(name)  # get the car
+            if c is None:  # if it doesn't exist, construct it
+                self.spectate_cars[name] = car(name=name,
+                                               image_name='car_other.png',
+                                               track=self.track_instance,
+                                               client_ip=s.static_info.client_ip,
+                                               screen=self.screen)
+            self.spectate_cars[name].car_state = s  # set its state
         # logger.debug('After update, have own car {} and other cars {}'.format(self.car.car_state.static_info.name if self.car else 'None', self.spectate_cars.keys()))
 
-    def handle_message(self, msg, payload):
-        if msg=='state':
+    def handle_message(self, msg: str, payload: object):
+        """
+        Handle message from model server.
+
+        :param msg: the msg str
+        :param payload: the payload object
+        :return: None
+        """
+        if msg == 'state':
             self.update_state(payload)
-        elif msg=='game_port':
-            self.gameSockAddr=(self.server_host,payload)
-        elif msg== 'track_shutdown':
+        elif msg == 'game_port':
+            self.gameSockAddr = (self.server_host, payload)
+        elif msg == 'track_shutdown':
             logger.warning('{}, will try to look for it again'.format(payload))
-            self.gotServer=False
-        elif msg=='string_message':
+            self.gotServer = False
+        elif msg == 'string_message':
             logger.info('recieved message "{}"'.format(payload))
-            self.last_server_message_time=time.time()
-            self.server_message=payload
+            self.last_server_message_time = time.time()
+            self.server_message = payload
         else:
             logger.warning('unexpected msg {} with payload {} received from server (should have gotten "car_state" message)'.format(msg, payload))
 
-    def replay(self, race_name = None):
+    def replay(self, race_name=None):
         # Load data
 
         # Find the right file
         if race_name:
             try:
-                file_path = './data/'+race_name+'.csv'
+                file_path = './data/' + race_name + '.csv'
 
             except FileNotFoundError:
                 logger.warning('There is no race recording with name {}'.format(race_name))
@@ -484,30 +530,30 @@ class client:
 
         # Get race recording
         logger.debug(file_path)
-        data = pd.read_csv(file_path, skiprows=7)
+        data = pd.read_csv(file_path, skiprows=9)
 
         # Get used car name
         s = str(pd.read_csv(file_path, skiprows=5, nrows=1))
-        self.car_name = re.search('"(.*)"', s).group(1)
-        logger.debug(self.car_name)
+        self.track_name = re.search('"(.*)"', s).group(1)
+        logger.debug(self.track_name)
 
         # Get used track
         s = str(pd.read_csv(file_path, skiprows=6, nrows=1))
-        self.track_name = re.search('"(.*)"', s).group(1)
-        logger.debug(self.track_name)
+        self.car_name = re.search('"(.*)"', s).group(1)
+        logger.debug(self.car_name)
 
         # print(file_path)
         # print(data.head())
 
         # Define car and track
-        self.car = car(name=self.car_name, track_name=self.track_name, screen=self.screen) # todo check if we can reuse the track object, since this will make many instances currently
+        self.track_instance=track(self.track_name)
+        self.car = car(name=self.car_name, track=self.track_instance, screen=self.screen)
 
         # decimate data
         data = data.iloc[::4, :]
 
         # Run a loop to print data
         for index, row in data.iterrows():
-
             self.car.car_state.command.autodrive_enabled = row['cmd.auto']
             self.car.car_state.command.steering = row['cmd.steering']
             self.car.car_state.command.throttle = row['cmd.throttle']
@@ -516,23 +562,28 @@ class client:
 
             self.car.car_state.time = row['time']
             self.car.car_state.position_m = Vector2(row['pos.x'], row['pos.y'])
-            self.car.car_state.velocity_m_per_sec = Vector2(row['vel.x'],row['vel.y'])
+            self.car.car_state.velocity_m_per_sec = Vector2(row['vel.x'], row['vel.y'])
             self.car.car_state.speed_m_per_sec = row['speed']
-            self.car.car_state.accel_m_per_sec_2 = Vector2(row['accel.x'],row['accel.y'])
+            self.car.car_state.accel_m_per_sec_2 = Vector2(row['accel.x'], row['accel.y'])
             self.car.car_state.steering_angle_deg = row['steering_angle']
             self.car.car_state.body_angle_deg = row['body_angle']
             self.car.car_state.yaw_rate_deg_per_sec = row['yaw_rate']
             self.car.car_state.drift_angle_deg = row['drift_angle']
 
-
             # Drawing
             self.draw()
-            sleep(1/self.fps)
+            sleep(1 / self.fps)
 
-    def restart_car(self,message:str=None):
+    def restart_car(self, message: str = None):
+        """
+        Request server to restart the car.
+        :param message: message that server will log
+        :returns: None
+        """
         # car restart handled on server side
         logger.info('sending message to restart car to server')
-        self.send_to_server(self.gameSockAddr,'restart_car',message)
+        self.send_to_server(self.gameSockAddr, 'restart_car', message)
+
 
 # A wrapper around Game class to make it easier for a user to provide arguments
 def define_game(gui=True,  # set to False to prevent gooey dialog
@@ -546,12 +597,11 @@ def define_game(gui=True,  # set to False to prevent gooey dialog
                 fps=None,
                 timeout_s=None,
                 record=None):
-
     if ctrl is None:
         controller = pid_next_waypoint_car_controller()
         logger.info('autodrive contoller was None, so was set to default {}'.format(ctrl.__class__))
     else:
-        controller=ctrl # construct instance of the controller. The controllers car() is set later, once the server gives us the state
+        controller = ctrl  # construct instance of the controller. The controllers car() is set later, once the server gives us the state
 
     if gui:
         launch_gui()

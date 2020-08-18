@@ -2,6 +2,11 @@
 # Separate from car_command which is just for controlling car
 
 class user_input():
+    """
+    User input to l2race client.
+
+    Includes the restart_car, restart_client, and quit commands
+    """
     def __init__(self):
         self.restart_car=False # in debugging mode, restarts car at starting line
         self.restart_client=False # abort current run (server went down?) and restart from scratch
