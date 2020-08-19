@@ -23,7 +23,7 @@ def client_args(parser):
 
     clientOutputGroup = parser.add_argument_group('Output/Replay options:')
     clientOutputGroup.add_argument("--record", nargs='?', type=str, const=None, help="Record data to date-stamped filename with optional <note>, e.g. --record will write datestamped files named '{}-<note>-<track_name>-TTT.csv' in folder '{}, where note is optional note and TTT is a date/timestamp\'.".format(DATA_FILENAME_BASE, DATA_FOLDER_NAME))
-    clientOutputGroup.add_argument("--replay", nargs='?', const='last', type=str, help="Replay one or more CSV recordings. If no file is supplied, play the most recent recording in the data folder.")
+    clientOutputGroup.add_argument("--replay_file_list", nargs='?', const='last', default=None, type=str, help="Replay one or more CSV recordings. If no file is supplied, play the most recent recording in the data folder.")
 
 
     clientTrackCarMode = parser.add_argument_group('Track car/spectate options:')
