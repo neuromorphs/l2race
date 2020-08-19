@@ -13,28 +13,31 @@ logger = my_logger(__name__)
 
 class data_recorder:
 
-    def __init__(self, car:car=None, filebase:str=DATA_FILENAME_BASE):
+    def __init__(self, car:car,  note:str=None, filebase:str=DATA_FILENAME_BASE):
         self.car:car=car
         self.filebase:str=filebase
         self.filename=None
         self.file=None
         self.num_records=0
         self.first_record_written=False
+        self.note=note
 
     def open_new_recording(self):
         if self.file:
             logger.warning('recording {} is already open, close it and open a new one'.format(self.filename))
             return
+
         import time
         timestr = time.strftime("%Y%m%d-%H%M%S")
         if not os.path.exists(DATA_FOLDER_NAME):
             logger.info('creating output folder {}'.format(DATA_FOLDER_NAME))
             os.makedirs(DATA_FOLDER_NAME)
 
-        self.filename='{}-{}.csv'.format(DATA_FILENAME_BASE, timestr)
+        if self.note:
+            self.filename='{}-{}-{}-{}-{}.csv'.format(DATA_FILENAME_BASE, self.car.name(), self.car.track.name, self.note, timestr)
+        else:
+            self.filename='{}-{}-{}-{}.csv'.format(DATA_FILENAME_BASE, self.car.name(), self.car.track.name, timestr)
         self.filename=os.path.join(DATA_FOLDER_NAME, self.filename)
-        if self.car is None:
-            raise('car is None, cannot record data')
 
         try:
             self.file=open(self.filename,'w')

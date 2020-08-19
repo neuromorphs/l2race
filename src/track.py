@@ -55,6 +55,8 @@ class track:
 
         :param track_name: name of track without suffix, e.g. track_1
         :param media_folder_path: optional media folder path
+
+        :returns: new instance
         """
         self.name = track_name
         self.track_image = pygame.image.load(media_folder_path + track_name + '.png')

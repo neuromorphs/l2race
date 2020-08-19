@@ -3,6 +3,7 @@ joystick race controller based on xbox bluetooth controller.
 Xbox has 11 buttons.
 buttons ABXY are first four buttons 0-3, then menu and window buttons are 4th and 5th from end, i.e. 7 and 6
 """
+import logging
 from typing import Tuple
 import pygame # conda install -c cogsci pygame; maybe because it only is supplied for earlier python, might need conda install -c evindunn pygame ; sudo apt-get install libsdl-ttf2.0-0
 from pygame import joystick
@@ -11,6 +12,7 @@ import platform
 from src.l2race_utils import my_logger
 from src.globals import JOYSTICK_NUMBER
 logger = my_logger(__name__)
+logger.setLevel(logging.DEBUG)
 
 from src.car_command import car_command
 from src.user_input import user_input
@@ -95,7 +97,7 @@ class my_joystick:
             self.user_input.restart_car = self.joy.get_button(9)  # menu button
             self.user_input.quit = self.joy.get_button(8)  # windows button
 
-        # print(self)
+        logger.debug(self)
         return self.car_command, self.user_input
 
     def __str__(self):

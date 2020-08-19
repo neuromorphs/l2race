@@ -25,10 +25,10 @@ class car_state:
 
         """
         def __init__(self, name:str, client_ip:Tuple[str,int], length_m:float, width_m:float):
-            self.name=name
-            self.client_ip = client_ip
-            self.length_m = length_m # length in meters
-            self.width_m = width_m # width in meters
+            self.name:str=name
+            self.client_ip:Tuple[str,int] = client_ip
+            self.length_m:float = length_m # length in meters
+            self.width_m:float = width_m # width in meters
 
 
     def __init__(self, name:str='l2racer', client_ip:Tuple[str,int]=None, length_m:float=4., width_m:float=2.,

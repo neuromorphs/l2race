@@ -79,7 +79,11 @@ class client:
                  widthPixels=SCREEN_WIDTH_PIXELS,
                  heightPixels=SCREEN_HEIGHT_PIXELS,
                  timeout_s=SERVER_TIMEOUT_SEC,
-                 record=DATA_FILENAME_BASE):
+                 record=False,
+                 record_note:Optional[str]=None,
+                 replay:Optional[List[str]]=None
+                 ):
+        """ TODO """
         pygame.init()
         logger.info('using pygame version {}'.format(pygame.version.ver))
         pygame.display.set_caption("l2race")
@@ -102,10 +106,12 @@ class client:
         self.server_port: int = server_port
         self.serverStartAddr: Tuple[str, int] = (self.server_host, self.server_port)  # manager address, different port on server used during game
         self.gameSockAddr: Optional[Tuple[str, int]] = None  # address used during game
-        self.server_timeout_s = timeout_s
-        self.gotServer = False
+        self.server_timeout_s:float = timeout_s
+        self.gotServer:bool = False
         self.record: bool = record
+        self.record_note:str=None
         self.recorder: Optional[data_recorder] = None
+        self.replay_file_list:Optional[List[str]]=replay
 
         self.track_name: str = track_name
         self.car_name: str = car_name
@@ -507,7 +513,7 @@ class client:
         else:
             logger.warning('unexpected msg {} with payload {} received from server (should have gotten "car_state" message)'.format(msg, payload))
 
-    def replay(self, race_name=None):
+    def replay(self, race_name=None): # todo we have self.replay_file_list
         # Load data
 
         # Find the right file
@@ -530,7 +536,7 @@ class client:
 
         # Get race recording
         logger.debug(file_path)
-        data = pd.read_csv(file_path, skiprows=9)
+        data = pd.read_csv(file_path, skiprows=9) # skip comment lines starting with #
 
         # Get used car name
         s = str(pd.read_csv(file_path, skiprows=5, nrows=1))
@@ -549,7 +555,7 @@ class client:
         self.track_instance=track(self.track_name)
         self.car = car(name=self.car_name, track=self.track_instance, screen=self.screen)
 
-        # decimate data
+        # decimate data to make it play faster
         data = data.iloc[::4, :]
 
         # Run a loop to print data
@@ -596,7 +602,9 @@ def define_game(gui=True,  # set to False to prevent gooey dialog
                 joystick_number=None,
                 fps=None,
                 timeout_s=None,
-                record=None):
+                record=False,
+                record_note=None,
+                replay=None):
     if ctrl is None:
         controller = pid_next_waypoint_car_controller()
         logger.info('autodrive contoller was None, so was set to default {}'.format(ctrl.__class__))
@@ -615,7 +623,8 @@ def define_game(gui=True,  # set to False to prevent gooey dialog
                       joystick_number=args.joystick,
                       fps=args.fps,
                       timeout_s=args.timeout_s,
-                      record=args.record)
+                      record=args.record,
+                      replay=args.replay)
     else:
 
         IGNORE_COMMAND = '--ignore-gooey'

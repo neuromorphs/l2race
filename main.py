@@ -60,7 +60,7 @@ if __name__ == '__main__':
                        ctrl=controller)
     game.run()
     # game.replay('l2race-20200803-220912')
-    # game.replay()
+    # game.replay() # todo put in client as argument to client
 
     '''
     Place for your code to post-process data
