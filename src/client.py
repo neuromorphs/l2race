@@ -81,7 +81,7 @@ class client:
                  timeout_s=SERVER_TIMEOUT_SEC,
                  record=False,
                  record_note:Optional[str]=None,
-                 replay:Optional[List[str]]=None
+                 replay_file_list:Optional[List[str]]=None
                  ):
         """ TODO """
         pygame.init()
@@ -111,7 +111,12 @@ class client:
         self.record: bool = record
         self.record_note:str=None
         self.recorder: Optional[data_recorder] = None
-        self.replay_file_list:Optional[List[str]]=replay
+        self.replay_file_list:Optional[List[str]]=replay_file_list
+
+        if replay_file_list is None:
+            self.replay_recording = None
+        elif len(replay_file_list) == 1:
+            self.replay_recording = replay_file_list[0]
 
         self.track_name: str = track_name
         self.car_name: str = car_name
@@ -133,6 +138,8 @@ class client:
         self.track_instance: track = track(track_name=self.track_name)
         self.spectate_cars: Dict[str, car] = dict()  # dict of other cars on the track, by name of the car. Each entry is a car() that we make here.
         self.autodrive_controller = controller  # automatic self driving controller specified in constructor
+
+
 
     def cleanup(self):
         """
@@ -263,6 +270,12 @@ class client:
                 logger.info('initial car state is {}'.format(self.car.car_state))
 
     def run(self):
+        if self.replay_recording is not None:
+            self.replay(self.replay_recording)
+        else:
+            self.run_new_game()
+
+    def run_new_game(self):
 
         if self.server_host == 'localhost':
             logger.info('skipping opening ports for local server')
@@ -517,14 +530,14 @@ class client:
         # Load data
 
         # Find the right file
-        if race_name:
+        if (race_name is not None) and (race_name is not 'last'):
             try:
                 file_path = './data/' + race_name + '.csv'
 
             except FileNotFoundError:
                 logger.warning('There is no race recording with name {}'.format(race_name))
-                return
-        else:
+                return 1
+        elif race_name is 'last':
             try:
                 import glob
                 import os
@@ -532,7 +545,10 @@ class client:
                 file_path = max(list_of_files, key=os.path.getctime)
             except FileNotFoundError:
                 logger.warning('No race recording found in data folder')
-                return
+                return 1
+        else:
+            logger.warning('Program entered replay mode although race_name is None')
+            return 1
 
         # Get race recording
         logger.debug(file_path)
@@ -604,7 +620,7 @@ def define_game(gui=True,  # set to False to prevent gooey dialog
                 timeout_s=None,
                 record=False,
                 record_note=None,
-                replay=None):
+                replay_file_list=None):
     if ctrl is None:
         controller = pid_next_waypoint_car_controller()
         logger.info('autodrive contoller was None, so was set to default {}'.format(ctrl.__class__))
@@ -624,7 +640,7 @@ def define_game(gui=True,  # set to False to prevent gooey dialog
                       fps=args.fps,
                       timeout_s=args.timeout_s,
                       record=args.record,
-                      replay=args.replay)
+                      replay_file_list=args.replay_file_list)
     else:
 
         IGNORE_COMMAND = '--ignore-gooey'
@@ -664,6 +680,7 @@ def define_game(gui=True,  # set to False to prevent gooey dialog
         if joystick_number is None:
             joystick_number = args.joystick
 
+
         try:
             if fps is None:
                 fps = args.fps
@@ -688,6 +705,7 @@ def define_game(gui=True,  # set to False to prevent gooey dialog
                       joystick_number=joystick_number,
                       fps=fps,
                       timeout_s=timeout_s,
-                      record=record)
+                      record=record,
+                      replay_file_list=args.replay_file_list)
 
     return game
