@@ -4,20 +4,20 @@ from src.car import car
 from src.car_command import car_command
 
 logger = logging.getLogger(__name__)
+MAX_SPEED = 5.0
 
 
 class pid_next_waypoint_car_controller:
     """
-    car controller: gets state and provides control signal.
     This reference implementation is a basic PID controller that aims for the next waypoint.
-
+    For the controller the user needs to know information about the current car state and its position in the track
+    Then, the user should implement a controller that generate a new car command to apply to the car
     """
     def __init__(self, my_car: car = None):
         """
-        :type my_car: car object
+        Constructs a new instance
+
         :param car: All car info: car_state and track
-        For the controller the user needs to know information about the current car state and its position in the track
-        Then, the user should implement a controller that generate a new car command to apply to the car
         """
         self.car = my_car
         self.car_command = car_command()
@@ -31,12 +31,15 @@ class pid_next_waypoint_car_controller:
         self.steer_i_error = 0
         self.steer_d_error = 0
 
-        self.max_speed = 5.0
+        self.max_speed = MAX_SPEED
 
     def read(self):
+        """
+        Computes the next steering angle tying to follow the waypoint list
 
+        :return: car_command that will be applied to the car
+        """
         self.car_command = car_command()
-        '''computes the control and returns it as a standard keyboard/joystick command'''
         waypoint_distance = self.car.track.get_distance_to_nearest_segment(car_state=self.car.car_state,
                                                                            x_car=self.car.car_state.position_m.x,
                                                                            y_car=self.car.car_state.position_m.y)
@@ -47,13 +50,23 @@ class pid_next_waypoint_car_controller:
         return self.car_command
 
     def __update_steering_error(self, cte):
-        pre_cte = self.steer_p_error
+        """
+        Calculate the next steering error for P, I and D
 
+        :param cte: Distance from the car to the nearest waypoint segment
+        :return: None
+        """
+        pre_cte = self.steer_p_error
         self.steer_p_error = cte
         self.steer_i_error += cte
         self.steer_d_error = cte - pre_cte
 
     def output_steering_angle(self):
+        """
+        Calculate the steering angle using P,I,D constants
+
+        :return: Double. The next steering angle
+        """
         angle = - self.steer_Kp * self.steer_p_error - self.steer_Ki * self.steer_i_error - \
                self.steer_Kd * self.steer_d_error
         return angle
