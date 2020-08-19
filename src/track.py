@@ -13,7 +13,7 @@ from timeit import default_timer as timer
 logger = logging.getLogger(__name__)
 
 def list_tracks():
-    ''' :returns list of all available tracks as list(str)'''
+    '''list of all available tracks as list(str)'''
     from os import listdir
 
     def list_files(directory, extension):
@@ -28,7 +28,13 @@ def list_tracks():
 
 # Version of the track based on the extracting contour and loading png
 def get_position_on_map(car_state=None, x=None, y=None):
-    #todo document params and return value code
+    '''
+    The function converts the physical position (meters) to the position of the map (pixels).
+    :param: One can provide either full car state (car_state), in which case the function will extract position from it,
+            Or one can provide x-y coordinates of the car directly. The last option allows to convert to map units
+            an arbitrary position, not only the instantaneous position of the car
+    :return: position of the car in map units (pixels) or None if not enough parameters were supplied
+    '''
     if car_state is not None:
         x_map = int(car_state.position_m.x / M_PER_PIXEL)
         y_map = int(car_state.position_m.y / M_PER_PIXEL)
@@ -43,9 +49,51 @@ def get_position_on_map(car_state=None, x=None, y=None):
 
 
 def closest_node(x, y, x_vector, y_vector):
-    #todo document params and return value code
+    '''
+    The function finds the nearest target point, from target point list (normally a waypoints list)
+    to a reference point (normally a car position)
+    :param x, y: Position (its x and y coordinates) of the reference point (normally of the car) in map units (pixels)
+    :param x_vector, y_vector: List of positions of target points in map units
+    :return: Index of the nearest target point
+    '''
     dist_2 = (x_vector - x) ** 2 + (y_vector - y) ** 2
     return np.argmin(dist_2)
+
+
+def get_neighbours(p_ref, ref_array):
+    """
+    Given a reference point p_ref = (i,j) (array cell) and the 2D array it is part of
+    return the list of its neighbours (bu providing their rows and columns)
+    :param p_ref: Tuple giving a row and column of the reference point p_ref
+    :param ref_array: The 2D array p_ref is part of
+    :return: The list of neighbours of p_ref in the form: [(i0,j0),(i1,j1),(i2,j2),...]
+    """
+    (i, j) = p_ref
+    (h, w) = ref_array.shape
+
+    neighbours = []
+
+    if i > 0:
+        neighbours.append((i - 1, j))
+        if j > 0:
+            neighbours.append((i - 1, j - 1))
+        if j < (w-1):
+            neighbours.append((i - 1, j + 1))
+
+    if i < (h-1):
+        neighbours.append((i + 1, j))
+        if j > 0:
+            neighbours.append((i + 1, j - 1))
+        if j < (w-1):
+            neighbours.append((i + 1, j + 1))
+
+    if j > 0:
+        neighbours.append((i, j - 1))
+
+    if j < (w-1):
+        neighbours.append((i, j + 1))
+
+    return neighbours
 
 
 class track:
@@ -87,13 +135,42 @@ class track:
             self.start_position_1 = np.array((self.waypoints_x[0], self.waypoints_y[0]-20))  # out
             self.start_position_2 = np.array((self.waypoints_x[0]-40, self.waypoints_y[0]+20))  # in
 
+        # The following part plots waypoints on the track
+        self.map_waypoints = self.track_map
+        self.map_waypoints[self.map_waypoints != 40] = 0
+        self.map_waypoints[self.map_waypoints == 40] = 1
+        # Make waypoints bigger to make them better visible
+        for p_ref in np.argwhere(self.map_waypoints == 1).tolist():
+            neighbours = get_neighbours(p_ref, self.map_waypoints)
+            for p in neighbours:
+                self.map_waypoints[p] = 1
+        for p_ref in np.argwhere(self.map_waypoints == 1).tolist():
+            neighbours = get_neighbours(p_ref, self.map_waypoints)
+            for p in neighbours:
+                self.map_waypoints[p] = 1
+        self.map_waypoints = np.stack((255*self.map_waypoints, 0*self.map_waypoints, 0*self.map_waypoints, ), axis=2)
+        self.surface_waypoints = pygame.surfarray.make_surface(self.map_waypoints.transpose((1, 0, 2)))
+        BLACK = (0, 0, 0)
+        self.surface_waypoints.set_colorkey(BLACK)  # Black colors will not be blit.
+
     def draw(self, surface: pygame.surface):
+        '''
+        Draw a track png
+        :param surface: Pygame surface to which track png should be drawn
+        '''
         surface.fill((65, 105, 225))
         # surface.blit(self.track, (SCREEN_WIDTH//2 - car.car_state.position.x, SCREEN_HEIGHT//2 - car.car_state.position.y))
         surface.blit(self.track_image, (0, 0))
+        surface.blit(self.surface_waypoints, (0, 0))
 
     def get_surface_type(self, car_state=None, x=None, y=None):
-        #todo document params and return value code
+        '''
+
+        :param car_state:
+        :param x:
+        :param y:
+        :return: A value corresponding to the surface type at a position
+        '''
         x, y = get_position_on_map(car_state=car_state, x=x, y=y)
         if x < 0 or x >= self.track_map.shape[1] or y < 0 or y > self.track_map.shape[0]:
             return 0
