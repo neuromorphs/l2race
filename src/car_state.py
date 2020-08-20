@@ -55,11 +55,18 @@ class car_state:
 
         # current commanded control input
         self.command = car_command()
-        self.command.complete_default()
 
         self.time_results:List[float] = []
 
         self.server_msg='' # message from server to be displayed to driver
+
+    def name(self) -> str:
+        """
+        Convenience for getting car name from static info
+
+        :return: car name
+        """
+        return self.static_info.name
 
     def __str__(self):
         s='{}\npos=({:4.1f},{:4.1f})m vel=({:5.1f},{:5.1f})m/s, speed={:6.2f}m/s accel={:6.2f}m/s^2\nsteering_angle={:4.1f}deg body_angle={:4.1f}deg\nyaw_rate={:4.1f}deg/s drift_angle={:4.1f}\nmsg: {}'\

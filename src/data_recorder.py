@@ -28,15 +28,16 @@ class data_recorder:
             return
 
         import time
-        timestr = time.strftime("%Y%m%d-%H%M%S")
+        timestr = time.strftime("%Y%m%d-%H%M") # e.g. '20200819-1601'
         if not os.path.exists(DATA_FOLDER_NAME):
             logger.info('creating output folder {}'.format(DATA_FOLDER_NAME))
             os.makedirs(DATA_FOLDER_NAME)
 
-        if self.note:
-            self.filename='{}-{}-{}-{}-{}.csv'.format(DATA_FILENAME_BASE, self.car.name(), self.car.track.name, self.note, timestr)
+        namestring=str.split(self.car.name(),'-')[0]
+        if self.note!='' and not self.note is None:
+            self.filename='{}-{}-{}-{}-{}.csv'.format(DATA_FILENAME_BASE,  namestring, self.car.track.name, self.note, timestr)
         else:
-            self.filename='{}-{}-{}-{}.csv'.format(DATA_FILENAME_BASE, self.car.name(), self.car.track.name, timestr)
+            self.filename='{}-{}-{}-{}.csv'.format(DATA_FILENAME_BASE, namestring, self.car.track.name, timestr)
         self.filename=os.path.join(DATA_FOLDER_NAME, self.filename)
 
         try:

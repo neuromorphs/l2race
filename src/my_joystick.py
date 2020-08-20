@@ -83,10 +83,16 @@ class my_joystick:
         if not self.car_command.reverse: # only if not in reverse
             self.car_command.autodrive_enabled = True if self.joy.get_button(3) == 1 else False # Y button
 
-        if self.name==my_joystick.XBOX_ONE_BLUETOOTH_JOYSTICK or self.name==my_joystick.XBOX_ELITE:
+        if self.name==my_joystick.XBOX_ONE_BLUETOOTH_JOYSTICK:
             self.car_command.steering = self.joy.get_axis(0) #self.axes[0], returns + for right push, which should make steering angle positive, i.e. CW
-            self.car_command.throttle = self.joy.get_axis(5) # (1 + self.joy.get_axis(5)) / 2. # (1+self.axes[5])/2
-            self.car_command.brake = self.joy.get_axis(2) # (1 + self.joy.get_axis(2)) / 2. #(1+self.axes[2])/2
+            self.car_command.throttle =  (1 + self.joy.get_axis(5)) / 2. # (1+self.axes[5])/2
+            self.car_command.brake =  (1 + self.joy.get_axis(2)) / 2. #(1+self.axes[2])/2
+            self.user_input.restart_car=self.joy.get_button(7) # menu button
+            self.user_input.quit=self.joy.get_button(6) # windows button
+        elif self.name==my_joystick.XBOX_ELITE: # antonio's older joystick
+            self.car_command.steering = self.joy.get_axis(0) #self.axes[0], returns + for right push, which should make steering angle positive, i.e. CW
+            self.car_command.throttle = self.joy.get_axis(5)
+            self.car_command.brake = self.joy.get_axis(2)
             self.user_input.restart_car=self.joy.get_button(7) # menu button
             self.user_input.quit=self.joy.get_button(6) # windows button
 

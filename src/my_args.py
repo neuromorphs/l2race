@@ -22,8 +22,8 @@ def client_args(parser):
     clientInterfaceGroup.add_argument("--joystick", type=int, default=JOYSTICK_NUMBER, help="Desired joystick number, starting with 0.")
 
     clientOutputGroup = parser.add_argument_group('Output/Replay options:')
-    clientOutputGroup.add_argument("--record", nargs='?', type=str, const=None, help="Record data to date-stamped filename with optional <note>, e.g. --record will write datestamped files named '{}-<note>-<track_name>-TTT.csv' in folder '{}, where note is optional note and TTT is a date/timestamp\'.".format(DATA_FILENAME_BASE, DATA_FOLDER_NAME))
-    clientOutputGroup.add_argument("--replay_file_list", nargs='?', const='last', default=None, type=str, help="Replay one or more CSV recordings. If no file is supplied, play the most recent recording in the data folder.")
+    clientOutputGroup.add_argument("--record", nargs='?',const='',  type=str, help="Record data to date-stamped filename with optional <note>, e.g. --record will write datestamped files named '{}-<track_name>-<car_name>-<note>-TTT.csv' in folder '{}, where note is optional note and TTT is a date/timestamp\'.".format(DATA_FILENAME_BASE, DATA_FOLDER_NAME))
+    clientOutputGroup.add_argument("--replay", nargs='?', const='last', type=str, help="Replay one or more CSV recordings. If 'last' or no file is supplied, play the most recent recording in the data folder.")
 
 
     clientTrackCarMode = parser.add_argument_group('Track car/spectate options:')
@@ -56,25 +56,21 @@ def server_args(parser):
 
     return parser
 
-def write_args_info(args, path)-> str:
-    '''
+def write_args_info(args, filepath)-> str:
+    """
     Writes arguments to logger and file named from startup __main__
     Parameters
-    ----------
-    args: parser.parse_args()
 
-    Returns
-    -------
-    full path to file
-    '''
+    :param args: parser.parse_args()
+    :param filepath: full path to logger output file
+
+    :returns: full path to file
+    """
     import __main__
     arguments_list = 'arguments:\n'
     for arg, value in args._get_kwargs():
         arguments_list += "{}:\t{}\n".format(arg, value)
     logger.info(arguments_list)
-    basename = os.path.basename(__main__.__file__)
-    argsFilename = basename.strip('.py') + '-args.txt'
-    filepath = os.path.join(path, argsFilename)
     with open(filepath, "w") as f:
         f.write(arguments_list)
     return filepath
