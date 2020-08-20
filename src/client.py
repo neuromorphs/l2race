@@ -288,7 +288,10 @@ class client:
 
     def run(self):
         if self.replay_recording is not None:
-            self.replay()
+            if self.replay():
+                logger.info('Done replaying')
+            else:
+                logger.error('Could not replay file')
         else:
             self.run_new_game()
 
@@ -550,7 +553,13 @@ class client:
         else:
             logger.warning('unexpected msg {} with payload {} received from server (should have gotten "car_state" message)'.format(msg, payload))
 
-    def replay(self):
+    def replay(self)->bool:
+        """
+        Replays the self.replay_file_list recordings. It will immediately return False if it cannot find the file to play. Otherwise
+        it will start a loop that runs over the entire file to play it, and finally return True.
+
+        :returns: False if it cannot find the file to play, True at the end of playing the entire recording.
+        """
         # Load data
 
         # Find the right file
@@ -560,7 +569,7 @@ class client:
 
             except FileNotFoundError:
                 logger.warning('There is no race recording with name {}'.format(self.replay_recording))
-                return 1
+                return False
         elif self.replay_recording is 'last':
             try:
                 import glob
@@ -569,10 +578,10 @@ class client:
                 file_path = max(list_of_files, key=os.path.getctime)
             except FileNotFoundError:
                 logger.warning('No race recording found in data folder')
-                return 1
+                return False
         else:
             logger.warning('Program entered replay mode although race_name is None')
-            return 1
+            return False
 
         # Get race recording
         logger.debug(file_path)
@@ -619,6 +628,7 @@ class client:
             # Drawing
             self.draw()
             sleep(1 / self.fps)
+        return True
 
     def restart_car(self, message: str = None):
         """
