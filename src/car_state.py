@@ -33,6 +33,17 @@ class car_state:
 
     def __init__(self, name:str='l2racer', client_ip:Tuple[str,int]=None, length_m:float=4., width_m:float=2.,
                  x:float=0, y:float=0., body_angle_deg:float=0):
+        """
+        Make a new car_state instance.
+
+        :param name: car name, generated automatically by default in my_args
+        :param client_ip: our IP address as (hostname, port)
+        :param length_m: car length in meters
+        :param width_m: car width in meters
+        :param x: starting location x in meters, starting left side
+        :param y: starting position y in meters, starting top
+        :param body_angle_deg: starting body angle in degrees, 0 is pointing right, position clockwise
+        """
         # intrinsic state
         # Screen coordinate system is computer vision standard, 0,0 is UL corner and y increases *downwards*.
         # It causes some confusion about angles.
