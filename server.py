@@ -82,7 +82,6 @@ class track_server_process(mp.Process):
     def cleanup(self):
         logger.info('cleaning up {} process'.format(self.track_name))
         self.send_all_clients_string_message('track has shut down')
-        # todo, make following a method
         if self.car_dict:
             for c in self.car_dict.keys():
                 self.send_client_msg(c,'track_shutdown', 'track server has shut down')
@@ -102,7 +101,7 @@ class track_server_process(mp.Process):
         except Exception:
             pass
         self.server_queue.close()
-        if self.track_socket:  # TODO: Is it the right way to handle it? Or does it just make debugging difficult?
+        if self.track_socket:
             self.track_socket.close()
 
     def run(self):
