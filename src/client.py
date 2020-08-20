@@ -133,7 +133,7 @@ class client:
 
         if replay_file_list is None:
             self.replay_recording = None
-        elif len(replay_file_list) == 1:
+        elif len(replay_file_list) >= 1:
             self.replay_recording = replay_file_list[0]
 
         self.track_name: str = track_name
@@ -288,7 +288,7 @@ class client:
 
     def run(self):
         if self.replay_recording is not None:
-            self.replay(self.replay_recording)
+            self.replay()
         else:
             self.run_new_game()
 
@@ -542,18 +542,18 @@ class client:
         else:
             logger.warning('unexpected msg {} with payload {} received from server (should have gotten "car_state" message)'.format(msg, payload))
 
-    def replay(self, race_name=None): # todo we have self.replay_file_list
+    def replay(self):
         # Load data
 
         # Find the right file
-        if (race_name is not None) and (race_name is not 'last'):
+        if (self.replay_recording is not None) and (self.replay_recording is not 'last'):
             try:
-                file_path = './data/' + race_name + '.csv'
+                file_path = './data/' + self.replay_recording + '.csv'
 
             except FileNotFoundError:
-                logger.warning('There is no race recording with name {}'.format(race_name))
+                logger.warning('There is no race recording with name {}'.format(self.replay_recording))
                 return 1
-        elif race_name is 'last':
+        elif self.replay_recording is 'last':
             try:
                 import glob
                 import os
@@ -568,7 +568,7 @@ class client:
 
         # Get race recording
         logger.debug(file_path)
-        data = pd.read_csv(file_path, skiprows=9) # skip comment lines starting with #
+        data = pd.read_csv(file_path, comment='#') # skip comment lines starting with #
 
         # Get used car name
         s = str(pd.read_csv(file_path, skiprows=5, nrows=1))
