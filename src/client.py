@@ -79,8 +79,7 @@ class client:
                  widthPixels:int=SCREEN_WIDTH_PIXELS,
                  heightPixels:int=SCREEN_HEIGHT_PIXELS,
                  timeout_s:float=SERVER_TIMEOUT_SEC,
-                 record:bool=False,
-                 record_note:Optional[str]=None,
+                 record:Optional[str]=None,
                  replay_file_list:Optional[List[str]]=None
                  ):
         """
@@ -97,9 +96,8 @@ class client:
         :param widthPixels:  screen width in pixels (must match server settings)
         :param heightPixels: height, must match server settings
         :param timeout_s: socket read timeout for blocking reads (main loop uses nonblocking reads)
-        :param record: set it True to record data for all cars to CSV files
-        :param record_note: note to add to recording CSV filename and header section
-        :param replay: None for normal live mode, or List[str] of filenames to play back a set of car recordings together
+        :param record: set it None to not record. Set it to a string to add note for this recording to file name to record data for all cars to CSV files
+        :param replay_file_list: None for normal live mode, or List[str] of filenames to play back a set of car recordings together
         """
 
         pygame.init()
@@ -130,12 +128,6 @@ class client:
         self.record_note:Optional[str]= record if not record is None else None
         self.data_recorders: Optional[List[data_recorder]] = None
         self.replay_file_list:Optional[List[str]]=replay_file_list
-
-        if replay_file_list is None:
-            self.replay_recording = None
-        elif len(replay_file_list) >= 1:
-            self.replay_recording = replay_file_list[0]
-
         self.track_name: str = track_name
         self.car_name: str = car_name
         self.car: Optional[car] = None  # will make it later after we get info from server about car
@@ -288,10 +280,10 @@ class client:
 
     def run(self)->None:
         """
-        Either runs the game live or replays recording(s), depending on self.replay_recording
+        Either runs the game live or replays recording(s), depending on self.replay_file_list
 
         """
-        if self.replay_recording is not None:
+        if self.replay_file_list is not None:
             if self.replay():
                 logger.info('Done replaying')
             else:
@@ -570,14 +562,19 @@ class client:
         # Load data
 
         # Find the right file
-        if (self.replay_recording is not None) and (self.replay_recording is not 'last'):
-            try:
-                file_path = './data/' + self.replay_recording + '.csv'
+        if (self.replay_file_list is not None) and (self.replay_file_list is not 'last'):
 
-            except FileNotFoundError:
-                logger.warning('There is no race recording with name {}'.format(self.replay_recording))
-                return False
-        elif self.replay_recording is 'last':
+            if isinstance(self.replay_file_list,List) and len(self.replay_file_list>1):
+                raise NotImplemented('replaying more than one recording is not yet implemented')
+            filename=self.replay_file_list[0]
+            if not filename.endswith('.csv'):
+                filename=filename+'.csv'
+                file_path = os.path.join(DATA_FOLDER_NAME,filename)
+                if not os.path.exists(file_path):
+                    logger.warning('There is no race recording with name {}'.format(file_path))
+                    return False
+
+        elif self.replay_file_list=='last':
             try:
                 import glob
                 import os
@@ -591,7 +588,7 @@ class client:
             return False
 
         # Get race recording
-        logger.debug(file_path)
+        logger.debug('replaying file {}'.format(file_path))
         data = pd.read_csv(file_path, comment='#') # skip comment lines starting with #
 
         # Get used car name
