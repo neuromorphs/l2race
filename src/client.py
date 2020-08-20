@@ -286,7 +286,11 @@ class client:
                 self.autodrive_controller.car = self.car
                 logger.info('initial car state is {}'.format(self.car.car_state))
 
-    def run(self):
+    def run(self)->None:
+        """
+        Either runs the game live or replays recording(s), depending on self.replay_recording
+
+        """
         if self.replay_recording is not None:
             if self.replay():
                 logger.info('Done replaying')
@@ -295,8 +299,11 @@ class client:
         else:
             self.run_new_game()
 
-    def run_new_game(self):
+    def run_new_game(self)->None:
+        """
+        Runs the game in live mode.
 
+        """
         if self.server_host == 'localhost':
             logger.info('skipping opening ports for local server')
         else:
