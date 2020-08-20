@@ -154,7 +154,7 @@ class client:
 
         # spectator data structures
         self.track_instance: track = track(track_name=self.track_name)
-        self.spectate_cars: Dict[str, car] = dict()  # dict of other cars on the track, by name of the car. Each entry is a car() that we make here.
+        self.spectate_cars: Dict[str, car] = dict()  # dict of other cars (NOT including ourselves) on the track, by name of the car. Each entry is a car() that we make here. For spectators, the list contains all cars. The cars contain the car_state. The complete list of all cars is this dict plus self.car
         self.autodrive_controller = controller  # automatic self driving controller specified in constructor
 
 
@@ -519,6 +519,14 @@ class client:
         # todo update list of data recorders if recording is enabled, close recordings for cars that left and remove them, add new cars to list of recorders
 
         # logger.debug('After update, have own car {} and other cars {}'.format(self.car.car_state.static_info.name if self.car else 'None', self.spectate_cars.keys()))
+
+    def manage_data_recorders(self):
+        """
+        Maintains list of data_recorders to keep them in sync with state
+
+        :return: None
+        """
+        pass
 
     def handle_message(self, msg: str, payload: object):
         """
