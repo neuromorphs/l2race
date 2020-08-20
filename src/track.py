@@ -163,7 +163,7 @@ class track:
         Otherwise waypoints_visible give the magnification of the waypoints in drawing (must be integer)
         :return: It does not return anything
         """
-        map_waypoints = self.track_map
+        map_waypoints = np.copy(self.track_map)
         map_waypoints[map_waypoints != 40] = 0
         map_waypoints[map_waypoints == 40] = 1
         # Make waypoints bigger to make them better visible
