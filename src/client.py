@@ -664,6 +664,22 @@ def define_game(gui=True,  # set to False to prevent gooey dialog
     else:
         controller = ctrl  # construct instance of the controller. The controllers car() is set later, once the server gives us the state
 
+    args = get_args()
+    if not args.record is None: # if recording data, also record command line arguments and log output to a text file
+        import time
+        timestr = time.strftime("%Y%m%d-%H%M")
+        filepath = os.path.join(DATA_FOLDER_NAME, 'l2race-log-'+str(timestr)+'.txt')
+        logger.info('Since recording is enabled, writing arguments and logger output to {}'.format(filepath))
+
+        infofile = write_args_info(args, filepath)
+
+        fh = logging.FileHandler(infofile)
+        fh.setLevel(logging.INFO)
+        formatter = logging.Formatter(
+            '%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+        fh.setFormatter(formatter)
+        logger.addHandler(fh)
+
     if gui:
         launch_gui()
         args = get_args()
@@ -685,21 +701,6 @@ def define_game(gui=True,  # set to False to prevent gooey dialog
             sys.argv.remove(IGNORE_COMMAND)
 
         args = get_args()
-
-        if not args.record is None: # if recording data, also record command line arguments and log output to a text file
-            import time
-            timestr = time.strftime("%Y%m%d-%H%M")
-            filepath = os.path.join(DATA_FOLDER_NAME, 'l2race-log-'+str(timestr)+'.txt')
-            logger.info('Since recording is enabled, writing arguments and logger output to {}'.format(filepath))
-
-            infofile = write_args_info(args, filepath)
-
-            fh = logging.FileHandler(infofile)
-            fh.setLevel(logging.INFO)
-            formatter = logging.Formatter(
-                '%(asctime)s - %(name)s - %(levelname)s - %(message)s')
-            fh.setFormatter(formatter)
-            logger.addHandler(fh)
 
         if track_name is None:
             track_name = args.track_name
