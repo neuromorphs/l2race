@@ -56,9 +56,9 @@ class my_joystick:
 
         if platform.system() == 'Linux':
             if self.joystick_number == 0:
-                self.joy = joystick.Joystick(3)
+                self.joy = joystick.Joystick(3) # TODO why?
             else:
-                self.joy = joystick.Joystick(4 - self.joystick_number)
+                self.joy = joystick.Joystick(4 - self.joystick_number)  # TODO why is this cryptic code needed? What does it do?
         else:
             self.joy = joystick.Joystick(self.joystick_number)
         self.joy.init()

@@ -96,7 +96,7 @@ class car_state:
         return s
 
     def get_record_headers(self, car):
-        """ :returns: the CVS header lines
+        """ :returns: the CVS header lines (# comments plus the CSV header row)
         """
         import datetime, time, getpass
         header ='# recorded output from l2race\n# format version: {}\n'.format(VERSION)
