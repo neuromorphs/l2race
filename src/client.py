@@ -7,6 +7,7 @@ from typing import Tuple, List, Optional, Dict
 import argparse
 import argcomplete as argcomplete
 import select
+from pandas import DataFrame
 from pygame.math import Vector2
 import pygame.freetype  # Import the freetype module.
 import pickle
@@ -30,6 +31,7 @@ from src.car import car
 from src.my_args import client_args, write_args_info
 from src.l2race_utils import my_logger
 from src.pid_next_waypoint_car_controller import pid_next_waypoint_car_controller
+from src.user_input import user_input
 
 logger = my_logger(__name__)
 
@@ -366,6 +368,17 @@ class client:
         pygame.quit()
         quit()
 
+    def read_replay_user_input(self)->Tuple[float, user_input]:
+        """
+        Reads input from keyboard or joystick to control replay.
+        Sets self.exit if user_input.quit set.
+        Restarts replay if user_input.restart is set.
+
+        :return: replay speed as float, where 0 is default playback speed, 1 is as fast as rencdering can process, and -1 is max reverse speed.
+        """
+        car_command, user_input = self.input.read()
+        return (car_command.steering, user_input)
+
     def process_user_or_autodrive_input(self):
         """
         Gets user or agent input and sends to model server, then does a non-blocking read
@@ -562,36 +575,36 @@ class client:
         :returns: False if it cannot find the file to play, True at the end of playing the entire recording.
         """
         # Load data
-
+        file_path=None
         # Find the right file
         if (self.replay_file_list is not None) and (self.replay_file_list is not 'last'):
 
-            if isinstance(self.replay_file_list,List) and len(self.replay_file_list>1):
-                raise NotImplemented('replaying more than one recording is not yet implemented')
+            if isinstance(self.replay_file_list,List) and len(self.replay_file_list)>1:
+                raise NotImplemented('Replaying more than one recording is not yet implemented')
             filename=self.replay_file_list[0]
             if not filename.endswith('.csv'):
                 filename=filename+'.csv'
                 file_path = os.path.join(DATA_FOLDER_NAME,filename)
                 if not os.path.exists(file_path):
-                    logger.warning('There is no race recording with name {}'.format(file_path))
+                    logger.warning('Cannot replay: There is no race recording with name {}'.format(file_path))
                     return False
 
         elif self.replay_file_list=='last':
             try:
                 import glob
                 import os
-                list_of_files = glob.glob('./data/*.csv')
+                list_of_files = glob.glob(DATA_FOLDER_NAME+'/*.csv')
                 file_path = max(list_of_files, key=os.path.getctime)
             except FileNotFoundError:
-                logger.warning('No race recording found in data folder')
+                logger.warning('Cannot replay: No race recording found in data folder '+DATA_FOLDER_NAME)
                 return False
         else:
-            logger.warning('Program entered replay mode although race_name is None')
+            logger.warning('Cannot replay: filename is None')
             return False
 
         # Get race recording
         logger.debug('replaying file {}'.format(file_path))
-        data = pd.read_csv(file_path, comment='#') # skip comment lines starting with #
+        data:DataFrame = pd.read_csv(file_path, comment='#') # skip comment lines starting with #
 
         # Get used car name
         s = str(pd.read_csv(file_path, skiprows=5, nrows=1))
@@ -614,7 +627,30 @@ class client:
         data = data.iloc[::4, :]
 
         # Run a loop to print data
-        for index, row in data.iterrows():
+        n_rows=data.shape[0]
+        r=0
+        looper=loop_timer(rate_hz=self.fps)
+        while not self.exit:
+            looper.sleep_leftover_time()
+            try:
+                looper.sleep_leftover_time()
+            except KeyboardInterrupt:
+                logger.info('KeyboardInterrupt, stopping client')
+                self.exit = True
+            if looper.loop_counter % CHECK_FOR_JOYSTICK_INTERVAL == 0 and not isinstance(self.input, my_joystick):
+                try:
+                    self.input = my_joystick()  # check for joystick that might get turned on during play
+                except:
+                    pass
+
+            # Event queue
+            for event in pygame.event.get():
+                if event.type == pygame.QUIT:
+                    self.exit = True
+
+
+            row=data.iloc[r] # position based indexing of DataFrame https://pythonhow.com/accessing-dataframe-columns-rows-and-cells/
+        # for index, row in data.iterrows():
             self.car.car_state.command.autodrive_enabled = row['cmd.auto']
             self.car.car_state.command.steering = row['cmd.steering']
             self.car.car_state.command.throttle = row['cmd.throttle']
@@ -633,7 +669,19 @@ class client:
 
             # Drawing
             self.draw()
-            sleep(1 / self.fps)
+
+            speed,user_input=self.read_replay_user_input()
+            if user_input.quit:
+                self.cleanup()
+                break
+
+            if user_input.restart_car:
+                r=0
+            if speed>=0:
+                r=r+1 if r<n_rows-1 else n_rows
+            else:
+                r=r-1 if r>0 else 0
+            looper.rate_hz=self.fps*(1+abs(speed))
         return True
 
     def restart_car(self, message: str = None):
