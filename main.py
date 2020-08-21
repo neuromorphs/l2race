@@ -59,8 +59,7 @@ if __name__ == '__main__':
     game = define_game(gui=False,
                        ctrl=controller)
     game.run()
-    # game.replay('l2race-20200803-220912')
-    # game.replay()
+
 
     '''
     Place for your code to post-process data

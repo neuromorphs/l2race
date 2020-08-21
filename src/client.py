@@ -2,10 +2,12 @@
 Client l2race agent
 
 """
+import os
 from typing import Tuple, List, Optional, Dict
 import argparse
 import argcomplete as argcomplete
 import select
+from pandas import DataFrame
 from pygame.math import Vector2
 import pygame.freetype  # Import the freetype module.
 import pickle
@@ -29,6 +31,7 @@ from src.car import car
 from src.my_args import client_args, write_args_info
 from src.l2race_utils import my_logger
 from src.pid_next_waypoint_car_controller import pid_next_waypoint_car_controller
+from src.user_input import user_input
 
 logger = my_logger(__name__)
 
@@ -38,7 +41,7 @@ logger = my_logger(__name__)
 def get_args():
     parser = argparse.ArgumentParser(
         description='l2race client: run this if you are a racer.',
-        epilog='Run with no arguments to open dialog for server IP', allow_abbrev=True,
+        epilog='Run with no arguments to open dialog for arguments, if Gooey is installed', allow_abbrev=True,
         formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     parser = client_args(parser)
     argcomplete.autocomplete(parser)
@@ -49,7 +52,6 @@ def get_args():
 def launch_gui():
     # may only apply to windows
     try:
-        from scripts.regsetup import description
         from gooey import Gooey  # pip install Gooey
     except Exception:
         logger.info('Gooey GUI builder not available, will use command line arguments.\n'
@@ -68,18 +70,38 @@ def launch_gui():
 class client:
 
     def __init__(self,
-                 track_name='track',
-                 spectate=False,
-                 car_name=CAR_NAME,
-                 controller=None,
-                 server_host=SERVER_HOST,
-                 server_port=SERVER_PORT,
-                 joystick_number=JOYSTICK_NUMBER,
-                 fps=FPS,
-                 widthPixels=SCREEN_WIDTH_PIXELS,
-                 heightPixels=SCREEN_HEIGHT_PIXELS,
-                 timeout_s=SERVER_TIMEOUT_SEC,
-                 record=DATA_FILENAME_BASE):
+                 track_name:str='track',
+                 spectate:bool=False,
+                 car_name:str=CAR_NAME,
+                 controller:Optional[object]=None,
+                 server_host:str=SERVER_HOST,
+                 server_port:int=SERVER_PORT,
+                 joystick_number:int=JOYSTICK_NUMBER,
+                 fps:float=FPS,
+                 widthPixels:int=SCREEN_WIDTH_PIXELS,
+                 heightPixels:int=SCREEN_HEIGHT_PIXELS,
+                 timeout_s:float=SERVER_TIMEOUT_SEC,
+                 record:Optional[str]=None,
+                 replay_file_list:Optional[List[str]]=None
+                 ):
+        """
+        Makes a new instance of client that users use to run a car on a track.
+
+        :param track_name: string name of track, without .png suffix
+        :param spectate: set True to just spectate
+        :param car_name: Your name for your car
+        :param controller: Optional autodrive controller that implements the read method to return (car_command, user_input)
+        :param server_host: hostname of server, e.g. 'localhost' or 'telluridevm.iniforum.ch'
+        :param server_port: port on server to initiate communication
+        :param joystick_number: joystick number if more than one
+        :param fps: desired frames per second of game loop
+        :param widthPixels:  screen width in pixels (must match server settings)
+        :param heightPixels: height, must match server settings
+        :param timeout_s: socket read timeout for blocking reads (main loop uses nonblocking reads)
+        :param record: set it None to not record. Set it to a string to add note for this recording to file name to record data for all cars to CSV files
+        :param replay_file_list: None for normal live mode, or List[str] of filenames to play back a set of car recordings together
+        """
+
         pygame.init()
         logger.info('using pygame version {}'.format(pygame.version.ver))
         pygame.display.set_caption("l2race")
@@ -102,11 +124,12 @@ class client:
         self.server_port: int = server_port
         self.serverStartAddr: Tuple[str, int] = (self.server_host, self.server_port)  # manager address, different port on server used during game
         self.gameSockAddr: Optional[Tuple[str, int]] = None  # address used during game
-        self.server_timeout_s = timeout_s
-        self.gotServer = False
-        self.record: bool = record
-        self.recorder: Optional[data_recorder] = None
-
+        self.server_timeout_s:float = timeout_s
+        self.gotServer:bool = False
+        self.recording_enabled: bool = not record is None
+        self.record_note:Optional[str]= record if not record is None else None
+        self.data_recorders: Optional[List[data_recorder]] = None
+        self.replay_file_list:Optional[List[str]]=replay_file_list
         self.track_name: str = track_name
         self.car_name: str = car_name
         self.car: Optional[car] = None  # will make it later after we get info from server about car
@@ -125,8 +148,10 @@ class client:
 
         # spectator data structures
         self.track_instance: track = track(track_name=self.track_name)
-        self.spectate_cars: Dict[str, car] = dict()  # dict of other cars on the track, by name of the car. Each entry is a car() that we make here.
+        self.spectate_cars: Dict[str, car] = dict()  # dict of other cars (NOT including ourselves) on the track, by name of the car. Each entry is a car() that we make here. For spectators, the list contains all cars. The cars contain the car_state. The complete list of all cars is this dict plus self.car
         self.autodrive_controller = controller  # automatic self driving controller specified in constructor
+
+
 
     def cleanup(self):
         """
@@ -248,16 +273,31 @@ class client:
             logger.info('got game_port message from server telling us to use address {} to talk with server'.format(self.gameSockAddr))
             if not self.spectate:
                 self.car = car(name=self.car_name, track=self.track_instance, screen=self.screen, client_ip=self.gameSockAddr)
-                if self.record:
-                    if self.recorder is None:
-                        self.recorder = data_recorder(car=self.car)
-                    self.recorder.open_new_recording()
-                # self.car.loadAndScaleCarImage()   # happens inside car
+                if self.recording_enabled:
+                    if self.data_recorders is None:  # todo add other cars to data_recorders as we get them from server
+                        self.data_recorders = [data_recorder(car=self.car)]
+                        self.data_recorders[0].open_new_recording()
                 self.autodrive_controller.car = self.car
                 logger.info('initial car state is {}'.format(self.car.car_state))
 
-    def run(self):
+    def run(self)->None:
+        """
+        Either runs the game live or replays recording(s), depending on self.replay_file_list
 
+        """
+        if self.replay_file_list is not None:
+            if self.replay():
+                logger.info('Done replaying')
+            else:
+                logger.error('Could not replay file')
+        else:
+            self.run_new_game()
+
+    def run_new_game(self)->None:
+        """
+        Runs the game in live mode.
+
+        """
         if self.server_host == 'localhost':
             logger.info('skipping opening ports for local server')
         else:
@@ -307,8 +347,9 @@ class client:
                 if cmd is None:
                     continue
                 self.handle_message(cmd, payload)
-                if not self.spectate and self.recorder:
-                    self.recorder.write_sample()
+                if self.data_recorders:
+                    for r in self.data_recorders:
+                        r.write_sample()
 
             except socket.timeout:
                 logger.warning('Timeout on socket receive from server, using previous car state. '
@@ -327,6 +368,17 @@ class client:
         pygame.quit()
         quit()
 
+    def read_replay_user_input(self)->Tuple[float, user_input]:
+        """
+        Reads input from keyboard or joystick to control replay.
+        Sets self.exit if user_input.quit set.
+        Restarts replay if user_input.restart is set.
+
+        :return: replay speed as float, where 0 is default playback speed, 1 is as fast as rencdering can process, and -1 is max reverse speed.
+        """
+        car_command, user_input = self.input.read()
+        return (car_command.steering, user_input)
+
     def process_user_or_autodrive_input(self):
         """
         Gets user or agent input and sends to model server, then does a non-blocking read
@@ -337,14 +389,10 @@ class client:
         car_command, user_input = self.input.read()
         if car_command.autodrive_enabled:
             if self.autodrive_controller is None:
-                logger.error('Tried to use autodrive control but there is no controller defined; disabling autodrive')
-                car_command.autodrive_enabled = False
+                raise RuntimeError('Tried to use autodrive control but there is no controller defined. See AUTODRIVE_CLASS in src/globals.py.')
             command = self.autodrive_controller.read()
-            command.add_command(car_command)
-            command.complete_default()
         else:
             command = car_command
-            command.complete_default()
 
         if user_input.quit:
             logger.info('quit recieved, ending main loop')
@@ -358,8 +406,10 @@ class client:
             if user_input.restart_client:
                 logger.info('restarting client')
                 self.gotServer = False
-                if self.recorder:
-                    self.recorder.close_recording()
+                if self.data_recorders:
+                    for r in self.data_recorders:
+                        r.close_recording()
+                    self.data_recorders = None
 
             # send control to server
             self.send_to_server(self.gameSockAddr, 'command', command)
@@ -483,7 +533,17 @@ class client:
                                                client_ip=s.static_info.client_ip,
                                                screen=self.screen)
             self.spectate_cars[name].car_state = s  # set its state
+        # todo update list of data recorders if recording is enabled, close recordings for cars that left and remove them, add new cars to list of recorders
+
         # logger.debug('After update, have own car {} and other cars {}'.format(self.car.car_state.static_info.name if self.car else 'None', self.spectate_cars.keys()))
+
+    def manage_data_recorders(self):
+        """
+        Maintains list of data_recorders to keep them in sync with state
+
+        :return: None
+        """
+        pass
 
     def handle_message(self, msg: str, payload: object):
         """
@@ -507,30 +567,48 @@ class client:
         else:
             logger.warning('unexpected msg {} with payload {} received from server (should have gotten "car_state" message)'.format(msg, payload))
 
-    def replay(self, race_name=None):
+    def replay(self)->bool:
+        """
+        Replays the self.replay_file_list recordings. It will immediately return False if it cannot find the file to play. Otherwise
+        it will start a loop that runs over the entire file to play it, and finally return True.
+
+        :returns: False if it cannot find the file to play, True at the end of playing the entire recording.
+        """
         # Load data
-
+        file_path=None
+        filename = None
         # Find the right file
-        if race_name:
-            try:
-                file_path = './data/' + race_name + '.csv'
+        if (self.replay_file_list is not None) and (self.replay_file_list is not 'last'):
 
-            except FileNotFoundError:
-                logger.warning('There is no race recording with name {}'.format(race_name))
-                return
-        else:
+            if isinstance(self.replay_file_list,List) and len(self.replay_file_list)>1:
+                raise NotImplemented('Replaying more than one recording is not yet implemented')
+                filename=self.replay_file_list[0]
+
+            if isinstance(self.replay_file_list, str):
+                filename = self.replay_file_list
+
+            if not filename.endswith('.csv'):
+                filename=filename+'.csv'
+                file_path = os.path.join(DATA_FOLDER_NAME, filename)
+                if not os.path.exists(file_path):
+                    logger.warning('Cannot replay: There is no race recording with name {}'.format(file_path))
+                    return False
+
+        elif self.replay_file_list=='last':
             try:
                 import glob
-                import os
-                list_of_files = glob.glob('./data/*.csv')
+                list_of_files = glob.glob(DATA_FOLDER_NAME+'/*.csv')
                 file_path = max(list_of_files, key=os.path.getctime)
             except FileNotFoundError:
-                logger.warning('No race recording found in data folder')
-                return
+                logger.warning('Cannot replay: No race recording found in data folder '+DATA_FOLDER_NAME)
+                return False
+        else:
+            logger.warning('Cannot replay: filename is None')
+            return False
 
         # Get race recording
-        logger.debug(file_path)
-        data = pd.read_csv(file_path, skiprows=9)
+        logger.debug('replaying file {}'.format(file_path))
+        data:DataFrame = pd.read_csv(file_path, comment='#') # skip comment lines starting with #
 
         # Get used car name
         s = str(pd.read_csv(file_path, skiprows=5, nrows=1))
@@ -549,11 +627,34 @@ class client:
         self.track_instance=track(self.track_name)
         self.car = car(name=self.car_name, track=self.track_instance, screen=self.screen)
 
-        # decimate data
-        data = data.iloc[::4, :]
+        # decimate data to make it play faster
+        # data = data.iloc[::4, :]
 
         # Run a loop to print data
-        for index, row in data.iterrows():
+        n_rows=data.shape[0]
+        r=0
+        looper=loop_timer(rate_hz=self.fps)
+        while not self.exit:
+            looper.sleep_leftover_time()
+            try:
+                looper.sleep_leftover_time()
+            except KeyboardInterrupt:
+                logger.info('KeyboardInterrupt, stopping client')
+                self.exit = True
+            if looper.loop_counter % CHECK_FOR_JOYSTICK_INTERVAL == 0 and not isinstance(self.input, my_joystick):
+                try:
+                    self.input = my_joystick()  # check for joystick that might get turned on during play
+                except:
+                    pass
+
+            # Event queue
+            for event in pygame.event.get():
+                if event.type == pygame.QUIT:
+                    self.exit = True
+
+
+            row=data.iloc[r] # position based indexing of DataFrame https://pythonhow.com/accessing-dataframe-columns-rows-and-cells/
+        # for index, row in data.iterrows():
             self.car.car_state.command.autodrive_enabled = row['cmd.auto']
             self.car.car_state.command.steering = row['cmd.steering']
             self.car.car_state.command.throttle = row['cmd.throttle']
@@ -572,7 +673,20 @@ class client:
 
             # Drawing
             self.draw()
-            sleep(1 / self.fps)
+
+            speed,user_input=self.read_replay_user_input()
+            if user_input.quit:
+                self.cleanup()
+                break
+
+            if user_input.restart_car:
+                r=0
+            if speed>=0:
+                r=r+1 if r<n_rows-1 else n_rows
+            else:
+                r=r-1 if r>0 else 0
+            looper.rate_hz=self.fps*(1+abs(4*speed))
+        return True
 
     def restart_car(self, message: str = None):
         """
@@ -596,12 +710,51 @@ def define_game(gui=True,  # set to False to prevent gooey dialog
                 joystick_number=None,
                 fps=None,
                 timeout_s=None,
-                record=None):
+                record=False,
+                record_note=None,
+                replay=None) -> client:
+    """
+    Defines the client side of l2race game for user by handling the command line arguments if they are supplied.
+
+        :param gui: Set true to use Gooey to put up dialog to launch client, if Gooey is installed.
+        :param track_name: string name of track, without .png suffix
+        :param spectate: set True to just spectate
+        :param car_name: Your name for your car
+        :param controller: Optional autodrive controller that implements the read method to return (car_command, user_input)
+        :param server_host: hostname of server, e.g. 'localhost' or 'telluridevm.iniforum.ch'
+        :param server_port: port on server to initiate communication
+        :param joystick_number: joystick number if more than one
+        :param fps: desired frames per second of game loop
+        :param widthPixels:  screen width in pixels (must match server settings)
+        :param heightPixels: height, must match server settings
+        :param timeout_s: socket read timeout for blocking reads (main loop uses nonblocking reads)
+        :param record: boolean, set it True to record data for all cars to CSV files
+        :param record_note: note to add to recording CSV filename and header section
+        :param replay: None for normal live mode, or List[str] of filenames to play back a set of car recordings together
+
+    :return: the client(), which must them be started.
+    """
     if ctrl is None:
         controller = pid_next_waypoint_car_controller()
         logger.info('autodrive contoller was None, so was set to default {}'.format(ctrl.__class__))
     else:
         controller = ctrl  # construct instance of the controller. The controllers car() is set later, once the server gives us the state
+
+    args = get_args()
+    if not args.record is None: # if recording data, also record command line arguments and log output to a text file
+        import time
+        timestr = time.strftime("%Y%m%d-%H%M")
+        filepath = os.path.join(DATA_FOLDER_NAME, 'l2race-log-'+str(timestr)+'.txt')
+        logger.info('Since recording is enabled, writing arguments and logger output to {}'.format(filepath))
+
+        infofile = write_args_info(args, filepath)
+
+        fh = logging.FileHandler(infofile)
+        fh.setLevel(logging.INFO)
+        formatter = logging.Formatter(
+            '%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+        fh.setFormatter(formatter)
+        logger.addHandler(fh)
 
     if gui:
         launch_gui()
@@ -615,7 +768,8 @@ def define_game(gui=True,  # set to False to prevent gooey dialog
                       joystick_number=args.joystick,
                       fps=args.fps,
                       timeout_s=args.timeout_s,
-                      record=args.record)
+                      record=args.record,
+                      replay_file_list=args.replay)
     else:
 
         IGNORE_COMMAND = '--ignore-gooey'
@@ -623,16 +777,6 @@ def define_game(gui=True,  # set to False to prevent gooey dialog
             sys.argv.remove(IGNORE_COMMAND)
 
         args = get_args()
-
-        if args.record:
-            infofile = write_args_info(args, 'data')
-
-            fh = logging.FileHandler(infofile)
-            fh.setLevel(logging.INFO)
-            formatter = logging.Formatter(
-                '%(asctime)s - %(name)s - %(levelname)s - %(message)s')
-            fh.setFormatter(formatter)
-            logger.addHandler(fh)
 
         if track_name is None:
             track_name = args.track_name
@@ -655,6 +799,7 @@ def define_game(gui=True,  # set to False to prevent gooey dialog
         if joystick_number is None:
             joystick_number = args.joystick
 
+
         try:
             if fps is None:
                 fps = args.fps
@@ -667,8 +812,8 @@ def define_game(gui=True,  # set to False to prevent gooey dialog
         except NameError:
             timeout_s = args.timeout_s
 
-        if record is None:
-            record = args.record
+        if replay is None:
+            replay=args.replay
 
         game = client(track_name=track_name,
                       spectate=spectate,
@@ -679,6 +824,7 @@ def define_game(gui=True,  # set to False to prevent gooey dialog
                       joystick_number=joystick_number,
                       fps=fps,
                       timeout_s=timeout_s,
-                      record=record)
+                      record=args.record,
+                      replay_file_list=args.replay)
 
     return game

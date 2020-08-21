@@ -3,6 +3,7 @@ joystick race controller based on xbox bluetooth controller.
 Xbox has 11 buttons.
 buttons ABXY are first four buttons 0-3, then menu and window buttons are 4th and 5th from end, i.e. 7 and 6
 """
+import logging
 from typing import Tuple
 import pygame # conda install -c cogsci pygame; maybe because it only is supplied for earlier python, might need conda install -c evindunn pygame ; sudo apt-get install libsdl-ttf2.0-0
 from pygame import joystick
@@ -11,6 +12,7 @@ import platform
 from src.l2race_utils import my_logger
 from src.globals import JOYSTICK_NUMBER
 logger = my_logger(__name__)
+# logger.setLevel(logging.DEBUG)
 
 from src.car_command import car_command
 from src.user_input import user_input
@@ -54,9 +56,9 @@ class my_joystick:
 
         if platform.system() == 'Linux':
             if self.joystick_number == 0:
-                self.joy = joystick.Joystick(3)
+                self.joy = joystick.Joystick(3) # TODO why?
             else:
-                self.joy = joystick.Joystick(4 - self.joystick_number)
+                self.joy = joystick.Joystick(4 - self.joystick_number)  # TODO why is this cryptic code needed? What does it do?
         else:
             self.joy = joystick.Joystick(self.joystick_number)
         self.joy.init()
@@ -81,10 +83,16 @@ class my_joystick:
         if not self.car_command.reverse: # only if not in reverse
             self.car_command.autodrive_enabled = True if self.joy.get_button(3) == 1 else False # Y button
 
-        if self.name==my_joystick.XBOX_ONE_BLUETOOTH_JOYSTICK or self.name==my_joystick.XBOX_ELITE:
+        if self.name==my_joystick.XBOX_ONE_BLUETOOTH_JOYSTICK:
             self.car_command.steering = self.joy.get_axis(0) #self.axes[0], returns + for right push, which should make steering angle positive, i.e. CW
-            self.car_command.throttle = (1 + self.joy.get_axis(5)) / 2. # (1+self.axes[5])/2
-            self.car_command.brake = (1 + self.joy.get_axis(2)) / 2. #(1+self.axes[2])/2
+            self.car_command.throttle =  (1 + self.joy.get_axis(5)) / 2. # (1+self.axes[5])/2
+            self.car_command.brake =  (1 + self.joy.get_axis(2)) / 2. #(1+self.axes[2])/2
+            self.user_input.restart_car=self.joy.get_button(7) # menu button
+            self.user_input.quit=self.joy.get_button(6) # windows button
+        elif self.name==my_joystick.XBOX_ELITE: # antonio's older joystick
+            self.car_command.steering = self.joy.get_axis(0) #self.axes[0], returns + for right push, which should make steering angle positive, i.e. CW
+            self.car_command.throttle = self.joy.get_axis(5)
+            self.car_command.brake = self.joy.get_axis(2)
             self.user_input.restart_car=self.joy.get_button(7) # menu button
             self.user_input.quit=self.joy.get_button(6) # windows button
 
@@ -95,7 +103,7 @@ class my_joystick:
             self.user_input.restart_car = self.joy.get_button(9)  # menu button
             self.user_input.quit = self.joy.get_button(8)  # windows button
 
-        # print(self)
+        logger.debug(self)
         return self.car_command, self.user_input
 
     def __str__(self):

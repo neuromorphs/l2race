@@ -85,7 +85,13 @@ class car:
     #     # label name
     #     self.game_font.render_to(screen, (state.position_m.x/M_PER_PIXEL, state.position_m.y/M_PER_PIXEL), state.static_info.name, [200,200,200]),
 
+    def name(self) -> str:
+        """
+        Convenience method to get car name from self.car_state
 
+        :return: name of car
+        """
+        return self.car_state.name()
 
     def loadAndScaleCarImage(self, image_name:str, screen:Optional[pygame.Surface]):
         """ loads image for car and scales it to its actual length.

@@ -25,14 +25,25 @@ class car_state:
 
         """
         def __init__(self, name:str, client_ip:Tuple[str,int], length_m:float, width_m:float):
-            self.name=name
-            self.client_ip = client_ip
-            self.length_m = length_m # length in meters
-            self.width_m = width_m # width in meters
+            self.name:str=name
+            self.client_ip:Tuple[str,int] = client_ip
+            self.length_m:float = length_m # length in meters
+            self.width_m:float = width_m # width in meters
 
 
     def __init__(self, name:str='l2racer', client_ip:Tuple[str,int]=None, length_m:float=4., width_m:float=2.,
                  x:float=0, y:float=0., body_angle_deg:float=0):
+        """
+        Make a new car_state instance.
+
+        :param name: car name, generated automatically by default in my_args
+        :param client_ip: our IP address as (hostname, port)
+        :param length_m: car length in meters
+        :param width_m: car width in meters
+        :param x: starting location x in meters, starting left side
+        :param y: starting position y in meters, starting top
+        :param body_angle_deg: starting body angle in degrees, 0 is pointing right, position clockwise
+        """
         # intrinsic state
         # Screen coordinate system is computer vision standard, 0,0 is UL corner and y increases *downwards*.
         # It causes some confusion about angles.
@@ -55,15 +66,23 @@ class car_state:
 
         # current commanded control input
         self.command = car_command()
-        self.command.complete_default()
 
         self.time_results:List[float] = []
 
         self.server_msg='' # message from server to be displayed to driver
 
+    def name(self) -> str:
+        """
+        Convenience for getting car name from static info
+
+        :return: car name
+        """
+        return self.static_info.name
+
     def __str__(self):
-        s='{}\npos=({:4.1f},{:4.1f})m vel=({:5.1f},{:5.1f})m/s, speed={:6.2f}m/s accel={:6.2f}m/s^2\nsteering_angle={:4.1f}deg body_angle={:4.1f}deg\nyaw_rate={:4.1f}deg/s drift_angle={:4.1f}\nmsg: {}'\
-            .format(str(self.command),
+        s='t={:1f}\n{}\npos=({:4.1f},{:4.1f})m vel=({:5.1f},{:5.1f})m/s, speed={:6.2f}m/s accel={:6.2f}m/s^2\nsteering_angle={:4.1f}deg body_angle={:4.1f}deg\nyaw_rate={:4.1f}deg/s drift_angle={:4.1f}\nmsg: {}'\
+            .format(self.time,
+                    str(self.command),
                     self.position_m.x,
                     self.position_m.y,
                     self.velocity_m_per_sec.x,
@@ -78,7 +97,7 @@ class car_state:
         return s
 
     def get_record_headers(self, car):
-        """ :returns: the CVS header lines
+        """ :returns: the CVS header lines (# comments plus the CSV header row)
         """
         import datetime, time, getpass
         header ='# recorded output from l2race\n# format version: {}\n'.format(VERSION)

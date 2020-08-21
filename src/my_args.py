@@ -21,8 +21,12 @@ def client_args(parser):
     clientInterfaceGroup.add_argument("--fps", type=int, default=FPS, help="Frame rate on client side (server always sets time to real time).")
     clientInterfaceGroup.add_argument("--joystick", type=int, default=JOYSTICK_NUMBER, help="Desired joystick number, starting with 0.")
 
-    clientOutputGroup = parser.add_argument_group('Output options:')
-    clientOutputGroup.add_argument("--record", action='store_true', help="record data to date-stamped filename, e.g. --record will write datestamped files named '{}-XXX.csv' in folder '{}, where XXX is a date/timestamp\'.".format(DATA_FILENAME_BASE, DATA_FOLDER_NAME))
+    clientOutputGroup = parser.add_argument_group('Output/Replay options:')
+    clientOutputGroup.add_argument("--record", nargs='?',const='',  type=str, help="Record data to date-stamped filename with optional <note>, e.g. --record will write datestamped files named '{}-<track_name>-<car_name>-<note>-TTT.csv' in folder '{}, where note is optional note and TTT is a date/timestamp\'.".format(DATA_FILENAME_BASE, DATA_FOLDER_NAME))
+    clientOutputGroup.add_argument("--replay", nargs='?', const='last', type=str, help="Replay one or more CSV recordings. If 'last' or no file is supplied, play the most recent recording in the data folder.")
+
+
+    clientTrackCarMode = parser.add_argument_group('Track car/spectate options:')
     try:
         # make hopefully unique car name
         import socket,getpass,random,string
@@ -33,7 +37,6 @@ def client_args(parser):
     except:
         car_name=CAR_NAME
 
-    clientTrackCarMode = parser.add_argument_group('Track car/spectate options:')
     clientTrackCarMode.add_argument("--track_name", type=str, default=TRACK_NAME, choices=list_tracks(), help="Name of track. Available tracks are in the '{}' folder, defined by src.globals.TRACKS_FOLDER.".format(TRACKS_FOLDER))
     clientTrackCarMode.add_argument("--car_name", type=str, default=car_name, help="Name of this car (last 2 letters are randomly chosen each time).")
     clientTrackCarMode.add_argument("--spectate", action='store_true', help="Just be a spectator on the cars on the track.")
@@ -53,25 +56,21 @@ def server_args(parser):
 
     return parser
 
-def write_args_info(args, path)-> str:
-    '''
+def write_args_info(args, filepath)-> str:
+    """
     Writes arguments to logger and file named from startup __main__
     Parameters
-    ----------
-    args: parser.parse_args()
 
-    Returns
-    -------
-    full path to file
-    '''
+    :param args: parser.parse_args()
+    :param filepath: full path to logger output file
+
+    :returns: full path to file
+    """
     import __main__
     arguments_list = 'arguments:\n'
     for arg, value in args._get_kwargs():
         arguments_list += "{}:\t{}\n".format(arg, value)
     logger.info(arguments_list)
-    basename = os.path.basename(__main__.__file__)
-    argsFilename = basename.strip('.py') + '-args.txt'
-    filepath = os.path.join(path, argsFilename)
     with open(filepath, "w") as f:
         f.write(arguments_list)
     return filepath
