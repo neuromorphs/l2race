@@ -576,15 +576,20 @@ class client:
         """
         # Load data
         file_path=None
+        filename = None
         # Find the right file
         if (self.replay_file_list is not None) and (self.replay_file_list is not 'last'):
 
             if isinstance(self.replay_file_list,List) and len(self.replay_file_list)>1:
                 raise NotImplemented('Replaying more than one recording is not yet implemented')
-            filename=self.replay_file_list[0]
+                filename=self.replay_file_list[0]
+
+            if isinstance(self.replay_file_list, str):
+                filename = self.replay_file_list
+
             if not filename.endswith('.csv'):
                 filename=filename+'.csv'
-                file_path = os.path.join(DATA_FOLDER_NAME,filename)
+                file_path = os.path.join(DATA_FOLDER_NAME, filename)
                 if not os.path.exists(file_path):
                     logger.warning('Cannot replay: There is no race recording with name {}'.format(file_path))
                     return False
@@ -592,7 +597,6 @@ class client:
         elif self.replay_file_list=='last':
             try:
                 import glob
-                import os
                 list_of_files = glob.glob(DATA_FOLDER_NAME+'/*.csv')
                 file_path = max(list_of_files, key=os.path.getctime)
             except FileNotFoundError:
@@ -624,7 +628,7 @@ class client:
         self.car = car(name=self.car_name, track=self.track_instance, screen=self.screen)
 
         # decimate data to make it play faster
-        data = data.iloc[::4, :]
+        # data = data.iloc[::4, :]
 
         # Run a loop to print data
         n_rows=data.shape[0]
@@ -681,7 +685,7 @@ class client:
                 r=r+1 if r<n_rows-1 else n_rows
             else:
                 r=r-1 if r>0 else 0
-            looper.rate_hz=self.fps*(1+abs(speed))
+            looper.rate_hz=self.fps*(1+abs(4*speed))
         return True
 
     def restart_car(self, message: str = None):

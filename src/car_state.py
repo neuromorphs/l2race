@@ -80,8 +80,9 @@ class car_state:
         return self.static_info.name
 
     def __str__(self):
-        s='{}\npos=({:4.1f},{:4.1f})m vel=({:5.1f},{:5.1f})m/s, speed={:6.2f}m/s accel={:6.2f}m/s^2\nsteering_angle={:4.1f}deg body_angle={:4.1f}deg\nyaw_rate={:4.1f}deg/s drift_angle={:4.1f}\nmsg: {}'\
-            .format(str(self.command),
+        s='t={:1f}\n{}\npos=({:4.1f},{:4.1f})m vel=({:5.1f},{:5.1f})m/s, speed={:6.2f}m/s accel={:6.2f}m/s^2\nsteering_angle={:4.1f}deg body_angle={:4.1f}deg\nyaw_rate={:4.1f}deg/s drift_angle={:4.1f}\nmsg: {}'\
+            .format(self.time,
+                    str(self.command),
                     self.position_m.x,
                     self.position_m.y,
                     self.velocity_m_per_sec.x,
