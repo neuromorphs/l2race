@@ -1,7 +1,7 @@
 <component name="ProjectRunConfigurationManager">
   <configuration default="false" name="server+client" type="Multirun" factoryName="Multirun" separateTabs="true" startOneByOne="true" markFailedProcess="true" hideSuccessProcess="false" delayTime="0">
     <runConfiguration name="server (local)" type="Python" />
-    <runConfiguration name="client - local on default track (oval_easy)" type="Python" />
+    <runConfiguration name="client (local)" type="Python" />
     <method v="2" />
   </configuration>
 </component>

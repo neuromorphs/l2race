@@ -274,7 +274,7 @@ class client:
                 if self.recording_enabled:
                     if self.data_recorders is None:  # todo add other cars to data_recorders as we get them from server
                         self.data_recorders = [data_recorder(car=self.car)]
-                    self.data_recorders[0].open_new_recording()
+                        self.data_recorders[0].open_new_recording()
                 self.autodrive_controller.car = self.car
                 logger.info('initial car state is {}'.format(self.car.car_state))
 
@@ -394,7 +394,9 @@ class client:
                 logger.info('restarting client')
                 self.gotServer = False
                 if self.data_recorders:
-                    self.data_recorders.close_recording()
+                    for r in self.data_recorders:
+                        r.close_recording()
+                    self.data_recorders = None
 
             # send control to server
             self.send_to_server(self.gameSockAddr, 'command', command)

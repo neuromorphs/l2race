@@ -28,7 +28,7 @@ class data_recorder:
             return
 
         import time
-        timestr = time.strftime("%Y%m%d-%H%M") # e.g. '20200819-1601'
+        timestr = time.strftime("%Y%m%d-%H%M%S") # e.g. '20200819-1601'
         if not os.path.exists(DATA_FOLDER_NAME):
             logger.info('creating output folder {}'.format(DATA_FOLDER_NAME))
             os.makedirs(DATA_FOLDER_NAME)
