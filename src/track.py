@@ -1,4 +1,5 @@
 import logging
+from typing import List, Tuple, Optional
 
 import pygame
 import logging
@@ -13,8 +14,11 @@ from timeit import default_timer as timer
 logger = logging.getLogger(__name__)
 
 
-def list_tracks():
-    '''list of all available tracks as list(str)'''
+def list_tracks()->List[str]:
+    """list all available tracks as list(str)
+
+    :returns: List of track names
+    """
     from os import listdir
 
     def list_files(directory, extension):
@@ -42,13 +46,13 @@ def list_tracks():
 
 
 # Version of the track based on the extracting contour and loading png
-def get_position_on_map(car_state=None, x=None, y=None):
+def get_position_on_map(car_state=None, x=None, y=None) ->Optional[Tuple[float,float]]:
     """
     The function converts the physical position (meters) to the position of the map (pixels).
     :param: One can provide either full car state (car_state), in which case the function will extract position from it,
             Or one can provide x-y coordinates of the car directly. The last option allows to convert to map units
             an arbitrary position, not only the instantaneous position of the car
-    :return: position of the car in map units (pixels) or None if not enough parameters were supplied
+    :return: position (x,y) of the car in map units (pixels) or None if not enough parameters were supplied
     """
     if car_state is not None:
         x_map = int(car_state.position_m.x / M_PER_PIXEL)
@@ -221,7 +225,8 @@ class track:
         :param car_state: car_state from which coordinates of the point of interest (car postion) can me extracted
         :param x: x-coordinate of point of reference in meter (usually the car position)
         :param y: y-coordinate of point of reference in meter (usually the car position)
-        :return:
+
+        :return: closest waypoint
         """
         x_map, y_map = get_position_on_map(car_state=car_state, x=x, y=y)
 

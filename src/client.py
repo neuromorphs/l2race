@@ -581,18 +581,31 @@ class client:
         if (self.replay_file_list is not None) and (self.replay_file_list is not 'last'):
 
             if isinstance(self.replay_file_list,List) and len(self.replay_file_list)>1:
-                raise NotImplemented('Replaying more than one recording is not yet implemented')
                 filename=self.replay_file_list[0]
+                raise NotImplemented('Replaying more than one recording is not yet implemented')
 
             if isinstance(self.replay_file_list, str):
                 filename = self.replay_file_list
 
             if not filename.endswith('.csv'):
                 filename=filename+'.csv'
-                file_path = os.path.join(DATA_FOLDER_NAME, filename)
-                if not os.path.exists(file_path):
-                    logger.warning('Cannot replay: There is no race recording with name {}'.format(file_path))
+
+            # if filename is a path, then use the path, otherwise, look for file at starting folder and in DATA_FOLDER_NAME folder
+            if os.sep in filename:
+                # treat as local or DATA_FOLDER filename
+                file_path=filename
+                if not os.path.isfile(filename):
+                    logger.error('Cannot replay: There is no race recording file with name {}'.format(filename))
                     return False
+            else:
+                # check if file found in DATA_FOLDER_NAME or at local starting point
+                if not os.path.isfile(filename):
+                    file_path = os.path.join(DATA_FOLDER_NAME, filename)
+                    if not os.path.isfile(file_path):
+                        logger.error('Cannot replay: There is no race recording file with name {} at local folder or in {}'.format(file_path, DATA_FOLDER_NAME))
+                        return False
+                else:
+                    file_path=filename
 
         elif self.replay_file_list=='last':
             try:
@@ -600,15 +613,19 @@ class client:
                 list_of_files = glob.glob(DATA_FOLDER_NAME+'/*.csv')
                 file_path = max(list_of_files, key=os.path.getctime)
             except FileNotFoundError:
-                logger.warning('Cannot replay: No race recording found in data folder '+DATA_FOLDER_NAME)
+                logger.error('Cannot replay: No race recording found in data folder '+DATA_FOLDER_NAME)
                 return False
         else:
-            logger.warning('Cannot replay: filename is None')
+            logger.error('Cannot replay: filename is None')
             return False
 
         # Get race recording
-        logger.debug('replaying file {}'.format(file_path))
-        data:DataFrame = pd.read_csv(file_path, comment='#') # skip comment lines starting with #
+        logger.info('Replaying file {}'.format(file_path))
+        try:
+            data:DataFrame = pd.read_csv(file_path, comment='#') # skip comment lines starting with #
+        except Exception as e:
+            logger.error('Cannot replay: Caught {} trying to read CSV file {}'.format(e,file_path))
+            return False
 
         # Get used car name
         s = str(pd.read_csv(file_path, skiprows=5, nrows=1))
@@ -645,7 +662,7 @@ class client:
                 try:
                     self.input = my_joystick()  # check for joystick that might get turned on during play
                 except:
-                    pass
+                    self.input=my_keyboard()
 
             # Event queue
             for event in pygame.event.get():
@@ -685,7 +702,8 @@ class client:
                 r=r+1 if r<n_rows-1 else n_rows
             else:
                 r=r-1 if r>0 else 0
-            looper.rate_hz=self.fps*(1+abs(4*speed))
+            # speedup is factor times normal speed, limited by rendering rate
+            looper.rate_hz=self.fps*(1+abs(10*speed))
         return True
 
     def restart_car(self, message: str = None):
