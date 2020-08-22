@@ -321,6 +321,7 @@ class client:
 
             # Drawing
             self.draw()
+            pygame.display.flip()
 
             self.connect_to_server()
 
@@ -443,14 +444,13 @@ class client:
 
     def draw(self):
         """
-        Top level drawing command.
+        Top level drawing command. Call pygame.display.flip() after other drawing commands after draw().
         :return: None
         """
         self.track_instance.draw(self.screen)
         self.draw_other_cars()
         self.draw_server_message()
         self.draw_own_car()
-        pygame.display.flip()
 
     def draw_own_car(self):
         if self.car:
@@ -627,7 +627,7 @@ class client:
         n_rows=data.shape[0]
         r=0
         step=1
-        scale=5
+        scale=10
         looper=loop_timer(rate_hz=self.fps)
         while not self.exit:
             try:
@@ -662,6 +662,11 @@ class client:
 
             # Drawing
             self.draw()
+            frac=float(r)/n_rows
+            w=frac*(self.screen.get_width()-10)
+            pygame.draw.rect(self.screen, [200,200,200], [10, self.screen.get_height()-20, w, 10], True)
+
+            pygame.display.flip()
 
             if user_input.quit:
                 self.cleanup()
@@ -670,7 +675,7 @@ class client:
             if user_input.restart_car:
                 r=0
             if playback_speed>=-0.05: # offset from zero to handle joysticks that have negative offset
-                r=r+step if r<n_rows-1 else n_rows
+                r=r+step if r<n_rows-step else n_rows
             else:
                 r=r-step if r>0 else 0
             step=int(abs(playback_speed)*scale)
