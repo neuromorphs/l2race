@@ -143,7 +143,7 @@ class track_server_process(mp.Process):
             # update all the car models
             for client, model in self.car_dict.items():
                 if isinstance(model, car_model):
-                    model.update(dt)
+                    model.update(now)
                 # poll for UDP messages
             # update the global list of car states that cars share
             self.car_states_list.clear()

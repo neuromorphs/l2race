@@ -142,7 +142,11 @@ class car_model:
     def zeroTo60mpsTimeToAccelG(self, time):
         return (60 * 0.447) / time / G
 
-    def update(self, dt_sec):
+    def update(self, t_sec)->None:
+        """
+        Updates the model.
+        :param t_sec: new time in seconds
+        """
         # logger.debug('updating model with dt={:.1f}ms'.format(dt_sec*1000))
 
         # Update model state:
@@ -162,11 +166,6 @@ class car_model:
         # u1 = longitudinal acceleration
         self.u = np.array([float(steer_vel_rad_per_sec), float(accel)], dtype='double')
 
-
-
-
-
-
         calculations_time_start = timer() # start counting time required to update the car model
         # Handle first step of simulation i.e. initialisation
         if self.first_step:
@@ -184,11 +183,16 @@ class car_model:
 
         # If requested timestep bigger than maximal timestep, make the update for maximal allowed timestep
         # We limit timestep to avoid instability
-        if dt_sec > MAX_TIMESTEP:
-            s = 'bounded real dt_sec={:.1f}ms to {:.2f}ms'.format(dt_sec * 1000, MAX_TIMESTEP * 1000)
-            # logger.info(s)
-            self.car_state.server_msg += s
-            dt_sec = MAX_TIMESTEP
+
+        dt_sec=t_sec-self.time
+        self.time=t_sec
+
+        # tobi commented out because all cars must have same time
+        # if dt_sec > MAX_TIMESTEP:
+        #     s = 'bounded real dt_sec={:.1f}ms to {:.2f}ms'.format(dt_sec * 1000, MAX_TIMESTEP * 1000)
+        #     # logger.info(s)
+        #     self.car_state.server_msg += s
+        #     dt_sec = MAX_TIMESTEP
 
         n_eval_start = self.n_eval_total
 
@@ -201,7 +205,8 @@ class car_model:
         # Calculate the difference on the "car's clock" during this model update
         t_simulated = t_simulated_end - t_simulated_start
 
-        self.time = self.solver.t  # Save the time on the "car's clock"
+        # tobi changed to be the input time only, let's see effect on model
+        # self.time = self.solver.t  # Save the time on the "car's clock"
 
         # TODO: Write what these try-except lines are for? Does n_eval can change during their execution?
         try:
