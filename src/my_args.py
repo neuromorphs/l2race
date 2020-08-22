@@ -51,6 +51,7 @@ def server_args(parser):
     serverGroup = parser.add_argument_group('Server arguments:')
     serverGroup.add_argument("--allow_off_track", action='store_true', help="ignore when car goes off track (for testing car dynamics more easily)")
     serverGroup.add_argument('--log',type=str,default=str(logging.getLevelName(LOGGING_LEVEL)),help='Set logging level. From most to least verbose, choices are "DEBUG", "INFO", "WARNING".')
+    serverGroup.add_argument("--port", type=int, default=SERVER_PORT, help="Server port address for initiating connections from clients.")
     # serverGroup.add_argument("--timeout_s", type=int, default=CLIENT_TIMEOUT_SEC, help="server timeout in seconds before it ends thread for handling a car model")
     # serverGroup.add_argument("--model", type=str, default=src.car_model.MODEL, help="server timeout in seconds before it ends thread for handling a car model")
 
