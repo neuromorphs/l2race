@@ -20,11 +20,16 @@ def printhelp():
 class my_keyboard:
 
     def __init__(self):
+        """
+        Makes a new my_keyboard
+
+        :returns: new instance.
+
+        """
         pygame.init()
         self.car_command:car_command = car_command()
         self.user_input:user_input = user_input()
-        printhelp()
-        # self.backspace_down=False
+        self.any_key_pressed=False # set true if any key is pressed
         self.auto_pressed=False # only used to log changes to/from autodrive
         self.restart_pressed=False # only used to log restarts and prevent multiple restarts being sent
 
@@ -37,8 +42,7 @@ class my_keyboard:
         self.user_input.restart_car=False
         self.user_input.restart_client=False
 
-        # if not any(pressed):
-        #     return self.car_input
+        self.any_key_pressed=any(pressed)
 
         if pressed[pygame.K_y]:
             self.car_command.autodrive_enabled = True

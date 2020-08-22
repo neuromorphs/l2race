@@ -24,13 +24,12 @@ from src.car_state import car_state
 from src.data_recorder import data_recorder
 from src.l2race_utils import find_unbound_port_in_range, open_ports, set_logging_level, loop_timer
 from src.globals import *
-from src.my_joystick import my_joystick
-from src.my_keyboard import my_keyboard
 from src.track import track
 from src.car import car
 from src.my_args import client_args, write_args_info
 from src.l2race_utils import my_logger
 from src.pid_next_waypoint_car_controller import pid_next_waypoint_car_controller
+from src.keyboard_and_joystick_input import keyboard_and_joystick_input
 from src.user_input import user_input
 
 logger = my_logger(__name__)
@@ -133,10 +132,7 @@ class client:
         self.track_name: str = track_name
         self.car_name: str = car_name
         self.car: Optional[car] = None  # will make it later after we get info from server about car
-        try:
-            self.input = my_joystick(joystick_number)
-        except:
-            self.input = my_keyboard()
+        self.input:keyboard_and_joystick_input = keyboard_and_joystick_input()
 
         self.server_message = None  # holds messsages sent from server to be displayed
         self.last_server_message_time = time.time()
@@ -231,7 +227,7 @@ class client:
                     self.exit = True  # TODO clean up, seems redundant. what sets pygame.QUIT?
                     break
             car_command, user_input = self.input.read()
-            if user_input.quit:
+            if self.input.exit or user_input.quit:
                 logger.info('startup aborted before connecting to server')
                 pygame.quit()
             if not self.ping_server():
@@ -322,20 +318,11 @@ class client:
             except KeyboardInterrupt:
                 logger.info('KeyboardInterrupt, stopping client')
                 self.exit = True
-            if looper.loop_counter % CHECK_FOR_JOYSTICK_INTERVAL == 0 and not isinstance(self.input, my_joystick):
-                try:
-                    self.input = my_joystick()  # check for joystick that might get turned on during play
-                except:
-                    pass
 
             # Drawing
             self.draw()
 
             self.connect_to_server()
-            # Event queue
-            for event in pygame.event.get():
-                if event.type == pygame.QUIT:
-                    self.exit = True
 
             # User input TODO move to method to get user or autodrive input
             self.process_user_or_autodrive_input()
@@ -368,17 +355,6 @@ class client:
         pygame.quit()
         quit()
 
-    def read_replay_user_input(self)->Tuple[float, user_input]:
-        """
-        Reads input from keyboard or joystick to control replay.
-        Sets self.exit if user_input.quit set.
-        Restarts replay if user_input.restart is set.
-
-        :return: replay speed as float, where 0 is default playback speed, 1 is as fast as rencdering can process, and -1 is max reverse speed.
-        """
-        car_command, user_input = self.input.read()
-        return (car_command.steering, user_input)
-
     def process_user_or_autodrive_input(self):
         """
         Gets user or agent input and sends to model server, then does a non-blocking read
@@ -394,7 +370,7 @@ class client:
         else:
             command = car_command
 
-        if user_input.quit:
+        if self.input.exit:
             logger.info('quit recieved, ending main loop')
             self.exit = True
             return
@@ -650,25 +626,21 @@ class client:
         # Run a loop to print data
         n_rows=data.shape[0]
         r=0
+        step=1
+        scale=5
         looper=loop_timer(rate_hz=self.fps)
         while not self.exit:
-            looper.sleep_leftover_time()
             try:
                 looper.sleep_leftover_time()
             except KeyboardInterrupt:
                 logger.info('KeyboardInterrupt, stopping client')
                 self.exit = True
-            if looper.loop_counter % CHECK_FOR_JOYSTICK_INTERVAL == 0 and not isinstance(self.input, my_joystick):
-                try:
-                    self.input = my_joystick()  # check for joystick that might get turned on during play
-                except:
-                    self.input=my_keyboard()
 
-            # Event queue
-            for event in pygame.event.get():
-                if event.type == pygame.QUIT:
-                    self.exit = True
-
+            car_command,user_input=self.input.read() # gets input from keyboard or joystick
+            if self.input.exit:
+                self.exit=True
+                continue
+            playback_speed=car_command.steering
 
             row=data.iloc[r] # position based indexing of DataFrame https://pythonhow.com/accessing-dataframe-columns-rows-and-cells/
         # for index, row in data.iterrows():
@@ -691,19 +663,20 @@ class client:
             # Drawing
             self.draw()
 
-            speed,user_input=self.read_replay_user_input()
             if user_input.quit:
                 self.cleanup()
                 break
 
             if user_input.restart_car:
                 r=0
-            if speed>=0:
-                r=r+1 if r<n_rows-1 else n_rows
+            if playback_speed>=-0.05: # offset from zero to handle joysticks that have negative offset
+                r=r+step if r<n_rows-1 else n_rows
             else:
-                r=r-1 if r>0 else 0
+                r=r-step if r>0 else 0
+            step=int(abs(playback_speed)*scale)
+            step=1 if step<1 else step
             # speedup is factor times normal speed, limited by rendering rate
-            looper.rate_hz=self.fps*(1+abs(10*speed))
+            looper.rate_hz=self.fps*(1+abs(scale*playback_speed))
         return True
 
     def restart_car(self, message: str = None):
