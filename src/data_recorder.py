@@ -22,7 +22,13 @@ class data_recorder:
         self.first_record_written=False
         self.note=note
 
-    def open_new_recording(self):
+    def open_new_recording(self)->None:
+        """
+        Creates a new recording if it is not already open.
+
+        :return: None
+        :raises RuntimeError if it cannot open the recording
+        """
         if self.file:
             logger.warning('recording {} is already open, close it and open a new one'.format(self.filename))
             return

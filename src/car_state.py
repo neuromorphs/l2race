@@ -79,6 +79,14 @@ class car_state:
         """
         return self.static_info.name
 
+    def hostname(self):
+        """
+        Returns hostname of car
+
+        :return: hostname, or None if not yet set
+        """
+        return self.static_info.client_ip[0] if self.static_info.client_ip else None
+
     def __str__(self):
         s='t={:1f}\n{}\npos=({:4.1f},{:4.1f})m vel=({:5.1f},{:5.1f})m/s, speed={:6.2f}m/s accel={:6.2f}m/s^2\nsteering_angle={:4.1f}deg body_angle={:4.1f}deg\nyaw_rate={:4.1f}deg/s drift_angle={:4.1f}\nmsg: {}'\
             .format(self.time,

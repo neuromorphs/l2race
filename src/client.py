@@ -492,9 +492,17 @@ class client:
             dict_car_names.append(s)
         if self.car:
             dict_car_names.append(self.car.car_state.static_info.name)
-        to_remove = [x for x in dict_car_names if x not in current_state_car_names]
+        to_remove:List[str] = [x for x in dict_car_names if x not in current_state_car_names]
+        dr_to_remove=[]
         for r in to_remove:
             del self.spectate_cars[r]
+            for dr in self.data_recorders:
+                if dr.car.name()==r:
+                    logger.debug('closing data recorder for lost car {}'.format(r))
+                    dr.close_recording()
+                    dr_to_remove.append(dr)
+        for d in dr_to_remove:
+            del self.data_recorders[d]
         for s in all_states:
             name = s.static_info.name  # get the car name from the remote state
             if name == self.car_name:
@@ -509,17 +517,25 @@ class client:
                                                client_ip=s.static_info.client_ip,
                                                screen=self.screen)
             self.spectate_cars[name].car_state = s  # set its state
-        # todo update list of data recorders if recording is enabled, close recordings for cars that left and remove them, add new cars to list of recorders
 
+        # manage recordings
+        recording_car_list=[]
+        for d in self.data_recorders: # make list of car names we are recording
+            recording_car_list.append(d.car.name())
+        current_other_car_list=[]
+        for c in self.spectate_cars.keys(): # make all current cars
+            current_other_car_list.append(c)
+        if self.recording_enabled:
+            # find current cars that we are not yet recording
+            not_yet_recording=[x for x in current_other_car_list if x not in recording_car_list]
+            for c in not_yet_recording:
+                sc=self.spectate_cars[c]
+                if sc.car_state.hostname()==self.car.car_state.hostname():
+                    continue # don't record other cars running also from us
+                dr=data_recorder(car=sc)
+                self.data_recorders.append(dr)
+                dr.open_new_recording()
         # logger.debug('After update, have own car {} and other cars {}'.format(self.car.car_state.static_info.name if self.car else 'None', self.spectate_cars.keys()))
-
-    def manage_data_recorders(self):
-        """
-        Maintains list of data_recorders to keep them in sync with state
-
-        :return: None
-        """
-        pass
 
     def handle_message(self, msg: str, payload: object):
         """
