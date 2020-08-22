@@ -272,7 +272,11 @@ class client:
                 if self.recording_enabled:
                     if self.data_recorders is None:  # todo add other cars to data_recorders as we get them from server
                         self.data_recorders = [data_recorder(car=self.car)]
-                        self.data_recorders[0].open_new_recording()
+                        try:
+                            self.data_recorders[0].open_new_recording()
+                        except RuntimeError as e:
+                            logger.warning('Could not open data recording; caught {}'.format(e))
+
                 self.autodrive_controller.car = self.car
                 logger.info('initial car state is {}'.format(self.car.car_state))
 
@@ -534,7 +538,10 @@ class client:
                     continue # don't record other cars running also from us
                 dr=data_recorder(car=sc)
                 self.data_recorders.append(dr)
-                dr.open_new_recording()
+                try:
+                    dr.open_new_recording()
+                except RuntimeError as e:
+                    logger.warning('Could not open data recorder for car {}: caught exception {}'.format(sc, e))
         # logger.debug('After update, have own car {} and other cars {}'.format(self.car.car_state.static_info.name if self.car else 'None', self.spectate_cars.keys()))
 
     def handle_message(self, msg: str, payload: object):
