@@ -354,9 +354,8 @@ class car_model:
     # However it can still move backwards
     def stop_off_track(self):
         surface_type = self.track.get_surface_type(x=self.model_state[IXPOS], y=self.model_state[IYPOS])
-        if not self.allow_off_track and surface_type == 0:
-            if self.model_state[ISPEED] > 0:
-                self.model_state[ISPEED] = 0
+        if (not self.allow_off_track) and (surface_type == 0):
+            self.model_state[ISPEED] = self.model_state[ISPEED] * SAND_SLOWDOWN / 4.0
 
     # update driver's observed state from model
     # set l2race driver observed car_state from car model
