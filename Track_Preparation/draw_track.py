@@ -37,9 +37,10 @@ names = ['Sebring',
          'track_6']
 
 for name in names:
-    print('Processing track {}'.format(name))
+    fn='./tracks_templates/'+name+'.png'
+    print('Processing track {} starting from template {}'.format(name,fn))
     # Load picture
-    im_original = cv.imread('./tracks_templates/'+name+'.png')
+    im_original = cv.imread(fn)
 
     # if name == 'oval':
     #     matplotlib.use('TkAgg')
