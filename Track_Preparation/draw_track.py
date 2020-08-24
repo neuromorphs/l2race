@@ -36,6 +36,8 @@ names = ['Sebring',
          'track_5',
          'track_6']
 
+# names = ['track_6']
+
 for name in names:
     fn='./tracks_templates/'+name+'.png'
     print('Processing track {} starting from template {}'.format(name,fn))
@@ -90,7 +92,7 @@ for name in names:
     elif name == 'track_5':
         idx_start = 18
     elif name == 'track_6':
-        idx_start = 351
+        idx_start = 399
     else:
         print('There is no starting point for track named {}; define the point in draw_tracks.py line 72'.format(name))
 

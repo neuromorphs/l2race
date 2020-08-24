@@ -147,7 +147,7 @@ class track:
         self.anti_cheat_rect = pygame.Rect(self.waypoints_x[self.num_waypoints//2], self.waypoints_y[self.num_waypoints//2]-60, 120, 120)
 
         self.start_angle = self.angle_next_segment_east[0]
-        if self.waypoints_y[0]>max(self.waypoints_y)/2:  # Remember y points down, Here I am down
+        if self.waypoints_y[0] > max(self.waypoints_y)/2:  # Remember y points down, Here I am down
             self.start_position_1 = np.array((self.waypoints_x[0], self.waypoints_y[0]+20))  # out
             self.start_position_2 = np.array((self.waypoints_x[0]+40, self.waypoints_y[0]-20))    # in
         else:  # Here I am up

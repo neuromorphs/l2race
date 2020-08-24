@@ -73,7 +73,6 @@ class car_model:
 
         # Randomly chose initial position
         x_start, y_start = self.choose_initial_position()
-
         # Create car_state object - object keeping all the information user can access
         self.car_state:car_state = car_state(x=x_start, y=y_start, body_angle_deg=self.track.start_angle,
                                    name=car_name, client_ip=client_ip)
