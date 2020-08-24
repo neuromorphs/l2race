@@ -45,10 +45,11 @@ def list_tracks()->List[str]:
     return tr
 
 
-# Version of the track based on the extracting contour and loading png
-def get_position_on_map(car_state=None, x=None, y=None) ->Optional[Tuple[float,float]]:
+
+def get_position_on_map(car_state=None, x=None, y=None) -> Optional[Tuple[float,float]]:
     """
-    The function converts the physical position (meters) to the position of the map (pixels).
+    The function converts the physical position (meters) to the position on the map (pixels).
+    As the ..._map.npy is a discrete map the position is rounded down to the nearest integer after conversion.
     :param: One can provide either full car state (car_state), in which case the function will extract position from it,
             Or one can provide x-y coordinates of the car directly. The last option allows to convert to map units
             an arbitrary position, not only the instantaneous position of the car
@@ -65,6 +66,29 @@ def get_position_on_map(car_state=None, x=None, y=None) ->Optional[Tuple[float,f
         return None
 
     return x_map, y_map
+
+
+def map_to_track(x_map: float):
+    """
+    The function converts a value in the map units (pixels) to the physical units (meters).
+    It is suitable to convert position, velocity or acceleration.
+    :param x_map: value in map units (pixels, not necessarily integer)
+    :return x_track: Value converted to physical units (meters)
+    """
+    x_track = x_map*M_PER_PIXEL
+    return x_track
+
+
+def track_to_map(x_track: float):
+    """
+    The function converts a value in the map units (pixels) to the physical units (meters).
+    In contrast to get_position_on_map() it DOES NOT round the results down to nearest integer.
+    It is suitable to convert position, velocity or acceleration.
+    :param x_track: Value converted to physical units (meters)
+    :return x_map: Value in map units (pixels, not necessarily integer!)
+    """
+    x_map = x_track/M_PER_PIXEL
+    return x_map
 
 
 def closest_node(x, y, x_vector, y_vector):
@@ -400,3 +424,34 @@ class track:
             pass
 
         return s
+
+    def get_position_on_map(self, car_state=None, x=None, y=None):
+        """
+        The function converts the physical position (meters) to the position on the map (pixels).
+        As the ..._map.npy is a discrete map the position is rounded down to the nearest integer after conversion.
+        :param: One can provide either full car state (car_state), in which case the function will extract position from it,
+                Or one can provide x-y coordinates of the car directly. The last option allows to convert to map units
+                an arbitrary position, not only the instantaneous position of the car
+        :return: position (x,y) of the car in map units (pixels) or None if not enough parameters were supplied
+        """
+        return get_position_on_map(car_state=car_state, x=x, y=y)
+
+    def track_to_map(self, x_track):
+        """
+        The function converts a value in the map units (pixels) to the physical units (meters).
+        In contrast to get_position_on_map() it DOES NOT round the results down to nearest integer.
+        It is suitable to convert position, velocity or acceleration.
+        :param x_track: Value converted to physical units (meters)
+        :return x_map: Value in map units (pixels, not necessarily integer!)
+        """
+        return track_to_map(x_track=x_track)
+
+    def map_to_track(self, x_map):
+        """
+        The function converts a value in the map units (pixels) to the physical units (meters).
+        It is suitable to convert position, velocity or acceleration.
+        :param x_map: value in map units (pixels, not necessarily integer)
+        :return x_track: Value converted to physical units (meters)
+        """
+        return map_to_track(x_map=x_map)
+
