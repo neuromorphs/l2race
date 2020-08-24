@@ -27,7 +27,7 @@ from src.track import track
 from src.car import car
 from src.my_args import client_args, write_args_info
 from src.l2race_utils import my_logger
-from controllers.pid_next_waypoint_car_controller import pid_next_waypoint_car_controller
+from src.controllers.pid_next_waypoint_car_controller import pid_next_waypoint_car_controller
 from src.keyboard_and_joystick_input import keyboard_and_joystick_input
 
 logger = my_logger(__name__)
