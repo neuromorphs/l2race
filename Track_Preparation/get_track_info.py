@@ -113,8 +113,9 @@ for name in names:
 
     def boundaries(im_original, im_copy, b_left, b_right, track_name='Sebring'):
         """
-        TODO what does it do?
-        :param im_original:
+        Finds right and left asphalt and sand region boundaries.
+
+        :param im_original: TODO
         :param im_copy:
         :param b_left:
         :param b_right:
