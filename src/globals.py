@@ -18,7 +18,7 @@ ENABLE_UPNP=True # set True to try unpnp to forward CLIENT_PORT_RANGE ports to l
 UPNP_LEASE_TIME=1200 # the lease time for these ports in seconds
 
 # your autodrive controller module (i.e. folder) and class name, must be a class that has read method that returns the car_command() object
-AUTODRIVE_MODULE='src.pid_next_waypoint_car_controller'
+AUTODRIVE_MODULE='src.controllers.pid_next_waypoint_car_controller'
 AUTODRIVE_CLASS='pid_next_waypoint_car_controller'
 
 #display

@@ -13,7 +13,6 @@ import pygame.freetype  # Import the freetype module.
 import pickle
 import socket
 import time
-from time import sleep
 import pygame
 import sys
 import atexit
@@ -22,15 +21,14 @@ import re
 
 from src.car_state import car_state
 from src.data_recorder import data_recorder
-from src.l2race_utils import find_unbound_port_in_range, open_ports, set_logging_level, loop_timer
+from src.l2race_utils import find_unbound_port_in_range, open_ports, loop_timer
 from src.globals import *
 from src.track import track
 from src.car import car
 from src.my_args import client_args, write_args_info
 from src.l2race_utils import my_logger
-from src.pid_next_waypoint_car_controller import pid_next_waypoint_car_controller
+from controllers.pid_next_waypoint_car_controller import pid_next_waypoint_car_controller
 from src.keyboard_and_joystick_input import keyboard_and_joystick_input
-from src.user_input import user_input
 
 logger = my_logger(__name__)
 
