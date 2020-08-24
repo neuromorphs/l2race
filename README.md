@@ -202,3 +202,6 @@ l2race includes pycharm _.idea_ files that have many useful run configurations a
 # Recording data
 
 The _--record_ option automatically records a .csv file with timestamped filename to the _data_ folder. This file has the time, commnands, and car state.
+
+# Drawing and generating tracks
+#TODO marcin complete

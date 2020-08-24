@@ -1,7 +1,19 @@
+"""
+Created on Tue Jul 14 04:43:57 2020
+
+Processes track PNG files to produce the numpy files used in l2race track.py.
+
+track.png
+track_info.npy
+track_map.npy
+
+To use it, run this script.
+
+@author: Marcin
+"""
 import cv2 as cv
 import numpy as np
 import matplotlib.pyplot as plt
-
 
 # Name of the picture (png) we load to extract track shape
 names = ['Sebring',
@@ -26,7 +38,8 @@ def unit_vector(vector):
 
 
 def angle_between(v1, v2):
-    """ Returns the angle in radians between vectors 'v1' and 'v2'::
+    """
+    Returns the angle in radians between vectors 'v1' and 'v2'::
     """
     v1_u = unit_vector(v1)
     v2_u = unit_vector(v2)
@@ -97,6 +110,15 @@ for name in names:
 
 
     def boundaries(im_original, im_copy, b_left, b_right, track_name='Sebring'):
+        """
+        TODO what does it do?
+        :param im_original:
+        :param im_copy:
+        :param b_left:
+        :param b_right:
+        :param track_name:
+        :return:
+        """
         _, thresh_b = cv.threshold(im_copy, 25, 255, 0)
         contours_b, _ = cv.findContours(thresh_b, cv.RETR_TREE, cv.CHAIN_APPROX_NONE)
 

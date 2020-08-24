@@ -2,6 +2,14 @@
 """
 Created on Tue Jul 14 04:43:57 2020
 
+Processes monochome track drawing to produce intermediate PNG track file images for l2race.
+
+This script produces the intermediate PNG files that are used to produce the numpy files used in l2race track.py
+
+track.png
+track_info.npy
+track_map.npy
+
 @author: Marcin
 """
 
@@ -29,7 +37,7 @@ names = ['Sebring',
          'track_6']
 
 for name in names:
-    print(name)
+    print('Processing track {}'.format(name))
     # Load picture
     im_original = cv.imread('./tracks_templates/'+name+'.png')
 
@@ -83,7 +91,7 @@ for name in names:
     elif name == 'track_6':
         idx_start = 351
     else:
-        print('You have never defined starting point for this track!')
+        print('There is no starting point for track named {}; define the point in draw_tracks.py line 72'.format(name))
 
     x = np.hstack((x[idx_start:], x[:idx_start]))
     y = np.hstack((y[idx_start:], y[:idx_start]))
@@ -144,7 +152,9 @@ for name in names:
     plt.margins(.15)
     # Plot it with so little white spaces around as possible
     plt.tight_layout()
-    fig.savefig('../media/tracks/'+name+'.png',  transparent=True, dpi=f, pad_inches=0.0, bbox_inches='tight')
+    fn='../media/tracks/'+name+'.png'
+    print('saving {}'.format(fn))
+    fig.savefig(fn,  transparent=True, dpi=f, pad_inches=0.0, bbox_inches='tight')
 
     # bbox_inches additionally cuts the white spaces but it does so after creating png - the resulting picture is smaller
     # Here we rescale it back to have dimensions (w,h)
@@ -187,7 +197,9 @@ for name in names:
 
     plt.margins(.15)
     plt.tight_layout()
-    fig.savefig('./tracks_gray/'+name+'_G.png',  transparent=False, dpi = f, pad_inches=0.0, bbox_inches='tight')
+    fn='./tracks_gray/'+name+'_G.png'
+    print('saving grayscale frame {}'.format(fn))
+    fig.savefig(fn,  transparent=False, dpi = f, pad_inches=0.0, bbox_inches='tight')
 
     # bbox_inches cuts the white spaces but it does so after creating png - the resulting picture is smaller
     # Here we rescale it back to have dimensions (w,h)
@@ -226,7 +238,9 @@ for name in names:
 
     plt.margins(.15)
     plt.tight_layout()
-    fig.savefig('./tracks_start/'+name+'_start.png',  transparent=False, dpi = f, pad_inches=0.0, bbox_inches='tight')
+    fn='./tracks_start/'+name+'_start.png'
+    print('saving starting position frame {}'.format(fn))
+    fig.savefig(fn,  transparent=False, dpi = f, pad_inches=0.0, bbox_inches='tight')
 
     # bbox_inches cuts the white spaces but it does so after creating png - the resulting picture is smaller
     # Here we rescale it back to have dimensions (w,h)
