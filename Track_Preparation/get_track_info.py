@@ -55,7 +55,9 @@ for name in names:
     print('Now processing: ' + name)
 
     # Load gray version of the track picture and recover the grayscale format.
-    im = cv.imread('./tracks_gray/'+name+'_G.png', cv.IMREAD_UNCHANGED)
+    fn='./tracks_gray/'+name+'_G.png'
+    print('loading gray scale track image {}'.format(fn))
+    im = cv.imread(fn, cv.IMREAD_UNCHANGED)
     im = cv.cvtColor(im, cv.COLOR_BGR2GRAY)
 
     # Make boundaries between regions sharp (matplotlib applies color interpolation between regions of different color)
@@ -363,8 +365,11 @@ for name in names:
                  'AngleNextSegmentEast': angles2}
 
     # Saving all relevant data
-    np.save('../media/tracks/' + name + '_map.npy', im)
-    np.save('../media/tracks/' + name + '_info.npy', TrackInfo)
+    fn1='../media/tracks/' + name + '_map.npy'
+    fn2='../media/tracks/' + name + '_info.npy'
+    print('saving {} and {}'.format(fn1,fn2))
+    np.save(fn1, im)
+    np.save(fn2, TrackInfo)
 
     # Summary
     # We give to the user these track-only dependant information:

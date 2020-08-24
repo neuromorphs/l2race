@@ -228,11 +228,13 @@ Sample runs follow.
 
     "C:\Program Files\JetBrains\PyCharm 2020.1.4\bin\runnerw64.exe" C:\Users\tobid\anaconda3\envs\l2race\python.exe "F:/tobi/Dropbox (Personal)/GitHub/neuromorphs/l2race/Track_Preparation/get_track_info.py"
     Now processing: Sebring
+    loading gray scale track image ./tracks_gray/Sebring_G.png
     You have more than 2 contours in Sebring
     I change the direction of Sebring
+    saving ../media/tracks/Sebring_map.npy and ../media/tracks/Sebring_info.npy
     Now processing: oval
+    loading gray scale track image ./tracks_gray/oval_G.png
     I change the direction of oval
-    Now processing: oval_easy
-    I change the direction of oval_easy
+    saving ../media/tracks/oval_map.npy and ../media/tracks/oval_info.npy
 
 
