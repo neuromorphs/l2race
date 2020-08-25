@@ -697,6 +697,7 @@ class client:
                 r=0
             if playback_speed>=-0.05: # offset from zero to handle joysticks that have negative offset
                 r=r+step if r<n_rows-step else n_rows
+                if r>n_rows-1: r=n_rows-1
             else:
                 r=r-step if r>0 else 0
             step=int(abs(playback_speed)*scale)

@@ -115,6 +115,8 @@ for name in names:
         """
         Finds right and left asphalt and sand region boundaries.
 
+        Needs hardcoding if the track has mulitple boundaries, e.g. if there are overlapping segments.
+
         :param im_original: TODO
         :param im_copy:
         :param b_left:
