@@ -160,30 +160,11 @@ for name in names:
                 yl = np.hstack((c0[:, 1], c1[:, 1], c2[:, 1]))
                 yr = np.hstack((c3[:, 1]))
 
-            elif (track_name == 'track_5') & (b_left == 18):
-                c0 = np.squeeze(contours_b[0])
-                c1 = np.squeeze(contours_b[1])
-                c2 = np.squeeze(contours_b[2])
-                xl = np.hstack((c0[:, 0], c1[:, 0]))
-                xr = np.hstack((c2[:, 0]))
-                yl = np.hstack((c0[:, 1], c1[:, 1]))
-                yr = np.hstack((c2[:, 1]))
-
-            elif (track_name == 'track_6') & (b_left == 8):
-                c0 = np.squeeze(contours_b[0])
-                c1 = np.squeeze(contours_b[1])
-                c2 = np.squeeze(contours_b[2])
-                c3 = np.squeeze(contours_b[3])
-                c4 = np.squeeze(contours_b[4])
-                xl = np.hstack((c0[:, 0]))
-                xr = np.hstack((c1[:, 0], c2[:, 0], c3[:, 0], c4[:, 0]))
-                yl = np.hstack((c0[:, 1]))
-                yr = np.hstack((c1[:, 1], c2[:, 1], c3[:, 1], c4[:, 1]))
             else:
                 print('You have to correct some contour!')
 
-        # # Matplotlib code to check if you combined contours correctly
-        # if name == 'oval_easy':
+        # Matplotlib code to check if you combined contours correctly
+        # if name == 'track_6':
         #     plt.figure()
         #     plt.plot(xl, yl, 'r.')
         #     plt.plot(xr, yr, 'b.')
