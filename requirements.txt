@@ -6,8 +6,8 @@ numpy
 argparse
 argcomplete
 opencv-python
-numba
-cython
+# numba # not using now
+cython # cython needs to be compiled using setup.py
 scipy
 upnpy
 pandas

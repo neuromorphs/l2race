@@ -5,7 +5,6 @@ from typing import Optional, Tuple
 
 import pygame
 import pygame.freetype
-from pygame.math import Vector2
 from src.l2race_utils import my_logger
 from src.track import track
 
@@ -22,20 +21,20 @@ class car:
 
     def __init__(self, name=CAR_NAME,
                  image_name='car_red',
-                 track:Optional[track]=None,
+                 our_track:Optional[track]=None,
                  screen:pygame.surface=None,
                  client_ip:Tuple[str,int]=None):
         ''' Constructs a new car.
 
         :param name: - the car name
         :param image_name: - the image name, without trailing .png
-        :param track: - existing track() instance
+        :param our_track: - existing track() instance
         :param screen: - the pygame drawing surface
         :param client_ip: - our IP address
         '''
         self.car_state = car_state(name=name, client_ip=client_ip)
 
-        self.track=track
+        self.track=our_track
         self.image_name = image_name
         self.image=self.loadAndScaleCarImage(image_name, screen)
         pygame.freetype.init()
@@ -58,9 +57,9 @@ class car:
         self.game_font.render_to(screen, (self.car_state.position_m.x/M_PER_PIXEL, self.car_state.position_m.y/M_PER_PIXEL), self.car_state.static_info.name, [200,200,200]),
 
         # draw acceleration
-        len=(self.car_state.accel_m_per_sec_2.x/G)*(self.car_state.static_info.length_m * 6) # self.car_state.command.throttle*self.car_state.length*2 # todo fix when accel include lateral component
+        car_length=(self.car_state.accel_m_per_sec_2.x/G)*(self.car_state.static_info.length_m * 6) # self.car_state.command.throttle*self.car_state.length*2 # todo fix when accel include lateral component
         body_rad=radians(self.car_state.body_angle_deg)
-        body_vec=(len*cos(body_rad),len*sin(body_rad))
+        body_vec=(car_length*cos(body_rad),car_length*sin(body_rad))
         pygame.draw.line(screen, [255,50,50],self.car_state.position_m/M_PER_PIXEL, (self.car_state.position_m+body_vec)/M_PER_PIXEL,1)
 
         # draw steering command
@@ -97,7 +96,7 @@ class car:
         """ loads image for car and scales it to its actual length.
         Car image should be horizontal and car should be facing to the right.
 
-        Call only after car_state is filled by server since we need phyical length and width.
+        Call only after car_state is filled by server since we need physical length and width.
         If passed screen argument, then the image surface is optimized by .convert() to the surface for faster drawing.
 
         :param image_name: the name of image in the media/cars folder without png suffix

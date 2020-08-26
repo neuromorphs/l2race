@@ -12,6 +12,7 @@ def friction_steering_constraint(acceleration, yaw_rate, steering_velocity, velo
      :param yaw_rate - rad/sec
      :param velocity - speed along body axis m/s
      :param steering_angle - angle of front steering wheels in rad
+     :param steering_velocity: The velocity of steering rate change in rad/s
      :param p - the vehicle model parameters
 
      :returns steering velocity in rad/s

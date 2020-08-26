@@ -266,7 +266,7 @@ class client:
             self.gameSockAddr: Tuple[str, int] = (self.server_host, port)
             logger.info('got game_port message from server telling us to use address {} to talk with server'.format(self.gameSockAddr))
             if not self.spectate:
-                self.car = car(name=self.car_name, track=self.track_instance, screen=self.screen, client_ip=self.gameSockAddr)
+                self.car = car(name=self.car_name, our_track=self.track_instance, screen=self.screen, client_ip=self.gameSockAddr)
                 if self.recording_enabled:
                     if self.data_recorders is None:  # todo add other cars to data_recorders as we get them from server
                         self.data_recorders = [data_recorder(car=self.car)]
@@ -435,10 +435,10 @@ class client:
     def drain_udp_messages(self):
         """remove the data present on the socket. From https://stackoverflow.com/questions/1097974/how-to-empty-a-socket-in-python """
         logger.debug('draining existing received UDP messages')
-        input = [self.sock]
+        sock_input = [self.sock]
         try:
             while True:
-                inputready, o, e = select.select(input, [], [], 0.0)
+                inputready, o, e = select.select(sock_input, [], [], 0.0)
                 if len(inputready) == 0: break
                 for s in inputready: s.recv(8192)
         except Exception as e:
@@ -515,7 +515,7 @@ class client:
             if c is None:  # if it doesn't exist, construct it
                 self.spectate_cars[name] = car(name=name,
                                                image_name='car_other.png',
-                                               track=self.track_instance,
+                                               our_track=self.track_instance,
                                                client_ip=s.static_info.client_ip,
                                                screen=self.screen)
             self.spectate_cars[name].car_state = s  # set its state
@@ -551,7 +551,7 @@ class client:
         :return: None
         """
         if msg == 'state':
-            self.update_state(payload)
+            self.update_state(payload) # assumes that payload is List[car_state]
         elif msg == 'game_port':
             self.gameSockAddr = (self.server_host, payload)
         elif msg == 'track_shutdown':
@@ -639,7 +639,7 @@ class client:
 
         # Define car and track
         self.track_instance=track(self.track_name)
-        self.car = car(name=self.car_name, track=self.track_instance, screen=self.screen)
+        self.car = car(name=self.car_name, our_track=self.track_instance, screen=self.screen)
 
         # decimate data to make it play faster
         # data = data.iloc[::4, :]
@@ -735,16 +735,14 @@ def define_game(gui=True,  # set to False to prevent gooey dialog
     Defines the client side of l2race game for user by handling the command line arguments if they are supplied.
 
         :param gui: Set true to use Gooey to put up dialog to launch client, if Gooey is installed.
+        :param ctrl: Optional autodrive controller that implements the read method to return (car_command, user_input)
         :param track_name: string name of track, without .png suffix
         :param spectate: set True to just spectate
         :param car_name: Your name for your car
-        :param controller: Optional autodrive controller that implements the read method to return (car_command, user_input)
         :param server_host: hostname of server, e.g. 'localhost' or 'telluridevm.iniforum.ch'
         :param server_port: port on server to initiate communication
         :param joystick_number: joystick number if more than one
         :param fps: desired frames per second of game loop
-        :param widthPixels:  screen width in pixels (must match server settings)
-        :param heightPixels: height, must match server settings
         :param timeout_s: socket read timeout for blocking reads (main loop uses nonblocking reads)
         :param record: boolean, set it True to record data for all cars to CSV files
         :param record_note: note to add to recording CSV filename and header section

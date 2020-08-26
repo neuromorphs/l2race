@@ -31,13 +31,14 @@ class loop_timer():
     """ Simple game loop timer that sleeps for leftover time (if any) at end of each iteration"""
     LOG_INTERVAL_SEC=10
     NUM_SAMPLES=1000
-    def __init__(self, rate_hz:float) -> object:
+    def __init__(self, rate_hz:float) -> None:
         """ Make a new loop_timer, specifying the target frame rate in Hz.
 
         :param rate_hz: the target loop rate in Hz. The rate can be changed anytime by modifying rate_hz.
         :returns: new instance of loop_timer
         """
         self.rate_hz=rate_hz
+        self.last_iteration_start_time=0
         self.start_loop()
         self.loop_counter=0
         self.last_log_time=0
@@ -99,7 +100,7 @@ def become_daemon(our_home_dir='.', out_log='/dev/null', err_log='/dev/null', pi
                 # You must write the pid file here.  After the exit()
                 # the pid variable is gone.
                 fpid = open(pidfile, 'wb')
-                fpid.write(str(pid))
+                fpid.write(bytes(pid))
                 fpid.close()
                 sys.exit(0)
         except OSError as e:
@@ -169,7 +170,7 @@ def set_logging_level(args): # todo still does not correctly affect all of our e
 def random_port_permutation(portrange):
     ''' find a free server port in range
     :arg portrange a string e.g. 10001-10010
-    :arg clientSockthe local socket we try to bind to a local port number
+
     :returns the port number
     :raises RuntimeError if cannot find a free port in range
     '''

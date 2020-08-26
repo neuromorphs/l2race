@@ -95,7 +95,9 @@ def closest_node(x, y, x_vector, y_vector):
     '''
     The function finds the nearest target point, from target point list (normally a waypoints list)
     to a reference point (normally a car position)
-    :param x, y: Position (its x and y coordinates) of the reference point (normally of the car) in map units (pixels)
+
+    :param x: Position (its x and y coordinates) of the reference point (normally of the car) in map units (pixels)
+    :param y: Position (its x and y coordinates) of the reference point (normally of the car) in map units (pixels)
     :param x_vector, y_vector: List of positions of target points in map units
     :return: Index of the nearest target point
     '''
@@ -291,12 +293,14 @@ class track:
 
         One can either supply the car_state or x,y coordinates of the point of reference
 
-        :param car_state: car_state from which coordinates of the point of reference (car postion) can me extracted
-        :param x: x-coordinate of point of reference (usually the car position)
-        :param y: y-coordinate of point of reference (usually the car position)
+        :param car_state: car_state from which coordinates of the point of reference (car postion) can me extracted.
+        :param x: x-coordinate of point of reference (usually the car position).
+        :param y: y-coordinate of point of reference (usually the car position).
+        :param angle_car: Angle of car in degrees with east 0 and increasing clockwise.
         :param nearest_waypoint_idx: Optional. Index of the nearest waypoint.
                 If not provided or None it will be calculated in this function;
                 if previously calculated it may be provided to save calculation time
+
         :return: Angle to the nearest segment
         """
 

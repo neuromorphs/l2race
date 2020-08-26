@@ -110,10 +110,10 @@ def make_model(data, calculate_derivatives=True):
         feature_names=FEATURES+COMMANDS)
 
     if calculate_derivatives:
-        model.fit(x=data.x, u=data.u, t=data.t, \
+        model.fit(x=data.x, u=data.u, t=data.t,
             multiple_trajectories=data.multiple_trajectories)       
     else:
-        model.fit(x=data.x, x_dot=data.x_dot, u=data.u, t=data.t, \
+        model.fit(x=data.x, x_dot=data.x_dot, u=data.u, t=data.t,
             multiple_trajectories=data.multiple_trajectories)
 
     return model

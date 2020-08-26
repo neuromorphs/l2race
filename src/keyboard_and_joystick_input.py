@@ -61,7 +61,7 @@ class keyboard_and_joystick_input:
         if self.joy is None:
             try:
                 self.joy=my_joystick()
-            except:
+            except RuntimeWarning:
                 pass
 
         for event in pygame.event.get(): # https://riptutorial.com/pygame/example/18046/event-loop

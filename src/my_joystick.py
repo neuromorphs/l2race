@@ -4,7 +4,7 @@ Xbox has 11 buttons.
 buttons ABXY are first four buttons 0-3, then menu and window buttons are 4th and 5th from end, i.e. 7 and 6
 """
 import logging
-from typing import Tuple
+from typing import Tuple, Optional
 import pygame # conda install -c cogsci pygame; maybe because it only is supplied for earlier python, might need conda install -c evindunn pygame ; sudo apt-get install libsdl-ttf2.0-0
 from pygame import joystick
 import platform
@@ -50,16 +50,16 @@ class my_joystick:
 
         :raises RuntimeWarning if no joystick is found or it is unknown type
         """
-        self.joy:joystick.Joystick=None
+        self.joy:Optional[joystick.Joystick]=None
         self.car_command:car_command=car_command()
         self.user_input:user_input = user_input()
         self.default_car_command=car_command()
         self.default_user_input=user_input()
-        self.numAxes:int=None
-        self.numButtons:int=None
+        self.numAxes:Optional[int]=None
+        self.numButtons:Optional[int]=None
         self.axes=None
         self.buttons=None
-        self.name:str=None
+        self.name:Optional[str]=None
         self.joystick_number:int=joystick_number
         self.lastTime = 0
         self.lastActive = 0
