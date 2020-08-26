@@ -28,11 +28,15 @@ class circular_buffer(deque):
 
 
 class loop_timer():
-    """ simple game loop timer that sleeps for leftover time (if any) at end of each iteration"""
+    """ Simple game loop timer that sleeps for leftover time (if any) at end of each iteration"""
     LOG_INTERVAL_SEC=10
     NUM_SAMPLES=1000
-    def __init__(self, rate_hz:float):
-        ''' :param rate_hz: the target loop rate'''
+    def __init__(self, rate_hz:float) -> object:
+        """ Make a new loop_timer, specifying the target frame rate in Hz.
+
+        :param rate_hz: the target loop rate in Hz. The rate can be changed anytime by modifying rate_hz.
+        :returns: new instance of loop_timer
+        """
         self.rate_hz=rate_hz
         self.start_loop()
         self.loop_counter=0
@@ -45,7 +49,9 @@ class loop_timer():
         self.last_iteration_start_time=timer()
 
     def sleep_leftover_time(self):
-        """ call at start or end of each iteration """
+        """
+        Call at start or end of each iteration. If called at start of loop, it does not sleep for first call.
+        """
         now=timer()
         if not self.first_call_done:
             self.first_call_done=True

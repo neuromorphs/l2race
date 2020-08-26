@@ -23,7 +23,7 @@ def client_args(parser):
 
     clientOutputGroup = parser.add_argument_group('Output/Replay options:')
     clientOutputGroup.add_argument("--record", nargs='?',const='',  type=str, help="Record data to date-stamped filename with optional <note>, e.g. --record will write datestamped files named '{}-<track_name>-<car_name>-<note>-TTT.csv' in folder '{}, where note is optional note and TTT is a date/timestamp\'.".format(DATA_FILENAME_BASE, DATA_FOLDER_NAME))
-    clientOutputGroup.add_argument("--replay", nargs='?', const='last', type=str, help="Replay one or more CSV recordings. If 'last' or no file is supplied, play the most recent recording in the data folder.")
+    clientOutputGroup.add_argument("--replay", nargs='?', const='last', type=str, help="Replay one or more CSV recordings. If 'last' or no file is supplied, play the most recent recording in the '{}' folder.".format(DATA_FOLDER_NAME))
 
 
     clientTrackCarMode = parser.add_argument_group('Track car/spectate options:')
@@ -51,6 +51,7 @@ def server_args(parser):
     serverGroup = parser.add_argument_group('Server arguments:')
     serverGroup.add_argument("--allow_off_track", action='store_true', help="ignore when car goes off track (for testing car dynamics more easily)")
     serverGroup.add_argument('--log',type=str,default=str(logging.getLevelName(LOGGING_LEVEL)),help='Set logging level. From most to least verbose, choices are "DEBUG", "INFO", "WARNING".')
+    serverGroup.add_argument("--port", type=int, default=SERVER_PORT, help="Server port address for initiating connections from clients.")
     # serverGroup.add_argument("--timeout_s", type=int, default=CLIENT_TIMEOUT_SEC, help="server timeout in seconds before it ends thread for handling a car model")
     # serverGroup.add_argument("--model", type=str, default=src.car_model.MODEL, help="server timeout in seconds before it ends thread for handling a car model")
 

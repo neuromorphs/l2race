@@ -1,7 +1,19 @@
+"""
+Created on Tue Jul 14 04:43:57 2020
+
+Processes track PNG files to produce the numpy files used in l2race track.py.
+
+track.png
+track_info.npy
+track_map.npy
+
+To use it, run this script.
+
+@author: Marcin
+"""
 import cv2 as cv
 import numpy as np
 import matplotlib.pyplot as plt
-
 
 # Name of the picture (png) we load to extract track shape
 names = ['Sebring',
@@ -26,7 +38,8 @@ def unit_vector(vector):
 
 
 def angle_between(v1, v2):
-    """ Returns the angle in radians between vectors 'v1' and 'v2'::
+    """
+    Returns the angle in radians between vectors 'v1' and 'v2'::
     """
     v1_u = unit_vector(v1)
     v2_u = unit_vector(v2)
@@ -42,7 +55,9 @@ for name in names:
     print('Now processing: ' + name)
 
     # Load gray version of the track picture and recover the grayscale format.
-    im = cv.imread('./tracks_gray/'+name+'_G.png', cv.IMREAD_UNCHANGED)
+    fn='./tracks_gray/'+name+'_G.png'
+    print('loading gray scale track image {}'.format(fn))
+    im = cv.imread(fn, cv.IMREAD_UNCHANGED)
     im = cv.cvtColor(im, cv.COLOR_BGR2GRAY)
 
     # Make boundaries between regions sharp (matplotlib applies color interpolation between regions of different color)
@@ -97,6 +112,18 @@ for name in names:
 
 
     def boundaries(im_original, im_copy, b_left, b_right, track_name='Sebring'):
+        """
+        Finds right and left asphalt and sand region boundaries.
+
+        Needs hardcoding if the track has mulitple boundaries, e.g. if there are overlapping segments.
+
+        :param im_original: TODO
+        :param im_copy:
+        :param b_left:
+        :param b_right:
+        :param track_name:
+        :return:
+        """
         _, thresh_b = cv.threshold(im_copy, 25, 255, 0)
         contours_b, _ = cv.findContours(thresh_b, cv.RETR_TREE, cv.CHAIN_APPROX_NONE)
 
@@ -133,30 +160,11 @@ for name in names:
                 yl = np.hstack((c0[:, 1], c1[:, 1], c2[:, 1]))
                 yr = np.hstack((c3[:, 1]))
 
-            elif (track_name == 'track_5') & (b_left == 18):
-                c0 = np.squeeze(contours_b[0])
-                c1 = np.squeeze(contours_b[1])
-                c2 = np.squeeze(contours_b[2])
-                xl = np.hstack((c0[:, 0], c1[:, 0]))
-                xr = np.hstack((c2[:, 0]))
-                yl = np.hstack((c0[:, 1], c1[:, 1]))
-                yr = np.hstack((c2[:, 1]))
-
-            elif (track_name == 'track_6') & (b_left == 8):
-                c0 = np.squeeze(contours_b[0])
-                c1 = np.squeeze(contours_b[1])
-                c2 = np.squeeze(contours_b[2])
-                c3 = np.squeeze(contours_b[3])
-                c4 = np.squeeze(contours_b[4])
-                xl = np.hstack((c0[:, 0]))
-                xr = np.hstack((c1[:, 0], c2[:, 0], c3[:, 0], c4[:, 0]))
-                yl = np.hstack((c0[:, 1]))
-                yr = np.hstack((c1[:, 1], c2[:, 1], c3[:, 1], c4[:, 1]))
             else:
                 print('You have to correct some contour!')
 
-        # # Matplotlib code to check if you combined contours correctly
-        # if name == 'oval_easy':
+        # Matplotlib code to check if you combined contours correctly
+        # if name == 'track_6':
         #     plt.figure()
         #     plt.plot(xl, yl, 'r.')
         #     plt.plot(xr, yr, 'b.')
@@ -341,8 +349,11 @@ for name in names:
                  'AngleNextSegmentEast': angles2}
 
     # Saving all relevant data
-    np.save('../media/tracks/' + name + '_map.npy', im)
-    np.save('../media/tracks/' + name + '_info.npy', TrackInfo)
+    fn1='../media/tracks/' + name + '_map.npy'
+    fn2='../media/tracks/' + name + '_info.npy'
+    print('saving {} and {}'.format(fn1,fn2))
+    np.save(fn1, im)
+    np.save(fn2, TrackInfo)
 
     # Summary
     # We give to the user these track-only dependant information:

@@ -143,7 +143,7 @@ class track_server_process(mp.Process):
             # update all the car models
             for client, model in self.car_dict.items():
                 if isinstance(model, car_model):
-                    model.update(dt)
+                    model.update(now)
                 # poll for UDP messages
             # update the global list of car states that cars share
             self.car_states_list.clear()
@@ -308,7 +308,7 @@ if __name__ == '__main__':
     set_logging_level(args)
 
     server_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-    server_socket.bind(('', SERVER_PORT))  # bind to empty host, so we can receive from anyone on this port
+    server_socket.bind(('', args.port))  # bind to empty host, so we can receive from anyone on this port
     logger.info("waiting on {}".format(str(server_socket)))
     server_port_lock = mp.Lock()  # processes get passed this lock to initiate connections using it (but only once, at start)
 
