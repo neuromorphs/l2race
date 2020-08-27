@@ -33,7 +33,7 @@ from commonroad.vehicleDynamics_MB import vehicleDynamics_MB  # fancy multibody 
 
 LOGGING_INTERVAL_CYCLES = 0  # 0 to disable # 1000 # log output only this often
 MODEL = vehicleDynamics_ST  # vehicleDynamics_KS vehicleDynamics_ST vehicleDynamics_MB
-SOLVER = RK45  # DOP853 LSODA BDF RK45 RK23 # faster, no overhead but no checking
+SOLVER = 'RK45'  # DOP853 LSODA BDF RK45 RK23 # faster, no overhead but no checking
 PARAMETERS = parameters_vehicle2
 RTOL = 1e-2
 ATOL = 1e-4
@@ -180,7 +180,7 @@ class car_model:
         # Integrate equations
         self.solver = solve_ivp(fun=model_func,
                                 t_span=[self.time, self.time + dt_sec],
-                                method='RK45',
+                                method=SOLVER,
                                 y0=self.model_state,
                                 atol=ATOL,
                                 rtol=RTOL)
