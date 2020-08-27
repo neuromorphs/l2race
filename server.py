@@ -23,7 +23,7 @@ from src.l2race_utils import my_logger
 
 logger = my_logger(__name__)
 SKIP_CHECK_SERVER_QUEUE = 0  # use to reduce checking queue, but causes timeout problems with adding car if too big. 0 to disable
-
+MAX_TIMESTEP = 0.1  # Max timestep of car model simulation. We limit it to avoid instability
 
 def get_args():
     parser = argparse.ArgumentParser(
@@ -139,18 +139,28 @@ class track_server_process(mp.Process):
                 continue
             self.process_server_queue()  # 'add_car' 'add_spectator'
 
+            # Here we make the constrained real time from real time
+            # If requested timestep bigger than maximal timestep, make the update for maximal allowed timestep
+            # We limit timestep to avoid instability
+            if dt > MAX_TIMESTEP:
+                s = 'bounded real dt_sec={:.1f}ms to {:.2f}ms'.format(dt * 1000, MAX_TIMESTEP * 1000)
+                logger.info(s)
+                dt = MAX_TIMESTEP
+
             # now we do main simulation/response
             # update all the car models
             for client, model in self.car_dict.items():
                 if isinstance(model, car_model):
-                    model.update(now)
-                # poll for UDP messages
+                    model.update(dt)  # car_state time updates already here
+                    model.time += dt  # car_model time updates here
+                    # poll for UDP messages
             # update the global list of car states that cars share
             self.car_states_list.clear()
             for model in self.car_dict.values():
                 # put copy of each state in list but strip off the contained list of other car states
                 model_copy: car_state = copy.copy(model.car_state)
                 self.car_states_list.append(model_copy)
+
 
             # process incoming UDP messages from clients, e.g. to update command
             while True:

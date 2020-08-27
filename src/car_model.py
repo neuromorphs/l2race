@@ -3,7 +3,7 @@
 import logging
 from math import sin, radians, degrees, cos, copysign
 from typing import Tuple
-from scipy.integrate import RK23, RK45, LSODA, BDF, DOP853
+from scipy.integrate import solve_ivp  # Methods tried before, now not uesed anymore: RK23, RK45, LSODA, BDF, DOP853
 from timeit import default_timer as timer
 import random
 import numpy as np
@@ -33,7 +33,6 @@ from commonroad.vehicleDynamics_MB import vehicleDynamics_MB  # fancy multibody 
 
 LOGGING_INTERVAL_CYCLES = 0  # 0 to disable # 1000 # log output only this often
 MODEL = vehicleDynamics_ST  # vehicleDynamics_KS vehicleDynamics_ST vehicleDynamics_MB
-MAX_TIMESTEP = 0.1  # Max timestep of car model simulation. We limit it to avoid instability
 SOLVER = RK45  # DOP853 LSODA BDF RK45 RK23 # faster, no overhead but no checking
 PARAMETERS = parameters_vehicle2
 RTOL = 1e-2
@@ -141,10 +140,10 @@ class car_model:
     def zeroTo60mpsTimeToAccelG(self, time):
         return (60 * 0.447) / time / G
 
-    def update(self, t_sec)->None:
+    def update(self, dt_sec)->None:
         """
         Updates the model.
-        :param t_sec: new time in seconds
+        :param dt_sec: time advance in seconds
         """
         # logger.debug('updating model with dt={:.1f}ms'.format(dt_sec*1000))
 
@@ -165,58 +164,41 @@ class car_model:
         # u1 = longitudinal acceleration
         self.u = np.array([float(steer_vel_rad_per_sec), float(accel)], dtype='double')
 
-        calculations_time_start = timer() # start counting time required to update the car model
-        # Handle first step of simulation i.e. initialisation
-        if self.first_step:
-            def u_func():
-                return self.u
+        calculations_time_start = timer()  # start counting time required to update the car model
 
-            def model_func(t, y):
-                f = self.model_func(t, y, u_func(), self.parameters)
-                return f
+        # Prepare functions gathering the car's dynamics to pass them into ode solver
+        def u_func():
+            return self.u
 
-            self.solver = SOLVER(fun=model_func, t0=self.time, t_bound=1e99,
-                                 y0=self.model_state,
-                                 first_step=0.00001, max_step=0.01, atol=ATOL, rtol=RTOL)
-            self.first_step = False
+        def model_func(t, y):
+            f = self.model_func(t, y, u_func(), self.parameters)
+            return f
 
-        # If requested timestep bigger than maximal timestep, make the update for maximal allowed timestep
-        # We limit timestep to avoid instability
-
-        dt_sec=t_sec-self.time
-        self.time=t_sec
-
-        # tobi commented out because all cars must have same time
-        # if dt_sec > MAX_TIMESTEP:
-        #     s = 'bounded real dt_sec={:.1f}ms to {:.2f}ms'.format(dt_sec * 1000, MAX_TIMESTEP * 1000)
-        #     # logger.info(s)
-        #     self.car_state.server_msg += s
-        #     dt_sec = MAX_TIMESTEP
-
+        # Save number of calles of the above function
         n_eval_start = self.n_eval_total
 
-        t_simulated_start = self.solver.t  # Time on the car's clock at the beginning of the model update
-        too_slow = False  # This flag changes to True if it was not possible to perform real-time update of car model
-        while self.solver.t < t_simulated_start + dt_sec and not too_slow:
-            self.solver.step()
-            too_slow = timer() > calculations_time_start + 0.8 * dt_sec
-        t_simulated_end = self.solver.t # Time on the car's clock at the end of the model update
+        # Integrate equations
+        self.solver = solve_ivp(fun=model_func,
+                                t_span=[self.time, self.time + dt_sec],
+                                method='RK45',
+                                y0=self.model_state,
+                                atol=ATOL,
+                                rtol=RTOL)
+
+        # This flag changes to True if it was not possible to perform real-time update of car model
+        too_slow = timer() > calculations_time_start + 0.8 * dt_sec
+
+        t_simulated_end = self.solver.t[-1]  # True time on the car's clock at the end of the model update
+
+
         # Calculate the difference on the "car's clock" during this model update
-        t_simulated = t_simulated_end - t_simulated_start
-
-        # tobi changed to be the input time only, let's see effect on model
-        # self.time = self.solver.t  # Save the time on the "car's clock"
-
-        # TODO: Write what these try-except lines are for? Does n_eval can change during their execution?
-        try:
-            self.solver.dense_output()  # interpolate
-        except RuntimeError:
-            pass
+        t_simulated = t_simulated_end - self.time
 
         # Save the results of model update to model_state variable
-        self.model_state = self.solver.y
+        self.model_state = self.solver.y[:, -1]
 
         calculations_time_end = timer()  # stop counting time required to update the model
+
 
         # Calculate how much time was needed to perform the requested update of the model
         calculations_time = calculations_time_end - calculations_time_start
@@ -232,6 +214,7 @@ class car_model:
                                                                                                    t_simulated * 1000,
                                                                                                    ('(too_slow)' if too_slow else ''))
             self.car_state.server_msg += '\n' + s
+
 
         # make additional constrains for moving foreward and on reverse gear
         self.constrain_speed(command)
