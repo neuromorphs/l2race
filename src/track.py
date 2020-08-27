@@ -11,6 +11,9 @@ from svgpathtools import svg2paths
 from src.globals import SCREEN_WIDTH_PIXELS, SCREEN_HEIGHT_PIXELS, M_PER_PIXEL, TRACKS_FOLDER
 from timeit import default_timer as timer
 
+# Functions for finding hit position
+from scipy.special import tandg, cotdg, cosdg, sindg
+
 logger = logging.getLogger(__name__)
 
 
@@ -68,7 +71,7 @@ def get_position_on_map(car_state=None, x=None, y=None) -> Optional[Tuple[float,
     return x_map, y_map
 
 
-def map_to_track(x_map: float):
+def pixels2meters(x_map: float):
     """
     The function converts a value in the map units (pixels) to the physical units (meters).
     It is suitable to convert position, velocity or acceleration.
@@ -79,7 +82,7 @@ def map_to_track(x_map: float):
     return x_track
 
 
-def track_to_map(x_track: float):
+def meters2pixels(x_track: float):
     """
     The function converts a value in the map units (pixels) to the physical units (meters).
     In contrast to get_position_on_map() it DOES NOT round the results down to nearest integer.
@@ -141,6 +144,56 @@ def get_neighbours(p_ref, ref_array):
     return neighbours
 
 
+def find_hit_position(angle, pos, track_map, dl=1.0):
+    (h, w) = track_map.shape
+    found = False
+
+    # x = meters2pixels(pos[0])
+    # y = meters2pixels(pos[1])
+
+    x = pos[0]
+    y = pos[1]
+
+    # Depending on direction we take y = ax+b or x = ay+b
+    if (45.0 < angle < 135.0) or (225.0 < angle < 315.0):
+        # x = ay+b
+
+        dy = dl * sindg(angle)
+        # dy = dl
+        a = cotdg(angle)
+        b = x - a * y
+
+        while 0 < x < w and 0 < y < h:
+            if track_map[int(y), int(x)] > 0:
+                found = True
+                break
+            else:
+                y = y + dy
+                x = a * y + b
+
+
+    else:
+        # dx = dl
+        dx = dl * cosdg(angle)
+        a = tandg(angle)
+        b = y - a * x
+
+        while 0 < x < w and 0 < y < h:
+            if track_map[int(y), int(x)] > 0:
+                found = True
+                break
+            else:
+                x = x + dx
+                y = a * x + b
+
+    if found:
+        hit_pos = (x, y)
+    else:
+        hit_pos = None
+
+    return hit_pos
+
+
 class track:
     def __init__(self, track_name='track', media_folder_path=TRACKS_FOLDER, waypoints_visible=1):
         """
@@ -185,6 +238,14 @@ class track:
         if waypoints_visible is not None:
             self.create_waypoints_surface(waypoints_visible)
 
+        lidar = True
+        self.map_lidar = None
+        if lidar:
+            self.map_lidar = np.copy(self.track_map)
+            self.map_lidar[self.map_lidar != 10] = 0
+
+
+
     def create_waypoints_surface(self, waypoints_visible):
         """
         Method that modifies the self.surface_waypoints to display red dots of predefines magnitude at the waypoints
@@ -217,6 +278,7 @@ class track:
         surface.blit(self.track_image, (0, 0))
         if self.surface_waypoints is not None:
             surface.blit(self.surface_waypoints, (0, 0))
+
 
     def get_surface_type(self, car_state=None, x=None, y=None):
         """
@@ -440,7 +502,7 @@ class track:
         """
         return get_position_on_map(car_state=car_state, x=x, y=y)
 
-    def track_to_map(self, x_track):
+    def meters2pixels(self, x_track):
         """
         The function converts a value in the map units (pixels) to the physical units (meters).
         In contrast to get_position_on_map() it DOES NOT round the results down to nearest integer.
@@ -448,14 +510,19 @@ class track:
         :param x_track: Value converted to physical units (meters)
         :return x_map: Value in map units (pixels, not necessarily integer!)
         """
-        return track_to_map(x_track=x_track)
+        return meters2pixels(x_track=x_track)
 
-    def map_to_track(self, x_map):
+    def pixels2meters(self, x_map):
         """
         The function converts a value in the map units (pixels) to the physical units (meters).
         It is suitable to convert position, velocity or acceleration.
         :param x_map: value in map units (pixels, not necessarily integer)
         :return x_track: Value converted to physical units (meters)
         """
-        return map_to_track(x_map=x_map)
+        return pixels2meters(x_map=x_map)
 
+    def find_hit_position(self, angle, pos, track_map, dl=1.0):
+        """This function returns the point at which
+            a straight line coming from point pos at angle given by angle variable
+             for the first time crosses a non zero point on the map"""
+        return find_hit_position(angle=angle, pos=pos, track_map=track_map, dl=dl)
