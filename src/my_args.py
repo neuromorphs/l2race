@@ -25,6 +25,9 @@ def client_args(parser):
     clientOutputGroup.add_argument("--record", nargs='?',const='',  type=str, help="Record data to date-stamped filename with optional <note>, e.g. --record will write datestamped files named '{}-<track_name>-<car_name>-<note>-TTT.csv' in folder '{}, where note is optional note and TTT is a date/timestamp\'.".format(DATA_FILENAME_BASE, DATA_FOLDER_NAME))
     clientOutputGroup.add_argument("--replay", nargs='?', const='last', type=str, help="Replay one or more CSV recordings. If 'last' or no file is supplied, play the most recent recording in the '{}' folder.".format(DATA_FOLDER_NAME))
 
+    clientServerGroup.add_argument("--lidar", type=float, nargs='?', default=None, const=5.0,
+                                   help="Draw the point at which car would hit the track edge if moving on a straight line. "
+                                        "The numerical value gives precision in pixels with which this point is found.")
 
     clientTrackCarMode = parser.add_argument_group('Track car/spectate options:')
     try:

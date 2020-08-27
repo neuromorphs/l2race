@@ -18,6 +18,7 @@ import sys
 import atexit
 import pandas as pd
 import re
+import timeit
 
 from src.car_state import car_state
 from src.data_recorder import data_recorder
@@ -79,7 +80,8 @@ class client:
                  heightPixels: int = SCREEN_HEIGHT_PIXELS,
                  timeout_s: float = SERVER_TIMEOUT_SEC,
                  record: Optional[str] = None,
-                 replay_file_list: Optional[List[str]] = None
+                 replay_file_list: Optional[List[str]] = None,
+                 lidar: float = None
                  ):
         """
         Makes a new instance of client that users use to run a car on a track.
@@ -146,6 +148,9 @@ class client:
         self.spectate_cars: Dict[
             str, car] = dict()  # dict of other cars (NOT including ourselves) on the track, by name of the car. Each entry is a car() that we make here. For spectators, the list contains all cars. The cars contain the car_state. The complete list of all cars is this dict plus self.car
         self.autodrive_controller = controller  # automatic self driving controller specified in constructor
+
+        self.lidar = lidar # variable controlling if to show lidar mini and with what precission
+        self.t_max = 0.0
 
     def cleanup(self):
         """
@@ -344,6 +349,7 @@ class client:
                 cmd, payload = self.receive_from_server(blocking=False)
                 if cmd is None:
                     continue
+
                 self.handle_message(cmd, payload)
                 if self.data_recorders:
                     for r in self.data_recorders:
@@ -464,19 +470,9 @@ class client:
         self.draw_other_cars()
         self.draw_server_message()
         self.draw_own_car()
+        self.draw_lidar()
 
-        if lidar and self.car is not None:
-            x_track = self.car.car_state.position_m.x
-            y_track = self.car.car_state.position_m.y
-            x_map = self.track_instance.meters2pixels(x_track)
-            y_map = self.track_instance.meters2pixels(y_track)
-            hit_pos = self.track_instance.find_hit_position(angle=self.car.car_state.body_angle_deg,
-                                                            pos=(x_map, y_map),
-                                                            track_map=self.track_instance.map_lidar,
-                                                            dl=5)
-            if hit_pos is not None:
-                pygame.draw.line(self.screen, (0, 0, 255), (x_map, y_map), hit_pos)
-                pygame.draw.circle(self.screen, (0, 255, 0), hit_pos, 3)
+
 
     def draw_own_car(self):
         if self.car:
@@ -500,6 +496,27 @@ class client:
         else:
             color = None
         self.render_multi_line(str(self.server_message), 10, SCREEN_HEIGHT_PIXELS - 50, color=color)
+
+
+    def draw_lidar(self):
+        if self.lidar and self.car is not None:
+            # t0 = timeit.default_timer()
+            x_track = self.car.car_state.position_m.x
+            y_track = self.car.car_state.position_m.y
+            x_map = self.track_instance.meters2pixels(x_track)
+            y_map = self.track_instance.meters2pixels(y_track)
+            hit_pos = self.track_instance.find_hit_position(angle=self.car.car_state.body_angle_deg,
+                                                            pos=(x_map, y_map),
+                                                            track_map=self.track_instance.map_lidar,
+                                                            dl=self.lidar)
+            if hit_pos is not None:
+                pygame.draw.line(self.screen, (0, 0, 255), (x_map, y_map), hit_pos)
+                pygame.draw.circle(self.screen, (0, 255, 0), hit_pos, 3)
+            # t1 = timeit.default_timer()
+            # t = t1-t0
+            # if t>self.t_max:
+            #     self.t_max=t
+            #     print(t)
 
     def update_state(self, all_states: List[car_state]):
         """
@@ -546,8 +563,9 @@ class client:
 
         # manage recordings
         recording_car_list = []
-        for d in self.data_recorders:  # make list of car names we are recording
-            recording_car_list.append(d.car.name())
+        if self.data_recorders:
+            for d in self.data_recorders:  # make list of car names we are recording
+                recording_car_list.append(d.car.name())
         current_other_car_list = []
         for c in self.spectate_cars.keys():  # make all current cars
             current_other_car_list.append(c)
@@ -814,7 +832,8 @@ def define_game(gui=True,  # set to False to prevent gooey dialog
                       fps=args.fps,
                       timeout_s=args.timeout_s,
                       record=args.record,
-                      replay_file_list=args.replay)
+                      replay_file_list=args.replay,
+                      lidar=args.lidar)
     else:
 
         IGNORE_COMMAND = '--ignore-gooey'
@@ -869,6 +888,7 @@ def define_game(gui=True,  # set to False to prevent gooey dialog
                       fps=fps,
                       timeout_s=timeout_s,
                       record=args.record,
-                      replay_file_list=args.replay)
+                      replay_file_list=args.replay,
+                      lidar=args.lidar)
 
     return game

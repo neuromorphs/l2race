@@ -145,6 +145,21 @@ def get_neighbours(p_ref, ref_array):
 
 
 def find_hit_position(angle, pos, track_map, dl=1.0):
+    """
+    This function returns the point at which
+        a beam coming from point pos at angle given by angle variable
+         for the first time crosses a non zero point on the map
+         Timing at Marcin computer: dl = 5.0 -> about max 0.4 ms;
+         It is roughly valid: dl/n -> time*n
+     :param angle: angle (deg) in which the beam is going, e.g the body angle of the car
+     :param pos: point ((x,y) in pixels) where the beam starts, e.g. position of the car
+     :param track_map: a SPECIAL map which is non-zero in sand region and zero on track. Use map_lidar for it.
+     :param dl: determines the precision of the collision point determination
+                - the algorithm moves along the beam and checks every dl pixels (does not need to be integer)
+                if it left the track
+     :return the point on the track boundary which the beam first hits ((x,y) in pixels)
+                    (e.g. which the car would hit if it would go on a straight line)
+    """
     (h, w) = track_map.shape
     found = False
 
@@ -238,11 +253,9 @@ class track:
         if waypoints_visible is not None:
             self.create_waypoints_surface(waypoints_visible)
 
-        lidar = True
-        self.map_lidar = None
-        if lidar:
-            self.map_lidar = np.copy(self.track_map)
-            self.map_lidar[self.map_lidar != 10] = 0
+
+        self.map_lidar = np.copy(self.track_map)
+        self.map_lidar[self.map_lidar != 10] = 0
 
 
 
@@ -522,7 +535,19 @@ class track:
         return pixels2meters(x_map=x_map)
 
     def find_hit_position(self, angle, pos, track_map, dl=1.0):
-        """This function returns the point at which
-            a straight line coming from point pos at angle given by angle variable
-             for the first time crosses a non zero point on the map"""
+        """
+        This function returns the point at which
+            a beam coming from point pos at angle given by angle variable
+             for the first time crosses a non zero point on the map
+             Timing at Marcin computer: dl = 5.0 -> about max 0.4 ms;
+             It is roughly valid: dl/n -> time*n
+         :param angle: angle (deg) in which the beam is going, e.g the body angle of the car
+         :param pos: point ((x,y) in pixels) where the beam starts, e.g. position of the car
+         :param track_map: a SPECIAL map which is non-zero in sand region and zero on track. Use map_lidar for it.
+         :param dl: determines the precision of the collision point determination
+                    - the algorithm moves along the beam and checks every dl pixels (does not need to be integer)
+                    if it left the track
+         :return the point on the track boundary which the beam first hits ((x,y) in pixels)
+                        (e.g. which the car would hit if it would go on a straight line)
+        """
         return find_hit_position(angle=angle, pos=pos, track_map=track_map, dl=dl)
