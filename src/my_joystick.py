@@ -140,8 +140,8 @@ class my_joystick:
             self.user_input.quit=self.joy.get_button(6) # windows button
         elif self.name==my_joystick.XBOX_ELITE: # antonio's older joystick? also XBox One when plugged into USB cable on windows
             self.car_command.steering = self.joy.get_axis(0) #self.axes[0], returns + for right push, which should make steering angle positive, i.e. CW
-            self.car_command.throttle = self.joy.get_axis(5)
-            self.car_command.brake = self.joy.get_axis(2)
+            self.car_command.throttle = (1+self.joy.get_axis(5))/2
+            self.car_command.brake = (1+self.joy.get_axis(2))/2
             self.user_input.restart_car=self.joy.get_button(7) # menu button
             self.user_input.quit=self.joy.get_button(6) # windows button
 

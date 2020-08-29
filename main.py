@@ -1,6 +1,6 @@
 import importlib
 
-from src.globals import AUTODRIVE_MODULE, AUTODRIVE_CLASS
+from src.globals import AUTODRIVE_MODULE, AUTODRIVE_CLASS, CAR_MODEL_MODULE, CAR_MODEL_CLASS
 from src.client import define_game
 from src.l2race_utils import my_logger
 logger=my_logger(__name__)
@@ -48,16 +48,26 @@ if __name__ == '__main__':
     '''
 
     try:
-        i = importlib.import_module(AUTODRIVE_MODULE)
-        c=getattr(i, AUTODRIVE_CLASS)
-        controller = c() # set it to a class in globals.py
+        mod = importlib.import_module(AUTODRIVE_MODULE)
+        cl=getattr(mod, AUTODRIVE_CLASS)
+        controller = cl() # set it to a class in globals.py
+        logger.info('using autodrive controller {}'.format(controller))
     except Exception as e:
         logger.error('cannot import AUTODRIVE_CLASS named {} from module AUTODRIVE_MODULE named {}, got {}'.format(AUTODRIVE_CLASS, AUTODRIVE_MODULE,e))
         controller=None
 
+    try:
+        mod = importlib.import_module(CAR_MODEL_MODULE)
+        cl=getattr(mod, CAR_MODEL_CLASS)
+        car_model = cl() # set it to a class in globals.py
+        logger.info('using client car_model {}'.format(car_model))
+    except Exception as e:
+        logger.error('cannot import CAR_MODEL_CLASS named {} from module CAR_MODEL_MODULE named {}, got {}'.format(CAR_MODEL_CLASS, CAR_MODEL_MODULE,e))
+        car_model=None
+
 
     game = define_game(gui=False,
-                       ctrl=controller)
+                       ctrl=controller, car_model=car_model)
     game.run()
 
 

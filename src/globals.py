@@ -20,8 +20,14 @@ UPNP_LEASE_TIME=1200 # the lease time for these ports in seconds
 # your autodrive controller module (i.e. folder) and class name, must be a class that has read method that returns the car_command() object
 # AUTODRIVE_MODULE='src.controllers.pid_next_waypoint_car_controller'
 # AUTODRIVE_CLASS='pid_next_waypoint_car_controller'
+# overridden by command line --autodrive
 AUTODRIVE_MODULE='src.controllers.pure_pursuit_controller'
 AUTODRIVE_CLASS='pure_pursuit_controller'
+
+# your model class that takes car state and control and predicts the next state given a future time.
+# overridden by command line --model
+CAR_MODEL_MODULE= 'src.models.models' # the module (i.e. folder.file without .py)
+CAR_MODEL_CLASS= 'linear_extrapolation_model' # the class within the file
 
 #display
 FPS=20 # frames per second for simulation and animation
