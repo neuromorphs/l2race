@@ -724,11 +724,11 @@ class client:
                 logger.info('KeyboardInterrupt, stopping client')
                 self.exit = True
 
-            car_command, user_input = self.input.read()  # gets input from keyboard or joystick
+            self.car_command, self.user_input = self.input.read()  # gets input from keyboard or joystick
             if self.input.exit:
                 self.exit = True
                 continue
-            playback_speed = car_command.steering
+            playback_speed = self.car_command.steering
 
             row = data.iloc[
                 r]  # position based indexing of DataFrame https://pythonhow.com/accessing-dataframe-columns-rows-and-cells/
@@ -749,6 +749,9 @@ class client:
             self.car.car_state.yaw_rate_deg_per_sec = row['yaw_rate']
             self.car.car_state.drift_angle_deg = row['drift_angle']
 
+
+            self.update_ghost_car()
+
             # Drawing
             self.draw()
             frac = float(r) / n_rows
@@ -757,11 +760,11 @@ class client:
 
             pygame.display.flip()
 
-            if user_input.quit:
+            if self.user_input.quit:
                 self.cleanup()
                 break
 
-            if user_input.restart_car:
+            if self.user_input.restart_car:
                 r = 0
             if playback_speed >= -0.05:  # offset from zero to handle joysticks that have negative offset
                 r = r + step if r < n_rows - step else n_rows
