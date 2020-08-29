@@ -12,7 +12,7 @@ def client_args(parser):
     # check and add prefix if running script in subfolder
 
     # general arguments for output folder, overwriting, etc
-    clientServerGroup = parser.add_argument_group('Server options:')
+    clientServerGroup = parser.add_argument_group('Model server connection options:')
     clientServerGroup.add_argument("--host", type=str, default=SERVER_HOST, help="IP address or DNS name of model server.")
     clientServerGroup.add_argument("--port", type=int, default=SERVER_PORT, help="Server port address for initiating connections.")
     clientServerGroup.add_argument("--timeout_s", type=float, default=SERVER_TIMEOUT_SEC, help="Socket timeout in seconds for communication with model server.")
@@ -25,7 +25,12 @@ def client_args(parser):
     clientOutputGroup.add_argument("--record", nargs='?',const='',  type=str, help="Record data to date-stamped filename with optional <note>, e.g. --record will write datestamped files named '{}-<track_name>-<car_name>-<note>-TTT.csv' in folder '{}, where note is optional note and TTT is a date/timestamp\'.".format(DATA_FILENAME_BASE, DATA_FOLDER_NAME))
     clientOutputGroup.add_argument("--replay", nargs='?', const='last', type=str, help="Replay one or more CSV recordings. If 'last' or no file is supplied, play the most recent recording in the '{}' folder.".format(DATA_FOLDER_NAME))
 
-    clientServerGroup.add_argument("--lidar", type=float, nargs='?', default=None, const=5.0,
+    clientControllerGroup = parser.add_argument_group('Control/Modeling arguments:')
+    clientControllerGroup.add_argument("--autodrive",type=str,nargs=2, default=[AUTODRIVE_MODULE,AUTODRIVE_CLASS],help="The autodrive module and class to be run when autodrive is enabled on controller. Pass it the module (i.e. folder.file without .py) and the class within the file.")
+    clientControllerGroup.add_argument("--carmodel", type=str, nargs=2, default=[CAR_MODEL_MODULE, CAR_MODEL_CLASS], help="Your client car module and class and class to be run as ghost car when model evaluation is enabled on controller. Pass it the module (i.e. folder.file without .py) and the class within the file.")
+
+    clientSensorGroup = parser.add_argument_group('Sensor arguments:')
+    clientSensorGroup.add_argument("--lidar", type=float, nargs='?', default=None, const=5.0,
                                    help="Draw the point at which car would hit the track edge if moving on a straight line. "
                                         "The numerical value gives precision in pixels with which this point is found.")
 

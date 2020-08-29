@@ -29,6 +29,7 @@ from src.car import car
 from src.my_args import client_args, write_args_info
 from src.l2race_utils import my_logger
 from src.controllers.pid_next_waypoint_car_controller import pid_next_waypoint_car_controller
+from src.models.models import linear_extrapolation_model
 from src.keyboard_and_joystick_input import keyboard_and_joystick_input
 
 logger = my_logger(__name__)
@@ -768,6 +769,7 @@ class client:
 def define_game(gui=True,  # set to False to prevent gooey dialog
                 track_name=None,
                 ctrl=None,
+                car_model=None,
                 spectate=False,
                 car_name=None,
                 server_host=None,
@@ -777,12 +779,14 @@ def define_game(gui=True,  # set to False to prevent gooey dialog
                 timeout_s=None,
                 record=False,
                 record_note=None,
-                replay=None) -> client:
+                replay=None,
+                ) -> client:
     """
     Defines the client side of l2race game for user by handling the command line arguments if they are supplied.
 
         :param gui: Set true to use Gooey to put up dialog to launch client, if Gooey is installed.
         :param ctrl: Optional autodrive controller that implements the read method to return (car_command, user_input)
+        :param car_model: Your local dynamical model of car.
         :param track_name: string name of track, without .png suffix
         :param spectate: set True to just spectate
         :param car_name: Your name for your car
@@ -802,6 +806,10 @@ def define_game(gui=True,  # set to False to prevent gooey dialog
         logger.info('autodrive contoller was None, so was set to default {}'.format(ctrl.__class__))
     else:
         controller = ctrl  # construct instance of the controller. The controllers car() is set later, once the server gives us the state
+
+    if car_model is None:
+        car_model=linear_extrapolation_model()
+        logger.info('dynamical model of car was None, so was set to default {}'.format(car_model.__class__))
 
     args = get_args()
     if not args.record is None:  # if recording data, also record command line arguments and log output to a text file
