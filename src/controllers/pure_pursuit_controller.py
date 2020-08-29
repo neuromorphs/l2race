@@ -1,8 +1,9 @@
-from src.car import car
-from src.car_command import car_command
 import math
-from src.globals import M_PER_PIXEL
 
+from src.car import car
+from src.controllers.car_controller import car_controller
+from src.globals import M_PER_PIXEL
+from src.car_command import car_command
 from src.l2race_utils import my_logger
 
 logger = my_logger(__name__)
@@ -29,7 +30,7 @@ def calc_distance(x1, y1, x2, y2):
     return distance
 
 
-class pure_pursuit_controller:
+class pure_pursuit_controller(car_controller):
     """
     This reference implementation is a pure pursuit controller given a waypoint list.
     For the controller the user needs to know information about the current car state, position in the track and the

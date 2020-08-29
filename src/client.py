@@ -19,18 +19,23 @@ import atexit
 import pandas as pd
 import re
 import timeit
+# https://www.programiz.com/python-programming/shallow-deep-copy#:~:text=help%20of%20examples.-,Copy%20an%20Object%20in%20Python,reference%20of%20the%20original%20object.
+import  copy
 
+from src.globals import *
+from src.my_args import client_args, write_args_info
+from src.car_command import car_command
 from src.car_state import car_state
 from src.data_recorder import data_recorder
 from src.l2race_utils import find_unbound_port_in_range, open_ports, loop_timer
-from src.globals import *
 from src.track import track
-from src.car import car
-from src.my_args import client_args, write_args_info
+from src.car import car, loadAndScaleCarImage
 from src.l2race_utils import my_logger
+from src.controllers import car_controller
 from src.controllers.pid_next_waypoint_car_controller import pid_next_waypoint_car_controller
-from src.models.models import linear_extrapolation_model
+from src.models.models import linear_extrapolation_model, client_car_model
 from src.keyboard_and_joystick_input import keyboard_and_joystick_input
+from src.user_input import user_input
 
 logger = my_logger(__name__)
 
@@ -72,17 +77,18 @@ class client:
                  track_name: str = 'track',
                  spectate: bool = False,
                  car_name: str = CAR_NAME,
-                 controller: Optional[object] = None,
+                 controller: car_controller = None,
+                 client_car_model : client_car_model= None,
                  server_host: str = SERVER_HOST,
                  server_port: int = SERVER_PORT,
-                 joystick_number: int = JOYSTICK_NUMBER,
+                 joystick_number: int = JOYSTICK_NUMBER,  # TODO not used below
                  fps: float = FPS,
                  widthPixels: int = SCREEN_WIDTH_PIXELS,
                  heightPixels: int = SCREEN_HEIGHT_PIXELS,
                  timeout_s: float = SERVER_TIMEOUT_SEC,
                  record: Optional[str] = None,
                  replay_file_list: Optional[List[str]] = None,
-                 lidar: float = None
+                 lidar=None  # TODO add type hint
                  ):
         """
         Makes a new instance of client that users use to run a car on a track.
@@ -91,6 +97,7 @@ class client:
         :param spectate: set True to just spectate
         :param car_name: Your name for your car
         :param controller: Optional autodrive controller that implements the read method to return (car_command, user_input)
+        :param client_car_model: Optional client_car_model that updates a car_state of our own
         :param server_host: hostname of server, e.g. 'localhost' or 'telluridevm.iniforum.ch'
         :param server_port: port on server to initiate communication
         :param joystick_number: joystick number if more than one
@@ -100,6 +107,7 @@ class client:
         :param timeout_s: socket read timeout for blocking reads (main loop uses nonblocking reads)
         :param record: set it None to not record. Set it to a string to add note for this recording to file name to record data for all cars to CSV files
         :param replay_file_list: None for normal live mode, or List[str] of filenames to play back a set of car recordings together
+        :param lidar: Optional lidar to display TODO what type is this argument?
         """
 
         pygame.init()
@@ -123,7 +131,7 @@ class client:
         self.server_host: str = server_host
         self.server_port: int = server_port
         self.serverStartAddr: Tuple[str, int] = (
-        self.server_host, self.server_port)  # manager address, different port on server used during game
+            self.server_host, self.server_port)  # manager address, different port on server used during game
         self.gameSockAddr: Optional[Tuple[str, int]] = None  # address used during game
         self.server_timeout_s: float = timeout_s
         self.gotServer: bool = False
@@ -135,6 +143,14 @@ class client:
         self.car_name: str = car_name
         self.car: Optional[car] = None  # will make it later after we get info from server about car
         self.input: keyboard_and_joystick_input = keyboard_and_joystick_input()
+        self.car_command: car_command = car_command() # current car_command
+        self.user_input: user_input = user_input() # current user_input
+        self.autodrive_controller = controller  # automatic self driving controller specified in constructor
+        self.client_car_model = client_car_model  # our model of car
+        self.ghost_car: Optional[car] = None  # this is car that we show when running self.client_car_model
+
+        self.lidar = lidar  # variable controlling if to show lidar mini and with what precission
+        self.t_max = 0.0
 
         self.server_message = None  # holds messsages sent from server to be displayed
         self.last_server_message_time = time.time()
@@ -148,10 +164,6 @@ class client:
         self.track_instance: track = track(track_name=self.track_name)
         self.spectate_cars: Dict[
             str, car] = dict()  # dict of other cars (NOT including ourselves) on the track, by name of the car. Each entry is a car() that we make here. For spectators, the list contains all cars. The cars contain the car_state. The complete list of all cars is this dict plus self.car
-        self.autodrive_controller = controller  # automatic self driving controller specified in constructor
-
-        self.lidar = lidar # variable controlling if to show lidar mini and with what precission
-        self.t_max = 0.0
 
     def cleanup(self):
         """
@@ -287,7 +299,9 @@ class client:
                         except RuntimeError as e:
                             logger.warning('Could not open data recording; caught {}'.format(e))
 
-                self.autodrive_controller.car = self.car
+                if self.autodrive_controller:
+                    self.autodrive_controller.car = self.car # note, shallow copy
+
                 logger.info('initial car state is {}'.format(self.car.car_state))
 
     def run(self) -> None:
@@ -367,6 +381,8 @@ class client:
                 logger.warning('Connection to {} was reset, will look for server again'.format(self.gameSockAddr))
                 self.gotServer = False
 
+            self.update_ghost_car()
+
         logger.info('ending main loop')
         self.cleanup()
         logger.info('quitting pygame')
@@ -380,25 +396,23 @@ class client:
 
         :return: (cmd,payload) available from server, or None,None if nothing is available.
         """
-        car_command, user_input = self.input.read()
-        if car_command.autodrive_enabled:
+        self.car_command, self.user_input = self.input.read()
+        if self.car_command.autodrive_enabled:
             if self.autodrive_controller is None:
                 raise RuntimeError(
-                    'Tried to use autodrive control but there is no controller defined. See AUTODRIVE_CLASS in src/globals.py.')
-            command = self.autodrive_controller.read()
-        else:
-            command = car_command
+                    'Tried to use autodrive control but there is no controller defined. See AUTODRIVE_CLASS in src/globals.py or on command line with --autodrive.')
+            self.car_command = self.autodrive_controller.read()
 
-        if self.input.exit:
-            logger.info('quit recieved, ending main loop')
+        if self.user_input.quit:
+            logger.info('quit recieved from keyboard or joystick, ending main loop')
             self.exit = True
             return
 
         if not self.spectate:
-            if user_input.restart_car:
+            if self.user_input.restart_car:
                 self.restart_car('user asked to restart car')
 
-            if user_input.restart_client:
+            if self.user_input.restart_client:
                 logger.info('restarting client')
                 self.gotServer = False
                 if self.data_recorders:
@@ -407,7 +421,7 @@ class client:
                     self.data_recorders = None
 
             # send control to server
-            self.send_to_server(self.gameSockAddr, 'command', command)
+            self.send_to_server(self.gameSockAddr, 'command', self.car_command)
         else:
             self.send_to_server(self.gameSockAddr, 'send_states', None)
 
@@ -471,17 +485,24 @@ class client:
         self.draw_other_cars()
         self.draw_server_message()
         self.draw_own_car()
+        self.draw_ghost_car()
+
         self.draw_lidar()
-
-
 
     def draw_own_car(self):
         if self.car:
             self.car.draw(self.screen)
             self.render_multi_line(str(self.car.car_state), 10, 10)
 
+    def draw_ghost_car(self):
+        """
+        Draws the ghost car view of our car model
+        """
+        if self.ghost_car and self.user_input.run_client_model:
+            self.ghost_car.draw(self.screen)
+
     def draw_other_cars(self):
-        ''' Draws all the others'''
+        """ Draws all the others"""
         for c in self.spectate_cars.values():
             c.draw(self.screen)
 
@@ -498,8 +519,7 @@ class client:
             color = None
         self.render_multi_line(str(self.server_message), 10, SCREEN_HEIGHT_PIXELS - 50, color=color)
 
-
-    def draw_lidar(self):
+    def draw_lidar(self) -> None:
         if self.lidar and self.car is not None:
             # t0 = timeit.default_timer()
             x_track = self.car.car_state.position_m.x
@@ -519,7 +539,7 @@ class client:
             #     self.t_max=t
             #     print(t)
 
-    def update_state(self, all_states: List[car_state]):
+    def update_state(self, all_states: List[car_state]) -> None:
         """
         Updates list of internal state.
 
@@ -585,7 +605,7 @@ class client:
                     logger.warning('Could not open data recorder for car {}: caught exception {}'.format(sc, e))
         # logger.debug('After update, have own car {} and other cars {}'.format(self.car.car_state.static_info.name if self.car else 'None', self.spectate_cars.keys()))
 
-    def handle_message(self, msg: str, payload: object):
+    def handle_message(self, msg: str, payload: object) -> None:
         """
         Handle message from model server.
 
@@ -754,7 +774,7 @@ class client:
             looper.rate_hz = self.fps * (1 + abs(scale * playback_speed))
         return True
 
-    def restart_car(self, message: str = None):
+    def restart_car(self, message: str = None) -> None:
         """
         Request server to restart the car.
         :param message: message that server will log
@@ -763,6 +783,26 @@ class client:
         # car restart handled on server side
         logger.info('sending message to restart car to server')
         self.send_to_server(self.gameSockAddr, 'restart_car', message)
+
+    def update_ghost_car(self) -> None:
+        """
+        updates the 'ghost' client car model if we there is one and the mode is enabled
+        """
+
+        if self.client_car_model is None:
+            logger.warning('tried to run client_car_model as ghost car but client_car_model is None')
+            return
+
+        if self.ghost_car is None:
+            logger.info('making ghost car copy of car for showing client_car_model')
+            self.ghost_car = copy.copy(self.car)  # just copy fields
+            self.ghost_car.car_state = copy.copy(self.car.car_state)  # make sure we get our own car_state
+            self.ghost_car.car_state.command=copy.copy(self.car.car_state.command) # and our own command
+            self.ghost_car.image_name = 'ghost_car'
+            self.ghost_car.image=loadAndScaleCarImage(self.ghost_car.image_name, self.ghost_car.car_state.static_info.length_m, self.screen)
+
+        self.client_car_model.update_state(self.user_input.run_client_model, self.car.car_state.time, self.car_command, self.car, self.ghost_car)
+
 
 
 # A wrapper around Game class to make it easier for a user to provide arguments
@@ -777,7 +817,7 @@ def define_game(gui=True,  # set to False to prevent gooey dialog
                 joystick_number=None,
                 fps=None,
                 timeout_s=None,
-                record=False,
+                record=False,  # TODO parameters not used
                 record_note=None,
                 replay=None,
                 ) -> client:
@@ -808,7 +848,7 @@ def define_game(gui=True,  # set to False to prevent gooey dialog
         controller = ctrl  # construct instance of the controller. The controllers car() is set later, once the server gives us the state
 
     if car_model is None:
-        car_model=linear_extrapolation_model()
+        car_model = linear_extrapolation_model()
         logger.info('dynamical model of car was None, so was set to default {}'.format(car_model.__class__))
 
     args = get_args()
@@ -831,7 +871,8 @@ def define_game(gui=True,  # set to False to prevent gooey dialog
         launch_gui()
         args = get_args()
         game = client(track_name=args.track_name,
-                      controller=ctrl,
+                      controller=controller,
+                      client_car_model=car_model,
                       spectate=args.spectate,
                       car_name=args.car_name,
                       server_host=args.host,
@@ -890,6 +931,7 @@ def define_game(gui=True,  # set to False to prevent gooey dialog
                       spectate=spectate,
                       car_name=car_name,
                       controller=ctrl,
+                      client_car_model=car_model,
                       server_host=server_host,
                       server_port=server_port,
                       joystick_number=joystick_number,

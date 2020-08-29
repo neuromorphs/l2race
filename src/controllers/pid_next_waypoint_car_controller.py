@@ -1,13 +1,15 @@
 # driver controller
 import logging
+
 from src.car import car
 from src.car_command import car_command
+from src.controllers.car_controller import car_controller
 
 logger = logging.getLogger(__name__)
 MAX_SPEED = 5.0
 
 
-class pid_next_waypoint_car_controller:
+class pid_next_waypoint_car_controller(car_controller):
     """
     This reference implementation is a basic PID controller that aims for the next waypoint.
     For the controller the user needs to know information about the current car state and its position in the track

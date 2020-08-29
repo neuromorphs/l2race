@@ -13,6 +13,33 @@ from src.globals import M_PER_PIXEL, G, CAR_NAME, GAME_FONT_NAME, GAME_FONT_SIZE
 
 logger = my_logger(__name__)
 
+def loadAndScaleCarImage(image_name:str, length_m:float, screen:Optional[pygame.Surface]):
+    """ loads image for car and scales it to its actual length.
+    Car image should be horizontal and car should be facing to the right.
+
+    Call only after car_state is filled by server since we need physical length and width.
+    If passed screen argument, then the image surface is optimized by .convert() to the surface for faster drawing.
+
+    :param image_name: the name of image in the media/cars folder without png suffix
+    :param screen: the pygame surface
+
+    :returns: the pygame image that can be rotated and blitted
+    """
+    if image_name.endswith('.png'):
+        logger.info('you can supply car image name {} without .png suffix'.format(image_name))
+        image_name=image_name[:-4]
+    current_dir = os.path.dirname(os.path.abspath(__file__))
+    image_path = os.path.join(current_dir, "../media/cars/" + image_name + ".png")
+    if isinstance(screen,pygame.Surface):
+        image = pygame.image.load(image_path).convert_alpha(screen)  # load image of car
+    else:
+        image = pygame.image.load(image_path)  # load image of car
+
+    # scale it to its length in pixels (units are in pixels which are scaled from meters by M_PER_PIXEL)
+    rect = image.get_rect()
+    sc = length_m / (M_PER_PIXEL * rect.width)
+    image = pygame.transform.scale(image, (int(sc * rect.width), int(sc * rect.height)))
+    return image
 
 class car:
     """
@@ -36,10 +63,9 @@ class car:
 
         self.track=our_track
         self.image_name = image_name
-        self.image=self.loadAndScaleCarImage(image_name, screen)
+        self.image=loadAndScaleCarImage(image_name=image_name, length_m=self.car_state.static_info.length_m, screen=screen)
         pygame.freetype.init()
         self.game_font = pygame.freetype.SysFont(name = GAME_FONT_NAME, size = GAME_FONT_SIZE)
-        self.other_cars_image=None
         # self.rect = self.image.get_rect()
 
     def draw(self, screen):
@@ -92,30 +118,3 @@ class car:
         """
         return self.car_state.name()
 
-    def loadAndScaleCarImage(self, image_name:str, screen:Optional[pygame.Surface]):
-        """ loads image for car and scales it to its actual length.
-        Car image should be horizontal and car should be facing to the right.
-
-        Call only after car_state is filled by server since we need physical length and width.
-        If passed screen argument, then the image surface is optimized by .convert() to the surface for faster drawing.
-
-        :param image_name: the name of image in the media/cars folder without png suffix
-        :param screen: the pygame surface
-
-        :returns: the pygame image that can be rotated and blitted
-        """
-        if image_name.endswith('.png'):
-            logger.info('you can supply car image name {} without .png suffix'.format(image_name))
-            image_name=image_name[:-4]
-        current_dir = os.path.dirname(os.path.abspath(__file__))
-        image_path = os.path.join(current_dir, "../media/cars/" + image_name + ".png")
-        if isinstance(screen,pygame.Surface):
-            image = pygame.image.load(image_path).convert_alpha(screen)  # load image of car
-        else:
-            image = pygame.image.load(image_path)  # load image of car
-
-        # scale it to its length in pixels (units are in pixels which are scaled from meters by M_PER_PIXEL)
-        rect = image.get_rect()
-        sc = self.car_state.static_info.length_m / (M_PER_PIXEL * rect.width)
-        image = pygame.transform.scale(image, (int(sc * rect.width), int(sc * rect.height)))
-        return image

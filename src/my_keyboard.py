@@ -12,7 +12,8 @@ def printhelp():
     print('----------------------------\nKeyboard commands:\n'
           'drive with LEFT/UP/RIGHT/DOWN or AWDS keys\n'
           'hold SPACE pressed to reverse with drive keys\n'
-          'y toggles automatic control (if implemented)\n'
+          'y runs automatic control (if implemented)\n'
+          'm runs user model (if implemented)\n'
           'r resets car\n'
           'R restarts client from scratch (if server went down)\n'
           'ESC quits\n'
@@ -31,6 +32,7 @@ class my_keyboard:
         self.user_input:user_input = user_input()
         self.any_key_pressed=False # set true if any key is pressed
         self.auto_pressed=False # only used to log changes to/from autodrive
+        self.run_user_model_pressed=False # only used to log changes to/from running user model
         self.restart_pressed=False # only used to log restarts and prevent multiple restarts being sent
 
     def read(self) -> Tuple[car_command,user_input]:
@@ -41,6 +43,7 @@ class my_keyboard:
         self.car_command.steering = 0.
         self.user_input.restart_car=False
         self.user_input.restart_client=False
+        self.user_input.run_client_model=False
 
         self.any_key_pressed=any(pressed)
 
@@ -54,6 +57,17 @@ class my_keyboard:
             if self.auto_pressed:
                 logger.info('autodriver disabled')
                 self.auto_pressed=False
+
+        if pressed[pygame.K_m]:
+            self.user_input.run_client_model = True
+            if not self.run_user_model_pressed:
+                logger.info('run user model enabled')
+                self.run_user_model_pressed=True
+        else:
+            self.car_command.run_client_model = False
+            if self.run_user_model_pressed:
+                logger.info('run user model  disabled')
+                self.run_user_model_pressed=False
 
         if pressed[pygame.K_UP] or pressed[pygame.K_w]:
            self.car_command.throttle=1.
