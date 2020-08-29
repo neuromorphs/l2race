@@ -37,9 +37,9 @@ class my_joystick:
     """"
     The read() method gets joystick input to return (car_command, user_input)
     """
-    XBOX_ONE_BLUETOOTH_JOYSTICK = 'Xbox One S Controller'
+    XBOX_ONE_BLUETOOTH_JOYSTICK = 'Xbox One S Controller' # XBox One when connected as Bluetooth in Windows
     XBOX_WIRED = 'Xbox 360 Wireless Receiver' #Although in the name the word 'Wireless' appears, the controller is wired
-    XBOX_ELITE = 'Xbox One Elite Controller'
+    XBOX_ELITE = 'Xbox One Elite Controller' # XBox One when plugged into USB in Windows
 
     def __init__(self, joystick_number=JOYSTICK_NUMBER):
         """
@@ -138,7 +138,7 @@ class my_joystick:
             self.car_command.brake =  (1 + self.joy.get_axis(2)) / 2. #(1+self.axes[2])/2
             self.user_input.restart_car=self.joy.get_button(7) # menu button
             self.user_input.quit=self.joy.get_button(6) # windows button
-        elif self.name==my_joystick.XBOX_ELITE: # antonio's older joystick
+        elif self.name==my_joystick.XBOX_ELITE: # antonio's older joystick? also XBox One when plugged into USB cable on windows
             self.car_command.steering = self.joy.get_axis(0) #self.axes[0], returns + for right push, which should make steering angle positive, i.e. CW
             self.car_command.throttle = self.joy.get_axis(5)
             self.car_command.brake = self.joy.get_axis(2)
@@ -169,22 +169,36 @@ class my_joystick:
 
 
 if __name__ == '__main__':
+    from colorama import init, deinit, Fore, Style
+    import numpy as np
+    import atexit
+    init()
+    atexit.register(deinit)
+    pygame.init()
     joy=my_joystick()
+    new_axes=np.zeros(joy.numAxes,dtype=np.float)
+    old_axes=new_axes.copy()
     it=0
     while True:
         # joy.read()
         # print("steer={:4.1f} throttle={:4.1f} brake={:4.1f}".format(joy.steering, joy.throttle, joy.brake))
-        pygame.event.get() # must call get() to handle internal queue
-        joy.axes=list()
-        for i in range(joy.numAxes):
-            joy.axes.append(joy.joy.get_axis(i))
 
+        pygame.event.get() # must call get() to handle internal queue
+        for i in range(joy.numAxes):
+            new_axes[i]=joy.joy.get_axis(i) # assemble list of analog values
+        diff=new_axes-old_axes
+        old_axes=new_axes.copy()
         joy.buttons=list()
         for i in range(joy.numButtons):
             joy.buttons.append(joy.joy.get_button(i))
+        # format output so changed are red
         axStr='axes: '
-        for i in joy.axes:
-            axStr=axStr+('{:5.2f} '.format(i))
+        for i in range(joy.numAxes):
+            if abs(diff[i])>0.3:
+                axStr=axStr+(Fore.RED+Style.BRIGHT+'{:5.2f} '.format(new_axes[i]))
+            else:
+                axStr=axStr+(Fore.RESET+Style.DIM+'{:5.2f} '.format(new_axes[i]))
+
         butStr='buttons: '
         for i in joy.buttons:
             butStr=butStr+('1' if i else '_')
