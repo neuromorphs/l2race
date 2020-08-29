@@ -27,6 +27,7 @@ def printhelp():
           'throttle is right paddle, brake is left paddle\n'
           'B activates reverse gear\n'
           'Y activates autordrive control (if implemented)\n'
+          'A runs the client ghost car model\n'
           'Menu button (to left of XYBA buttons) resets car\n'
           'X restarts client from scratch (if server went down)\n'
           'Windows button (by left joystick) quits\n-----------------------------------\n'
@@ -63,6 +64,7 @@ class my_joystick:
         self.joystick_number:int=joystick_number
         self.lastTime = 0
         self.lastActive = 0
+        self.run_user_model_pressed=False # only used to log changes to/from running user model
 
         self._rev_was_pressed=False # to go to reverse mode or toggle out of it
         joystick.init()
@@ -131,6 +133,7 @@ class my_joystick:
         self.car_command.reverse = True if self.joy.get_button(1) == 1 else False  # B button
         if not self.car_command.reverse: # only if not in reverse
             self.car_command.autodrive_enabled = True if self.joy.get_button(3) == 1 else False # Y button
+        self.user_input.run_client_model = self.joy.get_button(0) # A button
 
         if self.name==my_joystick.XBOX_ONE_BLUETOOTH_JOYSTICK:
             self.car_command.steering = self.joy.get_axis(0) #self.axes[0], returns + for right push, which should make steering angle positive, i.e. CW
