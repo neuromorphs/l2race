@@ -10,8 +10,8 @@ from pygame import joystick
 import platform
 import time
 
-INACTIVITY_RECONNECT_TIME = 5
-RECONNECT_TIMEOUT = 1
+INACTIVITY_RECONNECT_TIME = 15
+RECONNECT_TIMEOUT = 5
 
 from src.l2race_utils import my_logger
 from src.globals import JOYSTICK_NUMBER
@@ -86,7 +86,7 @@ class my_joystick:
             logger.warning('Name: {}'.format(self.name))
             logger.warning('unknown joystick type {} found: add code to correctly map inputs by running my_joystick as main'.format(self.name))
             raise RuntimeWarning('unknown joystick type {} found'.format(self.name))
-        logger.info('joystick named "{}" found with {} axes and {} buttons'.format(self.name, self.numAxes, self.numButtons))
+        logger.debug('joystick named "{}" found with {} axes and {} buttons'.format(self.name, self.numAxes, self.numButtons))
 
     def _connect(self):
         """

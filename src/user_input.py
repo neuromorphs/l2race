@@ -11,3 +11,4 @@ class user_input():
         self.restart_car=False # in debugging mode, restarts car at starting line
         self.restart_client=False # abort current run (server went down?) and restart from scratch
         self.quit=False # quit input from controller, mapped to ESC for keyboard and menu button for xbox controller
+        self.run_client_model=False # run the client model of car

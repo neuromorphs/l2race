@@ -7,8 +7,8 @@ buttons ABXY are first four buttons 0-3, then menu and window buttons are 4th an
 from typing import Tuple
 import pygame # conda install -c cogsci pygame; maybe because it only is supplied for earlier python, might need conda install -c evindunn pygame ; sudo apt-get install libsdl-ttf2.0-0
 
-from src.my_joystick import my_joystick
-from src.my_keyboard import my_keyboard
+from src.my_joystick import my_joystick,printhelp as joystick_help
+from src.my_keyboard import my_keyboard, printhelp as keyboard_help
 
 # from src.l2race_utils import my_logger
 # logger = my_logger(__name__)
@@ -18,27 +18,8 @@ from src.car_command import car_command
 from src.user_input import user_input
 
 def printhelp():
-    print('\n-----------------------------------\n'
-          'Joystick commands:\n'
-          'steer with joystick left|right\n'
-          'throttle is right paddle, brake is left paddle\n'
-          'B activates reverse gear\n'
-          'Y activates autordrive control (if implemented)\n'
-          'Menu button (to left of XYBA buttons) resets car\n'
-          'X restarts client from scratch (if server went down)\n'
-          'Windows button (by left joystick) quits\n'
-          '-----------------------------------\n'
-          'Keyboard commands:\n'
-          'drive with LEFT/UP/RIGHT/DOWN or AWDS keys\n'
-          'hold SPACE pressed to reverse with drive keys\n'
-          'y toggles automatic control (if implemented)\n'
-          'r resets car\n'
-          'R restarts client from scratch (if server went down)\n'
-          'ESC quits\n'
-          'h|? shows this help\n'
-          '-----------------------------\n'
-          )
-
+    joystick_help()
+    keyboard_help()
 
 class keyboard_and_joystick_input:
     """

@@ -12,6 +12,7 @@ from src.car_state import car_state
 from src.globals import *
 from src.l2race_utils import my_logger
 from src.track import track
+from .car_command import car_command
 
 logger = my_logger(__name__)
 
@@ -279,8 +280,13 @@ class car_model:
         logger.info('restarting car named {}'.format(self.car_name()))
         self.__init__(track=self.track,car_name=self.car_name(),client_ip=self.car_state.static_info.client_ip)
 
-    def external_to_model_input(self, command):
-        # Compute commanded longitudinal acceleration from throttle and brake input
+    def external_to_model_input(self, command) -> Tuple[float,float]:
+        """
+        Computes commanded longitudinal acceleration and steereing velocity from throttle steering inputs.
+
+        :param command: the car_command
+        :return: the (acceleration, steering velocity) tuple
+        """
         accel = self.acceleration_from_input(command)
 
         # commanded steering angle (not velocity of steering) from driver to model input
@@ -289,19 +295,28 @@ class car_model:
 
         return accel, steer_vel_rad_per_sec
 
-    # Compute commanded longitudinal acceleration from throttle and brake input
-    def acceleration_from_input(self, command):
+    def acceleration_from_input(self, command:car_command)->float:
+        """
+        Computes commanded longitudinal acceleration from throttle and brake input.
 
-        # Get acceleration from breaks - its direction depends on car velocity
+        :param command: the car_command input
+
+        :returns float acceleration in m/s^2
+        """
+
+        # Get acceleration from brakes - its direction depends on car velocity
         if self.model_state[ISPEED] > 0:
-            accel_break = - command.brake * self.brake_max
+            accel_brake = - command.brake * self.brake_max
         elif self.model_state[ISPEED] < 0:
-            accel_break = command.brake * self.brake_max
+            accel_brake = command.brake * self.brake_max
         else:
-            accel_break = 0
+            accel_brake = 0
 
         if abs(self.model_state[ISPEED])<0.1:
-            accel_break = accel_break*abs(self.model_state[ISPEED])*10
+            accel_brake = accel_brake*abs(self.model_state[ISPEED])*10
+
+        if getattr(command,'reverse') is None:
+            pass
 
         # Get acceleration from throttle - it direction depends on forward/reverse gear
         if not command.reverse:
@@ -314,7 +329,7 @@ class car_model:
             accel_throttle = -command.throttle * self.accel_max * REVERSE_TO_FORWARD_GEAR
 
         # Some the two accelerations
-        accel = accel_break + accel_throttle
+        accel = accel_brake + accel_throttle
 
         return accel
 
