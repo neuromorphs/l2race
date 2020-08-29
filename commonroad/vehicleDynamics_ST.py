@@ -19,7 +19,7 @@ def friction_steering_constraint(acceleration, yaw_rate, steering_velocity, velo
      '''
     if velocity<KS_TO_ST_SPEED_M_PER_SEC:
         return steering_velocity
-    yaw_rate_max = (p.longitudinal.a_max ** 2 - acceleration ** 2) / (velocity ** 2)
+    yaw_rate_max = (p.longitudinal.a_max ** 2 - acceleration ** 2) / (velocity ** 2) # units ((m/s^2)/(m/s))^2=1/s^2 ?? should be rad/s
     if yaw_rate ** 2 >= yaw_rate_max and steering_velocity * steering_angle > 0:
         steering_velocity = 0
     return steering_velocity
