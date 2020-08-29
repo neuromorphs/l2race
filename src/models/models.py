@@ -41,23 +41,23 @@ class linear_extrapolation_model(client_car_model):
     def __init__(self, car: car = None) -> None:
         super().__init__(car)
 
-    def update_state(self, update_enabled:bool, t: float, car_command: car_command, real_car:car, modeled_car: car) -> None:
+    def update_state(self, update_enabled:bool, time: float, car_command: car_command, real_car:car, modeled_car: car) -> None:
         """
         Take input time, car_state, and car_command and update the car_state.
 
         :param update_enabled: True to update model, False to clone the car_state.
-        :param t: new time in seconds.
+        :param time: new time in seconds.
         :param car_command: car_command.
         :param real_car: real car with state we are modeling.
         :param modeled_car: ghost modeled car whose car_state to update.
         """
-        dt=t-self.time
-        self.time=t
+        dt= time - self.time
+        self.time=time
         if update_enabled:
             if dt<0:
                 logger.warning('nonmonotonic timestep of {:.3f}s, setting dt=0'.format(dt))
                 return
-            modeled_car.car_state.position_m+= dt * modeled_car.car_state.velocity_m_per_sec
+            modeled_car.car_state.position_m+= dt * modeled_car.car_state.velocity_m_per_sec #+(dt*dt)/2*modeled_car.car_state.accel_m_per_sec_2
             modeled_car.car_state.body_angle_deg+= dt * modeled_car.car_state.yaw_rate_deg_per_sec
         else:
             modeled_car.car_state = copy.copy(real_car.car_state)  # make copy that just copies the fields
