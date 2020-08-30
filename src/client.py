@@ -2,6 +2,7 @@
 Client l2race agent
 
 """
+import importlib
 import os
 from typing import Tuple, List, Optional, Dict
 import argparse
@@ -844,17 +845,27 @@ def define_game(gui=True,  # set to False to prevent gooey dialog
 
     :return: the client(), which must them be started.
     """
-    if ctrl is None:
-        controller = pid_next_waypoint_car_controller()
-        logger.info('autodrive contoller was None, so was set to default {}'.format(ctrl.__class__))
-    else:
-        controller = ctrl  # construct instance of the controller. The controllers car() is set later, once the server gives us the state
-
-    if car_model is None:
-        car_model = linear_extrapolation_model()
-        logger.info('dynamical model of car was None, so was set to default {}'.format(car_model.__class__))
-
+    if gui:
+        launch_gui()
     args = get_args()
+    try:
+        mod = importlib.import_module(args.autodrive[0])
+        cl=getattr(mod, args.autodrive[1])
+        controller = cl() # set it to a class in globals.py
+        logger.info('using autodrive controller {}'.format(controller))
+    except Exception as e:
+        logger.error('cannot import AUTODRIVE_CLASS named "{}" from module AUTODRIVE_MODULE named "{}", got exception {}'.format(args.autodrive[1], args.autodrive[0],e))
+        controller=None
+
+    try:
+        mod = importlib.import_module(args.carmodel[0])
+        cl=getattr(mod, args.carmodel[1])
+        car_model = cl() # set it to a class in globals.py
+        logger.info('using client car_model {}'.format(car_model))
+    except Exception as e:
+        logger.error('cannot import CAR_MODEL_CLASS named "{}" from module CAR_MODEL_MODULE named "{}", got exception {}'.format(args.carmodel[1], args.carmodel[0],e))
+        car_model=None
+
     if not args.record is None:  # if recording data, also record command line arguments and log output to a text file
         import time
         timestr = time.strftime("%Y%m%d-%H%M")
@@ -870,78 +881,18 @@ def define_game(gui=True,  # set to False to prevent gooey dialog
         fh.setFormatter(formatter)
         logger.addHandler(fh)
 
-    if gui:
-        launch_gui()
-        args = get_args()
-        game = client(track_name=args.track_name,
-                      controller=controller,
-                      client_car_model=car_model,
-                      spectate=args.spectate,
-                      car_name=args.car_name,
-                      server_host=args.host,
-                      server_port=args.port,
-                      joystick_number=args.joystick,
-                      fps=args.fps,
-                      timeout_s=args.timeout_s,
-                      record=args.record,
-                      replay_file_list=args.replay,
-                      lidar=args.lidar)
-    else:
-
-        IGNORE_COMMAND = '--ignore-gooey'
-        if IGNORE_COMMAND in sys.argv:
-            sys.argv.remove(IGNORE_COMMAND)
-
-        args = get_args()
-
-        if track_name is None:
-            track_name = args.track_name
-
-        if car_name is None:
-            car_name = args.car_name
-
-        try:
-            if server_host is None:
-                server_host = args.host
-        except NameError:
-            server_host = args.host
-
-        try:
-            if server_port is None:
-                server_port = args.port
-        except NameError:
-            server_port = args.port
-
-        if joystick_number is None:
-            joystick_number = args.joystick
-
-        try:
-            if fps is None:
-                fps = args.fps
-        except NameError:
-            fps = args.fps
-
-        try:
-            if timeout_s is None:
-                timeout_s = args.timeout_s
-        except NameError:
-            timeout_s = args.timeout_s
-
-        if replay is None:
-            replay = args.replay
-
-        game = client(track_name=track_name,
-                      spectate=spectate,
-                      car_name=car_name,
-                      controller=ctrl,
-                      client_car_model=car_model,
-                      server_host=server_host,
-                      server_port=server_port,
-                      joystick_number=joystick_number,
-                      fps=fps,
-                      timeout_s=timeout_s,
-                      record=args.record,
-                      replay_file_list=args.replay,
-                      lidar=args.lidar)
+    game = client(track_name=args.track_name,
+                  controller=controller,
+                  client_car_model=car_model,
+                  spectate=args.spectate,
+                  car_name=args.car_name,
+                  server_host=args.host,
+                  server_port=args.port,
+                  joystick_number=args.joystick,
+                  fps=args.fps,
+                  timeout_s=args.timeout_s,
+                  record=args.record,
+                  replay_file_list=args.replay,
+                  lidar=args.lidar)
 
     return game
