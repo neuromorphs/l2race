@@ -43,8 +43,8 @@ def parameters_vehicle1():
     p.steering.v_max = 0.4  #maximum steering velocity [rad/s]
 
     #longitudinal constraints
-    p.longitudinal.v_min = -13.9  #minimum velocity [m/s]
-    p.longitudinal.v_max = 45.8  #minimum velocity [m/s]
+    p.longitudinal.v_min = -13.9  #minimum speed [m/s] (reverse)
+    p.longitudinal.v_max = 45.8  #maximum speed [m/s]
     p.longitudinal.v_switch = 4.755  #switching velocity [m/s]
     p.longitudinal.a_max = 11.5  #maximum absolute acceleration [m/s^2]
 

@@ -20,7 +20,8 @@ else:
 
 
 cpdef float friction_steering_constraint(float acceleration, float yaw_rate, float steering_velocity, float velocity, float steering_angle, object p):
-    ''' Moritz Klischat: limits the steering angle based on the current velocity and/or acceleration input. Then it should at least not be possible to turn at any speed
+    ''' Moritz Klischat: limits the steering angle based on the current velocity and/or acceleration input. 
+    Then it should at least not be possible to turn sharply at high speed.
 
      :param acceleration - longtitudinal acceleration m/s^2
      :param yaw_rate - rad/sec
@@ -32,9 +33,9 @@ cpdef float friction_steering_constraint(float acceleration, float yaw_rate, flo
      '''
     if velocity<KS_TO_ST_SPEED_M_PER_SEC:
         return steering_velocity
-    cdef yaw_rate_max = (p.longitudinal.a_max ** 2 - acceleration ** 2) / (velocity ** 2)
-    if yaw_rate ** 2 >= yaw_rate_max and steering_velocity * steering_angle > 0:
-        steering_velocity = 0
+    cdef factor = 1 - abs(2 * velocity / p.longitudinal.v_max)
+    if factor < .2: factor = .2
+    steering_velocity = steering_velocity * factor
     return steering_velocity
 
 

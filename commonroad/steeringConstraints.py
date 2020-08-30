@@ -31,7 +31,6 @@ def steeringConstraints(steeringAngle,steeringVelocity,p):
     # Author:       Matthias Althoff
     # Written:      15-December-2017
     # Last update:  ---
-    # Last revision:---
 
     #------------- BEGIN CODE --------------
 
