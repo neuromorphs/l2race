@@ -63,6 +63,10 @@ pip install pipreqs
 pipreqs --force .
 ```
 
+#### Pytorch
+If you want to use our RNN models you additionally need to install Pytorch. To install a working version of Pytorch you need not only specify your OS but also your CUDA. We therefore recommend that you check the right installation command directly at the [Pytorch official webpage](https://pytorch.org).
+
+
 ## pycharm
 You should be able to open l2race project from pycharm directly, since l2race includes the jetbrains/pycharm .idea folder.
 Once in pycharm, if you have already setup the l2race conda environment, then pycharm should find it. If not, set up the conda enviroment in pycharm using Project settings/Project interpreter and point to your l2race conda environment:
