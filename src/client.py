@@ -881,11 +881,29 @@ def define_game(gui=True,  # set to False to prevent gooey dialog
         fh.setFormatter(formatter)
         logger.addHandler(fh)
 
+    if args.car_name is None:  # If car_name not provided as a terminal-line argument...
+        if car_name is None:  # If it is neither provided through main.py interface...
+            try:  # try to create a car_name based on the host name
+                # make hopefully unique car name
+                import socket, getpass, random, string
+                hostname = socket.gethostname()
+                username = getpass.getuser()
+                car_name = str(hostname) + ':' + str(username) + '-'
+                car_name += ''.join(random.choices(string.ascii_uppercase,
+                                                   k=2))  # https://stackoverflow.com/questions/2257441/random-string-generation-with-upper-case-letters-and-digits
+            except:  # If nothing else works give it a default name
+                car_name = CAR_NAME
+        else:  # If car_name provided through main.py interface use this name as car_name
+            pass
+    else:  # If car_name provided as terminal-line argument give it precedence
+        car_name = args.car_name
+
+
     game = client(track_name=args.track_name,
                   controller=controller,
                   client_car_model=car_model,
                   spectate=args.spectate,
-                  car_name=args.car_name,
+                  car_name=car_name,
                   server_host=args.host,
                   server_port=args.port,
                   joystick_number=args.joystick,
