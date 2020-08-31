@@ -73,9 +73,9 @@ class my_joystick:
         self.lastActive=time.time()
         if platform.system() == 'Linux':
             if self.joystick_number == 0:
-                self.joy = joystick.Joystick(3) # TODO why?
+                self.joy = joystick.Joystick(3)  # TODO why? Antonio: Linux list joysticks from 3 to 0 instead of 0 to 3
             else:
-                self.joy = joystick.Joystick(4 - self.joystick_number)  # TODO why is this cryptic code needed? What does it do?
+                self.joy = joystick.Joystick(4 - self.joystick_number)  # TODO why is this cryptic code needed? What does it do? Antonio: Same reason like before
         else:
             self.joy = joystick.Joystick(self.joystick_number)
         self.joy.init()
