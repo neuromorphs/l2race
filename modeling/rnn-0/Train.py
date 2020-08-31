@@ -21,14 +21,14 @@ import collections
 from memory_profiler import profile
 import timeit
 
-from utilis import get_device, Sequence, Dataset, plot_results
-import ParseArgs
-from CartClass import Cart
+from utilis import get_device, Sequence, Dataset, plot_results, load_data
+from args_rnn_cartpole import args as my_args
+
 
 # Check if GPU is available. If yes device='cuda:0' if not device='cpu'
 device = get_device()
 
-args = ParseArgs.args()
+args = my_args()
 print(args.__dict__)
 
 # Uncomment the @profile(precision=4) to get the report on memory usage after the training
@@ -38,26 +38,53 @@ def train_network():
     # Start measuring time - to evaluate performance of the training function
     start = timeit.default_timer()
 
-    # Create CartPole instance (keeps the dynamical equations describing CartPole and simulation methods)
-    MyCart = Cart()
+    # Set seeds
+    seed = args.seed
+    rnd.seed(seed)
+    np.random.seed(seed)
+    torch.manual_seed(seed)
+    torch.cuda.manual_seed_all(seed)
+    torch.backends.cudnn.deterministic = True
 
     # Make folders if not yet exist
     try:
         os.makedirs('save')
+        os.makedirs('log')
     except:
         pass
 
     lr = args.lr  # learning rate
     batch_size = args.batch_size  # Mini-batch size
     num_epochs = args.num_epochs  # Number of epochs to train the network
+    num_rnn_layers = 2
+    rnn_hid_size_1 = args.h1_size
+    rnn_hid_size_2 = args.h2_size
+    rnn_type = 'GRU'
 
-    # Create PyTorch Dataset
-    train_set = Dataset(MyCart, args)  # for training
-    dev_set = Dataset(MyCart, args)  # for evaluation of training results
+    # Save and Log
+    str_target_variable = 'cart-pole-based-rnn'
+    str_net_arch = str(num_rnn_layers) + 'L-' + str(rnn_hid_size_1) + 'H1-' + str(rnn_hid_size_2) + 'H2-'
+    filename = str_net_arch + str(rnn_type) + '-' + str_target_variable
+    pretrain_model_path = str_net_arch + 'GRU'
+    logpath = './log/' + filename + '.csv'
+    savepath = './save/' + filename + '.pt'
+
+    ########################################################
+    # Create Dataset
+    ########################################################
+    train_file = '../../data/'+'l2race-Marcin-oval_easy-train.csv'
+    val_file = '../../data/'+'l2race-Marcin-oval_easy-test.csv'
+    train_features, train_dict, train_targets, target_dict,_,actual_dict, mean_train_features, std_train_features, mean_train_targets, std_train_targets = \
+        load_data(train_file, args, savepath, save_normalization_parameters=True)
+    dev_features,_, dev_targets, _, _, _, _, _, _, _ = \
+        load_data(val_file, args, savepath)
+
+    train_set = Dataset(train_features, train_targets, args)
+    dev_set = Dataset(dev_features, dev_targets, args)
 
     # Create PyTorch dataloaders for train and dev set
-    train_generator = data.DataLoader(dataset=train_set, batch_size=batch_size, shuffle=False)
-    dev_generator = data.DataLoader(dataset=dev_set, batch_size=512, shuffle=False)
+    train_generator = data.DataLoader(dataset=train_set, batch_size=batch_size, shuffle=True, num_workers = args.num_workers)
+    dev_generator = data.DataLoader(dataset=dev_set, batch_size=512, shuffle=True, num_workers = args.num_workers)
 
     # Create RNN instance
     net = Sequence(args)
@@ -83,17 +110,11 @@ def train_network():
         net.load_state_dict(new_state_dict)
         # Evaluate the performance of this pretrained network
         # by checking its predictions on a randomly generated CartPole experiment
-        plot_results(net, args, MyCart)
+        plot_results(net, args)
 
     except:
         print('No pretrained model available')
 
-    # Move network to GPU
-    # TODO: Check it. It shouldn't harm, but I think this line is redundant.
-    #  RNN is moved to cuda at initialization if GPU available.
-    if torch.cuda.is_available():
-        print("Go cuda!")
-        net = net.cuda()
 
     # Print parameter count
     params = 0
@@ -143,7 +164,8 @@ def train_network():
     start_time = time.time()
 
     # Maximal window over which we want to train RNN - look below for explanation of training process
-    win_max = (num_epochs - 1) // args.epochs_per_win
+    # win_max = (num_epochs - 1) // args.epochs_per_win
+    win_max = 0
     # The epoch_saved variable will indicate from which epoch is the last RNN model,
     # which was good enough to be saved
     epoch_saved = -1
@@ -168,8 +190,8 @@ def train_network():
         #       this time we return outputs (terminate=True) and save gradients
         # (5) we calculate loss based on the prediction OF THESE LAST args.warm_up_len time_steps
         #       and accordingly update the weights of RNN model
-        win = (epoch // args.epochs_per_win)  # window number over which to optimize the results
-
+        # win = (epoch // args.epochs_per_win)  # window number over which to optimize the results
+        win  = 0
         ###########################################################################################################
         # Training - Iterate batches
         ###########################################################################################################
@@ -319,7 +341,7 @@ def train_network():
             print('>>> We keep model from epoch {}'.format(epoch_saved))
         # Evaluate the performance of the current network
         # by checking its predictions on a randomly generated CartPole experiment
-        plot_results(net, args, MyCart)
+        # plot_results(net, args)
 
     # When finished the training print the final message
     print("Training Completed...                                               ")
