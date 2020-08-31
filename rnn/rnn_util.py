@@ -2,14 +2,11 @@
 Utilities for RNNs in l2race challenge
 Adapted from : https://github.com/SensorsINI/CartPoleSimulation
 
-Ref. to dev branch for improved version. 
-
 
 Date created : 30th August
 TODO : 
 1. Fix the dimensions of Sequence class as per l2race car state recording
 2. Create a data object and try forward, and initialize sequence method on that object
-3. Cutting sequences for feeding into RNN
 
 """
 
@@ -17,84 +14,7 @@ from src.car_state import car_state
 from src.globals import *
 from src.car import car
 import glob
-
-
-import glob
-import numpy as np
-import pandas as pd
-from random import randrange
-from scipy.interpolate import interp1d
-import matplotlib.pyplot as plt
-
-class Data:
-    """
-    A class for simplified loading of simulator data for use with pysindy
-    Supports loading data from single or multiple .csv files
-    ...
-    Attributes
-    ----------
-    x : np.array or list of np.arrays
-        values of features listed in FEATURES variable 
-    x_dot : np.array or list of np.arrays
-        precalculated derivatives of features listed in DERIVATIVES variable
-    u : np.array or list of np.arrays
-        values of car commands specified in COMMANDS variable
-    t : np.array or list of np.arrays
-        timestamps
-    multiple_recordings: bool
-        specifies whether data is loaded from single or multiple files
-        if True, data is stored as lists of np.arrays
-    """
-
-    def __init__(self, data_dir, features_list, commands_list):
-        """
-        Parameters
-        ----------
-        data_dir: str
-            directory containing .csv files
-        """
-
-        file_list = glob.glob(data_dir + '/*.csv')
-
-        if len(file_list) == 0:
-            raise Exception("Data directory is empty!")
-
-        elif len(file_list) == 1:
-            multiple_recordings = False
-
-            full_path = data_dir + '/' + file_list[0]
-            data = pd.read_csv(full_path, comment='#')
-            data = data.drop_duplicates('time')
-            
-            t = data['time'].values
-            u = data[commands_list].values
-            x = data[features_list].values
-
-        else:
-            multiple_trajectories = True
-
-            t = []
-            x = []
-            u = []
-            for filename in file_list:
-                full_path = data_dir + '/' + filename
-                data = pd.read_csv(full_path, comment='#')
-                data = data.drop_duplicates('time') # removes "duplicate" timestamps 
-
-                t_single = data['time']
-                u_single = data[commands_list]
-                x_single = data[features_list]
-
-                t.append(t_single.values)
-                x.append(x_single.values)
-                u.append(u_single.values) 
-
-        self.x = x
-        self.u = u
-        self.t = t
-        self.multiple_recordings = multiple_recordings
-
-
+from modeling.sindy import Data
 
 
 class Dataset(data.Dataset):
@@ -117,10 +37,7 @@ class Dataset(data.Dataset):
         #     self.exp_len = args.exp_len_train
         # else:
         #     self.exp_len = args.exp_len_test
-        '''
-        TODO: Add features_list and commands_list to args
-        '''
-        data = Data(data_dir, args.features_list, args.commands_list)
+        data = Data(data_dir)
 
         # # Recalculate simulation time step from milliseconds to seconds
         # self.dt = args.dt / 1000.0  # s
@@ -141,19 +58,19 @@ class Dataset(data.Dataset):
         (inputs list to RNN in features array and expected outputs from RNN )
         """
 
-        features_list = ['pos.x', 'pos.y','vel.x','vel.y','steering_angle','body_angle','yaw_rate','drift_angle']
-        commands_list = ['cmd.throttle', 'cmd.steering', 'cmd.brake', 'cmd.reverse']
+        FEATURES = ['pos.x', 'pos.y','vel.x','vel.y','steering_angle','body_angle','yaw_rate','drift_angle']
+        COMMANDS = ['cmd.throttle', 'cmd.steering', 'cmd.brake', 'cmd.reverse']
 
-        data = Data(data_dir, features_list, commands_list)
+        data = Data(data_dir)
         # "features" is the array of inputs to the RNN, it consists of states of the car and control input
         # "targets" is the array of car states one time step ahead of "features" at the same index.
         # "targets[i]" is what we expect our network to predict given features[i]
         # file_length: length of the selected recording file
-        file_length = data.x[0].shape[0]
+        file_length = data.x[idx].shape[0]
 
-        states = data.x[0][:(file_length-1),:]
-        control = data.u[0][1:,:]
-        target = data.x[0][1:,:]
+        states = data.x[idx][:(file_length-1),:]
+        control = data.u[idx][1:,:]
+        target = data.x[idx][1:,:]
  
         features = np.hstack((np.array(states), np.array(control)))
         features = torch.from_numpy(features).float()
@@ -178,7 +95,6 @@ class Sequence(nn.Module):
         # Save args (default of from terminal line)
         self.args = args
         # Initialize RNN layers
-        # TODO : Remove hardcoding and take the args and calculate no. of inputs
         self.gru1 = nn.GRUCell(12, args.h1_size)  # RNN accepts 12 inputs: car state (8) and control input(4) at time t
         self.gru2 = nn.GRUCell(args.h1_size, args.h2_size)
         self.linear = nn.Linear(args.h2_size, 8)  # RNN out car state for t+1 ?
