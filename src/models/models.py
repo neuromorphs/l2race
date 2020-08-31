@@ -11,6 +11,8 @@ from src.car import car
 from src.car_command import car_command
 from src.car_state import car_state
 
+from modeling.SINDy.sindy import load_model
+
 class client_car_model(ABC):
     """
     Abstract base class for client car models
@@ -65,3 +67,39 @@ class linear_extrapolation_model(client_car_model):
 
         # logger.info('\nreal car state:  {}\nghost car state: {}'.format(real_car.car_state,modeled_car.car_state))
 
+class SINDy_model(client_car_model):
+    """
+    SINDy model
+    """
+
+    def __init__(self, car: car = None) -> None:
+        super().__init__(car)
+        self.model = load_model('modeling/SINDy/SINDy_model.pkl')
+
+    def update_state(self, update_enabled:bool, t: float, car_command: car_command, real_car:car, modeled_car: car) -> None:
+        """
+        Take input time, car_state, and car_command and update the car_state.
+
+        :param update_enabled: True to update model, False to clone the car_state.
+        :param t: new time in seconds.
+        :param car_command: car_command.
+        :param real_car: real car with state we are modeling.
+        :param modeled_car: ghost modeled car whose car_state to update.
+        """
+        dt=t-self.time
+        self.time=t
+        if update_enabled:
+            if dt<0:
+                logger.warning('nonmonotonic timestep of {:.3f}s, setting dt=0'.format(dt))
+                return
+
+            new_state = self.model.simulate_step(modeled_car.car_state, car_command, t, dt)
+
+            modeled_car.car_state.position_m = new_state['position_m']
+            modeled_car.car_state.body_angle_deg = new_state['body_angle_deg']
+            # update other states too
+        else:
+            modeled_car.car_state = copy.copy(real_car.car_state)  # make copy that just copies the fields
+            modeled_car.car_state.command=copy.copy(real_car.car_state.command) # and our own command
+
+        # logger.info('\nreal car state:  {}\nghost car state: {}'.format(real_car.car_state,modeled_car.car_state))
