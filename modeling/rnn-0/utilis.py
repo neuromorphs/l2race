@@ -260,6 +260,22 @@ def load_data(filepath, args, savepath, save_normalization_parameters=False):
     deltaTime = np.insert(deltaTime, 0, 0)
 
     # Get Raw Data
+    x = df[args.features_list]
+    u = df[args.commands_list]
+    y = df[args.targets_list]
+    sample_length = x.shape[0]
+    states = x[:(sample_length-1),:]
+    control = u[1:,:]
+    target = y[1:,:]
+ 
+    features = np.hstack((np.array(states), np.array(control)))
+    features = torch.from_numpy(features).float()
+
+    targets = np.array(targets)
+    targets = torch.from_numpy(targets).float()
+    #TODO : Compare the dimensions of features, and targets(By Nikhil) with that of raw_features, raw_targets(By Marcin)
+    #       and transpose accordingly if required
+
     throttle = df['cmd.throttle'].to_numpy()
     brake = df['cmd.brake'].to_numpy()
     speed = df['speed'].to_numpy()
@@ -275,12 +291,10 @@ def load_data(filepath, args, savepath, save_normalization_parameters=False):
     actual_dict = {'time': 0, 'deltaTime': 1, 'throttle': 2, 'brake': 3, 'speed': 4}
 
     # Features (Train Data)
-    raw_features = []
     raw_features.append(deltaTime)
     raw_features.append(throttle)
     raw_features.append(brake)
     raw_features.append(speed)
-
 
     raw_features = np.vstack(raw_features).transpose()  # raw_features indexed by [sample, input sensor/control]
     # add to dict here to allow plotting more easily, don't forget other _dict below
