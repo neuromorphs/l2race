@@ -25,6 +25,11 @@ def args():
     parser.add_argument('--batch_size',     default=128,         type=int,    help='Size of a batch')
     parser.add_argument('--epochs_per_win', default=15,         type=int,    help='Size of a batch')
     
+    parser.add_argument('--features_list',   nargs="+",  default=['pos.x', 'pos.y','vel.x','vel.y','steering_angle','body_angle','yaw_rate','drift_angle'],    help='List of features')
+    parser.add_argument('--commands_list', nargs="+", default=['cmd.throttle', 'cmd.steering', 'cmd.brake', 'cmd.reverse'],       help='List of commands')
+    parser.add_argument('--targets_list', nargs="+", default=['pos.x', 'pos.y','vel.x','vel.y','steering_angle','body_angle','yaw_rate','drift_angle'],       help='List of a targets')
+
+
     parser.add_argument('--lr',             default=1.0e-4,     type=float,  help='Learning rate')
     parser.add_argument('--h1_size',        default=128,        type=int,    help='First hidden layer size')
     parser.add_argument('--h2_size',        default=128,        type=int,    help='Second hindden layer size')
