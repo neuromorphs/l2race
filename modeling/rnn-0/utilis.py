@@ -291,6 +291,7 @@ def load_data(filepath, args, savepath, save_normalization_parameters=False):
     actual_dict = {'time': 0, 'deltaTime': 1, 'throttle': 2, 'brake': 3, 'speed': 4}
 
     # Features (Train Data)
+    raw_features = []
     raw_features.append(deltaTime)
     raw_features.append(throttle)
     raw_features.append(brake)
