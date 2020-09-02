@@ -17,6 +17,9 @@ import matplotlib.pyplot as plt
 import pandas as pd
 import os
 
+import random as rnd
+import collections
+
 
 def get_device():
     """
@@ -29,23 +32,77 @@ def get_device():
     return device
 
 
+# Set seeds everywhere required to make results reproducible
+def set_seed(args):
+    seed = args.seed
+    rnd.seed(seed)
+    np.random.seed(seed)
+    torch.manual_seed(seed)
+    torch.cuda.manual_seed_all(seed)
+    torch.backends.cudnn.deterministic = True
+
+
+# Print parameter count
+def print_parameter_count(net):
+    params = 0
+    for param in list(net.parameters()):
+        sizes = 1
+        for el in param.size():
+            sizes = sizes * el
+        params += sizes
+    print('::: # network parameters: ' + str(params))
+
+
+def load_pretrained_rnn(net, path_pretrained):
+    device = get_device()
+    pre_trained_model = torch.load(path_pretrained, map_location=device)
+    print("Loading Model: ", path_pretrained)
+
+    pre_trained_model = list(pre_trained_model.items())
+    new_state_dict = collections.OrderedDict()
+    count = 0
+    num_param_key = len(pre_trained_model)
+    for key, value in net.state_dict().items():
+        if count >= num_param_key:
+            break
+        layer_name, weights = pre_trained_model[count]
+        new_state_dict[key] = weights
+        print("Pre-trained Layer: %s - Loaded into new layer: %s" % (layer_name, key))
+        count += 1
+    net.load_state_dict(new_state_dict)
+
+
+# Initialize weights and biases - should be only applied if no pretrained net loaded
+def initialize_weights_and_biases(net):
+    for name, param in net.named_parameters():
+        print(name)
+        if 'gru' in name:
+            if 'weight' in name:
+                nn.init.orthogonal_(param)
+        if 'linear' in name:
+            if 'weight' in name:
+                nn.init.orthogonal_(param)
+                # nn.init.xavier_uniform_(param)
+        if 'bias' in name:  # all biases
+            nn.init.constant_(param, 0)
+
 class Sequence(nn.Module):
     """"
     Our RNN class.
     """
-
-    def __init__(self, args):
+    def __init__(self, h1_size, h2_size):
         super(Sequence, self).__init__()
         """Initialization of an RNN instance"""
 
+        self.h1_size = h1_size
+        self.h2_size = h2_size
+
         # Check if GPU is available. If yes device='cuda:0' if not device='cpu'
         self.device = get_device()
-        # Save args (default of from terminal line)
-        self.args = args
         # Initialize RNN layers
-        self.gru1 = nn.GRUCell(4, args.h1_size)  # RNN accepts 5 inputs: CartPole state (4) and control input at time t
-        self.gru2 = nn.GRUCell(args.h1_size, args.h2_size)
-        self.linear = nn.Linear(args.h2_size, 1)  # RNN out
+        self.gru1 = nn.GRUCell(4, h1_size)  # RNN accepts 5 inputs: CartPole state (4) and control input at time t
+        self.gru2 = nn.GRUCell(h1_size, h2_size)
+        self.linear = nn.Linear(h2_size, 1)  # RNN out
         # Count data samples (=time steps)
         self.sample_counter = 0
         # Declaration of the variables keeping internal state of GRU hidden layers
@@ -59,21 +116,26 @@ class Sequence(nn.Module):
         # Send the whole RNN to GPU if available, otherwise send it to CPU
         self.to(self.device)
 
-    def forward(self, predict_len: int, input, terminate=False):
+    def forward(self, predict_len: int, rnn_input, terminate=False, real_time=False):
         """
         Predicts future CartPole states IN "CLOSED LOOP"
         (at every time step prediction for the next time step is done based on CartPole state
         resulting from the previous prediction; only control input is provided from the ground truth at every step)
         """
         # From input to RNN (CartPole state + control input) get control input
-        u_effs = input[:, :, :-1]
+        u_effs = rnn_input[:, :, :-1]
         # For number of time steps given in predict_len predict the state of the CartPole
         # At every time step RNN get as its input the ground truth value of control input
         # BUT instead of the ground truth value of CartPole state
         # it gets the result of the prediction for the last time step
         for i in range(predict_len):
             # Concatenate the previous prediction and current control input to the input to RNN for a new time step
-            input_t = torch.cat((self.output, u_effs[self.sample_counter, :]), 1)
+            if real_time:
+                output_np = self.output.detach().numpy()
+                u_effs_np = u_effs.numpy()
+                input_t = torch.cat((self.output, u_effs.squeeze(0)), 1)
+            else:
+                input_t = torch.cat((self.output, u_effs[self.sample_counter, :]), 1)
             # Propagate input through RNN layers
             self.h_t = self.gru1(input_t, self.h_t)
             self.h_t2 = self.gru2(self.h_t, self.h_t2)
@@ -82,14 +144,14 @@ class Sequence(nn.Module):
             self.outputs += [self.output]
             # Count number of samples
             self.sample_counter = self.sample_counter + 1
-            if i == 254:
-                pass
 
         # if terminate=True transform outputs history list to a Pytorch tensor and return it
         # Otherwise store the outputs internally as a list in the RNN instance
         if terminate:
             self.outputs = torch.stack(self.outputs, 1)
             return self.outputs
+        else:
+            return self.output
 
     def reset(self):
         """
@@ -101,23 +163,23 @@ class Sequence(nn.Module):
         self.output = None
         self.outputs = []
 
-    def initialize_sequence(self, input, train=True):
+    def initialize_sequence(self, rnn_input, warm_up_len=256, stack_output=True, all_input=False):
 
         """
         Predicts future CartPole states IN "OPEN LOOP"
         (at every time step prediction for the next time step is done based on the true CartPole state)
         """
 
-        # If in training mode we will only run this function during the first several (args.warm_up_len) data samples
+        # If in training mode we will only run this function during the first several (warm_up_len) data samples
         # Otherwise we run it for the whole input
-        if train:
-            starting_input = input[:self.args.warm_up_len, :, :]
+        if not all_input:
+            starting_input = rnn_input[:warm_up_len, :, :]
         else:
-            starting_input = input
+            starting_input = rnn_input
 
         # Initialize hidden layers
-        self.h_t = torch.zeros(starting_input.size(1), self.args.h1_size, dtype=torch.float).to(self.device)
-        self.h_t2 = torch.zeros(starting_input.size(1), self.args.h2_size, dtype=torch.float).to(self.device)
+        self.h_t = torch.zeros(starting_input.size(1), self.h1_size, dtype=torch.float).to(self.device)
+        self.h_t2 = torch.zeros(starting_input.size(1), self.h2_size, dtype=torch.float).to(self.device)
 
         # The for loop takes the consecutive time steps from input plugs them into RNN and save the outputs into a list
         # THE NETWORK GETS ALWAYS THE GROUND TRUTH, THE REAL STATE OF THE CARTPOLE, AS ITS INPUT
@@ -132,9 +194,11 @@ class Sequence(nn.Module):
         # In the train mode we want to continue appending the outputs by calling forward function
         # The outputs will be saved internally in the network instance as a list
         # Otherwise we want to transform outputs list to a tensor and return it
-        if not train:
-            self.outputs = torch.stack(self.outputs, 1)
-            return self.outputs
+        if stack_output:
+            outputs_return = torch.stack(self.outputs, 1)
+            return outputs_return
+        else:
+            return self.output
 
 
 def norm(x):
@@ -152,7 +216,7 @@ class Dataset(data.Dataset):
         self.args = args
 
         # Hyperparameters
-        self.seq_len = args.exp_len_train  # Sequence length
+        self.seq_len = args.seq_len  # Sequence length
 
     def __len__(self):
 
@@ -222,7 +286,8 @@ def computeNormalization(dat: np.array):
     return m, s
 
 
-def load_data(filepath, args, savepath, save_normalization_parameters=False):
+# def load_data(filepath, args, savepath=None, save_normalization_parameters=False):
+def load_data(filepath, args):
     '''
     Loads dataset from CSV file
     Args:
@@ -248,7 +313,6 @@ def load_data(filepath, args, savepath, save_normalization_parameters=False):
     '''
 
     # Hyperparameters
-    seq_len = args.exp_len_train  # Sequence length
 
     # Load dataframe
     print('loading data from ' + str(filepath))
@@ -263,74 +327,46 @@ def load_data(filepath, args, savepath, save_normalization_parameters=False):
     x = df[args.features_list]
     u = df[args.commands_list]
     y = df[args.targets_list]
-    sample_length = x.shape[0]
-    states = x[:(sample_length-1),:]
-    control = u[1:,:]
-    target = y[1:,:]
+
+    # @Nikhil It seems there is slightly different slicing convention for pandas DataFrame - here it was crashing
+    # I don't know how to do it correctly so I convert it to numpy. You are welcome to change it.
+    states = np.array(x)[:-1]
+    control = np.array(u)[:-1]
+    targets = np.array(y)[1:]
+
  
     features = np.hstack((np.array(states), np.array(control)))
-    features = torch.from_numpy(features).float()
+    # features = torch.from_numpy(features).float()
 
     targets = np.array(targets)
-    targets = torch.from_numpy(targets).float()
+    # targets = torch.from_numpy(targets).float()
     #TODO : Compare the dimensions of features, and targets(By Nikhil) with that of raw_features, raw_targets(By Marcin)
     #       and transpose accordingly if required
+    # Good job Nikhil! I like your approach!
 
-    throttle = df['cmd.throttle'].to_numpy()
-    brake = df['cmd.brake'].to_numpy()
-    speed = df['speed'].to_numpy()
+    # # The normalization of data - I am not sure how necessary it is
+    # # If you uncomment this lines please make sure that you unnormalize data before plugging them into ghost car
+    # # compute normalization of data now
+    # mean_features, std_features = computeNormalization(features)
+    # mean_targets, std_targets = computeNormalization(targets)
+    #
+    # if save_normalization_parameters:  # We only save normalization for train set - all the other sets we normalize withr respect to this set
+    #     save_normalization(savepath, mean_features, std_features, mean_targets, std_targets)
+    #     mean_train_features, std_train_features, mean_train_targets, std_train_targets = \
+    #         mean_features, std_features, mean_targets, std_targets
+    # else:
+    #     mean_train_features, std_train_features, mean_train_targets, std_train_targets \
+    #         = load_normalization(savepath)
+    #
+    # features = normalize(features, mean_train_features, std_train_features)
+    # targets = normalize(targets, mean_train_targets, std_train_targets)
 
-    # Actual Data for Plotting
-    raw_actual = []
-    raw_actual.append(time)
-    raw_actual.append(deltaTime)
-    raw_actual.append(throttle)
-    raw_actual.append(brake)
-    raw_actual.append(speed)
-    # add to dict here to allow plotting more easily, don't forget other _dict above
-    actual_dict = {'time': 0, 'deltaTime': 1, 'throttle': 2, 'brake': 3, 'speed': 4}
-
-    # Features (Train Data)
-    raw_features = []
-    raw_features.append(deltaTime)
-    raw_features.append(throttle)
-    raw_features.append(brake)
-    raw_features.append(speed)
-
-    raw_features = np.vstack(raw_features).transpose()  # raw_features indexed by [sample, input sensor/control]
-    # add to dict here to allow plotting more easily, don't forget other _dict below
-    features_dict = {'deltaTime': 0, 'throttle': 1, 'brake': 2, 'speed': 3}
-
-    # targetss (Label Data)
-    raw_targets = []
-    raw_targets.append(speed)
-    raw_targets = np.vstack(raw_targets).transpose()  # raw_targets indexed by [sample, sensor]
-    # add to dict here to allow plotting more easily, don't forget other _dict below
-    targets_dict = {'speed': 0}
-
-    # compute normalization of data now
-    mean_features, std_features = computeNormalization(raw_features)
-    mean_targets, std_targets = computeNormalization(raw_targets)
-
-    if save_normalization_parameters:  # We only save normalization for train set - all the other sets we normalize withr respect to this set
-        save_normalization(savepath, mean_features, std_features, mean_targets, std_targets)
-        mean_train_features, std_train_features, mean_train_targets, std_train_targets = \
-            mean_features, std_features, mean_targets, std_targets
-    else:
-        mean_train_features, std_train_features, mean_train_targets, std_train_targets \
-            = load_normalization(savepath)
-
-    raw_features = normalize(raw_features, mean_train_features, std_train_features)
-    raw_targets = normalize(raw_targets, mean_train_targets, std_train_targets)
-
-    # Shift by one so that rnn predicts one step ahead
-    features = raw_features[:-1, ]
-    targets = raw_targets[1:, ]
-
-    return features, features_dict, targets, targets_dict, raw_actual, actual_dict, mean_features, std_features, mean_targets, std_targets
+    # Version with normlaization
+    # return features, targets, mean_features, std_features, mean_targets, std_targets
+    return features, targets
 
 
-def plot_results(net, args, MyCart):
+def plot_results(net, args, val_savepathfile):
     """
     This function accepts RNN instance, arguments and CartPole instance.
     It runs one random experiment with CartPole,
@@ -340,7 +376,10 @@ def plot_results(net, args, MyCart):
     net.reset()
 
     # Generates ab CartPole  experiment and save its data
-    test_set = Dataset(MyCart, args, train=False)  # Only experiment length is different for train=True/False
+    dev_features, dev_targets, _, _, _, _ = \
+        load_data(val_file, args, savepath)
+
+    dev_set = Dataset(dev_features, dev_targets, args)
 
     # Format the experiment data
     # test_set[0] means that we take one random experiment, first on the list
