@@ -106,7 +106,7 @@ class SINDy_model(client_car_model):
 
 
 import torch
-from modeling.RNN0.utilis import Sequence
+from modeling.RNN0.utilis import Sequence, load_pretrained_rnn
 import collections
 import numpy as np
 
@@ -121,34 +121,16 @@ class RNN_0_model(client_car_model):
         # Load pretraind RNN
         # Create RNN instance
         # TODO: Find more flexible way to load various RNN architectures
-        h1_size: int = 128
-        h2_size: int = 128
+        h1_size: int = 64
+        h2_size: int = 64
         self.dt = 0.0
         self.net = Sequence(h1_size, h2_size)
         # If a pretrained model exists load the parameters from disc and into RNN instance
         # Also evaluate the performance of this pretrained network
         # by checking its predictions on a randomly generated CartPole experiment
         savepathPre = './modeling/RNN0/save/' + 'MyNetPre' + '.pt'
-        try:
-            pre_trained_model = torch.load(savepathPre, map_location=torch.device('cpu'))
-            print("Loading Model: ", savepathPre)
-
-            pre_trained_model = list(pre_trained_model.items())
-            new_state_dict = collections.OrderedDict()
-            count = 0
-            num_param_key = len(pre_trained_model)
-            for key, value in self.net.state_dict().items():
-                if count >= num_param_key:
-                    break
-                layer_name, weights = pre_trained_model[count]
-                new_state_dict[key] = weights
-                print("Pre-trained Layer: %s - Loaded into new layer: %s" % (layer_name, key))
-                count += 1
-            self.net.load_state_dict(new_state_dict)
-            self.net = self.net.eval()
-
-        except:
-            logger.warning('It was not possible to load pretrained model')
+        load_pretrained_rnn(self.net, savepathPre)
+        self.net = self.net.eval()
 
     def update_state(self, update_enabled:bool, t: float, car_command: car_command, real_car:car, modeled_car: car) -> None:
         """
@@ -201,6 +183,6 @@ class RNN_0_model(client_car_model):
 
             rnn_input = torch.from_numpy(np.array((dt, throttle, brake, speed))).float().unsqueeze(0).unsqueeze(0)
 
-            self.net.initialize_sequence(input=rnn_input, warm_up_len=1, stack_output=False, all_input=True)
+            self.net.initialize_sequence(rnn_input=rnn_input, warm_up_len=1, stack_output=False, all_input=True)
 
 
