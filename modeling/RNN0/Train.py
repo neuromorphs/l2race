@@ -60,18 +60,23 @@ def train_network(load_pretrained):
     #Split the names into "LSTM/GRU", "128H1", "64H2" etc. 
     names = RNN_name.split('-')
     layers = ['H1', 'H2']
-    for text in names:
+    for name in names:
         for index, layer in enumerate(layers):    
-            if layer in text:
+            if layer in name:
                 #assign the variable with name obtained from list layers. Is there any better way to do this?
-                globals() [layers[index]] = int(text[:-2]) # Remove the "HX" part of RNN_name slice(X=1,2)
-
+                globals() [layers[index]] = int(name[:-2]) # Remove the "HX" part of RNN_name slice(X=1,2)
+        if 'GRU' in name:
+            rnn_type = 'GRU'
+        elif'LSTM' in name:
+            rnn_type = 'LSTM'
+        
     rnn_h1_size = H1
     rnn_h2_size = H2
     # print(rnn_h1_size)
     # print(rnn_h2_size)
+    # rnn_type = 'GRU'
 
-    rnn_type = 'GRU'
+      
 
     # Renaming this to simple file name. TODO: In future needs to be made parsable through arguments
     train_file = '../../data/'+'train.csv'
