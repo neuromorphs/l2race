@@ -90,7 +90,7 @@ class Sequence(nn.Module):
     """"
     Our RNN class.
     """
-    def __init__(self, h1_size, h2_size):
+    def __init__(self, h1_size, h2_size, nbinputs, nboutputs):
         super(Sequence, self).__init__()
         """Initialization of an RNN instance"""
 
@@ -100,9 +100,9 @@ class Sequence(nn.Module):
         # Check if GPU is available. If yes device='cuda:0' if not device='cpu'
         self.device = get_device()
         # Initialize RNN layers
-        self.gru1 = nn.GRUCell(4, h1_size)  # RNN accepts 5 inputs: CartPole state (4) and control input at time t
+        self.gru1 = nn.GRUCell(nbinputs, h1_size)  # RNN accepts 5 inputs: CartPole state (4) and control input at time t
         self.gru2 = nn.GRUCell(h1_size, h2_size)
-        self.linear = nn.Linear(h2_size, 1)  # RNN out
+        self.linear = nn.Linear(h2_size, nboutputs)  # RNN out
         # Count data samples (=time steps)
         self.sample_counter = 0
         # Declaration of the variables keeping internal state of GRU hidden layers
