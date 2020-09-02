@@ -11,6 +11,7 @@ import timeit
 # Various
 import torch.optim as optim
 import torch.utils.data.dataloader
+from torch.optim import lr_scheduler
 from tqdm import tqdm
 
 import numpy as np
@@ -58,8 +59,9 @@ def train_network(load_pretrained):
     rnn_h2_size = 64
     rnn_type = 'GRU'
 
-    train_file = '../../data/'+'l2race-Marcin-oval_easy-train.csv'
-    val_file = '../../data/'+'l2race-Marcin-oval_easy-test.csv'
+    # Renaming this to simple file name. TODO: In future needs to be made parsable through arguments
+    train_file = '../../data/'+'train.csv'
+    val_file = '../../data/'+'test.csv'
 
     # Where to save the newly traing RNN.
     # Maybe you should ad some number/data at the end not to overwrite previous  versions
@@ -79,8 +81,10 @@ def train_network(load_pretrained):
     train_generator = data.DataLoader(dataset=train_set, batch_size=batch_size, shuffle=True, num_workers=args.num_workers)
     dev_generator = data.DataLoader(dataset=dev_set, batch_size=512, shuffle=True, num_workers=args.num_workers)
 
+    nbinputs = len(args.features_list) + len(args.commands_list)
+    nboutputs = len(args.targets_list)
     # Create RNN instance
-    net = Sequence(rnn_h1_size, rnn_h2_size)
+    net = Sequence(rnn_h1_size, rnn_h2_size, nbinputs, nboutputs)
 
     # If a pretrained model exists load the parameters from disc and into RNN instance
     if load_pretrained:
@@ -97,6 +101,11 @@ def train_network(load_pretrained):
 
     # Select Optimizer
     optimizer = optim.Adam(net.parameters(), amsgrad=True, lr=lr)
+
+    #TODO: Try tweaking parameters of below scheduler and try cyclic lr scheduler
+    # scheduler = lr_scheduler.CyclicLR(optimizer, base_lr=lr, max_lr=0.1)
+
+    scheduler = lr_scheduler.StepLR(optimizer, step_size=7, gamma=0.1)
 
     # Select Loss Function
     criterion = nn.MSELoss()  # Mean square error loss function
@@ -182,7 +191,7 @@ def train_network(load_pretrained):
 
             # Update parameters
             optimizer.step()
-
+            scheduler.step()
             # Update variables for loss calculation
             batch_loss = loss.detach()
             train_loss += batch_loss  # Accumulate loss

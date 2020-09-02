@@ -48,7 +48,7 @@ def args():
     # parser.add_argument('--commands_list', nargs="+", default=['cmd.throttle', 'cmd.steering', 'cmd.brake', 'cmd.reverse'],       help='List of commands')
     # parser.add_argument('--targets_list', nargs="+", default=['pos.x', 'pos.y','vel.x','vel.y','steering_angle','body_angle','yaw_rate','drift_angle'],       help='List of a targets')
     parser.add_argument('--features_list',   nargs="+",  default=['time', 'speed'],                   help='List of features')
-    parser.add_argument('--commands_list', nargs="+", default=['cmd.throttle', 'cmd.brake'],          help='List of commands')
+    parser.add_argument('--commands_list', nargs="+", default=['cmd.throttle', 'cmd.brake', 'cmd.steering'],          help='List of commands')
     parser.add_argument('--targets_list', nargs="+", default=['speed'],                               help='List of targets')
 
     my_args = parser.parse_args()
