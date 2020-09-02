@@ -54,9 +54,23 @@ def train_network(load_pretrained):
     num_epochs = args.num_epochs  # Number of epochs to train the network
 
     # I would like this to be extracted from args.RNN_name
+    #@Marcin I implemented the same for 2 layer network. I believe it can be extended to a variable number of layers
+    
     RNN_name = args.RNN_name
-    rnn_h1_size = 64
-    rnn_h2_size = 64
+    #Split the names into "LSTM/GRU", "128H1", "64H2" etc. 
+    names = RNN_name.split('-')
+    layers = ['H1', 'H2']
+    for text in names:
+        for index, layer in enumerate(layers):    
+            if layer in text:
+                #assign the variable with name obtained from list layers. Is there any better way to do this?
+                globals() [layers[index]] = int(text[:-2]) # Remove the "HX" part of RNN_name slice(X=1,2)
+
+    rnn_h1_size = H1
+    rnn_h2_size = H2
+    # print(rnn_h1_size)
+    # print(rnn_h2_size)
+
     rnn_type = 'GRU'
 
     # Renaming this to simple file name. TODO: In future needs to be made parsable through arguments
@@ -102,10 +116,11 @@ def train_network(load_pretrained):
     # Select Optimizer
     optimizer = optim.Adam(net.parameters(), amsgrad=True, lr=lr)
 
-    #TODO: Try tweaking parameters of below scheduler and try cyclic lr scheduler
+    #TODO: Verify if scheduler is working. Try tweaking parameters of below scheduler and try cyclic lr scheduler
+    
     # scheduler = lr_scheduler.CyclicLR(optimizer, base_lr=lr, max_lr=0.1)
 
-    scheduler = lr_scheduler.StepLR(optimizer, step_size=7, gamma=0.1)
+    scheduler = lr_scheduler.StepLR(optimizer, step_size=3, gamma=0.1)
 
     # Select Loss Function
     criterion = nn.MSELoss()  # Mean square error loss function
