@@ -90,9 +90,34 @@ class Sequence(nn.Module):
     """"
     Our RNN class.
     """
-    def __init__(self, rnn_name, nbinputs, nboutputs):
+    commands_list = ['dt', 'cmd.auto', 'cmd.steering', 'cmd.throttle', 'cmd.brake', 'cmd.reverse'] # Repeat to accept names also without 'cmd.'
+    state_variables_list = ['time', 'pos.x', 'pos.y', 'vel.x', 'vel.y', 'speed', 'accel.x', 'accel.y', 'steering_angle', 'body_angle', 'yaw_rate', 'drift_angle']
+
+    def __init__(self, rnn_name, inputs_list, outputs_list):
         super(Sequence, self).__init__()
-        """Initialization of an RNN instance"""
+        """Initialization of an RNN instance
+        We assume that inputs may be both commands and state variables, whereas outputs are always state variables
+        """
+
+        self.command_inputs = []
+        self.states_inputs = []
+        for rnn_input in inputs_list:
+            if rnn_input in Sequence.commands_list:
+                self.command_inputs.append(rnn_input)
+            elif rnn_input in Sequence.state_variables_list:
+                self.states_inputs.append(rnn_input)
+            else:
+                s = 'A requested input {} to RNN is neither a command nor a state variable of l2race car model'\
+                    .format(rnn_input)
+                raise ValueError(s)
+
+        # Check if requested outputs are fine
+        for rnn_output in outputs_list:
+            if (rnn_output not in Sequence.state_variables_list) and (rnn_output not in Sequence.commands_list):
+                s = 'A requested output {} of RNN is neither a command nor a state variable of l2race car model'\
+                    .format(rnn_output)
+                raise ValueError(s)
+
 
         # Check if GPU is available. If yes device='cuda:0' if not device='cpu'
         self.device = get_device()
@@ -101,12 +126,16 @@ class Sequence(nn.Module):
         # Split the names into "LSTM/GRU", "128H1", "64H2" etc.
         names = rnn_name.split('-')
         layers = ['H1', 'H2', 'H3', 'H4', 'H5']
-        self.h_size = [] # Hidden layers sizes
+        self.h_size = []  # Hidden layers sizes
         for name in names:
             for index, layer in enumerate(layers):
                 if layer in name:
                     # assign the variable with name obtained from list layers.
                     self.h_size.append(int(name[:-2]))
+
+        if not self.h_size:
+            raise ValueError('You have to provide the size of at least one hidden layer in rnn name')
+
         if 'GRU' in names:
             self.rnn_type = 'GRU'
         elif 'LSTM' in names:
@@ -117,20 +146,20 @@ class Sequence(nn.Module):
         # Construct network
 
         if self.rnn_type == 'GRU':
-            self.rnn_cell = [nn.GRUCell(nbinputs, self.h_size[0])]
+            self.rnn_cell = [nn.GRUCell(len(inputs_list), self.h_size[0])]
             for i in range(len(self.h_size)-1):
                 self.rnn_cell.append(nn.GRUCell(self.h_size[i], self.h_size[i+1]))
         elif self.rnn_type == 'LSTM':
-            self.rnn_cell = [nn.LSTMCell(nbinputs, self.h_size[0])]
+            self.rnn_cell = [nn.LSTMCell(len(inputs_list), self.h_size[0])]
             for i in range(len(self.h_size)-1):
                 self.rnn_cell.append(nn.LSTMCell(self.h_size[i], self.h_size[i+1]))
         else:
-            self.rnn_cell = [nn.RNNCell(nbinputs, self.h_size[0])]
+            self.rnn_cell = [nn.RNNCell(len(inputs_list), self.h_size[0])]
             for i in range(len(self.h_size)-1):
                 self.rnn_cell.append(nn.RNNCell(self.h_size[i], self.h_size[i+1]))
 
 
-        self.linear = nn.Linear(self.h_size[-1], nboutputs)  # RNN out
+        self.linear = nn.Linear(self.h_size[-1], len(outputs_list))  # RNN out
 
 
         # Count data samples (=time steps)
@@ -147,17 +176,20 @@ class Sequence(nn.Module):
         self.to(self.device)
 
         print('Constructed a neural network of type {}, with {} hidden layers with sizes {} respectively.'
-              .format(self.rnn_type, len(self.h_size), ', '.join(map(str,self.h_size))))
+              .format(self.rnn_type, len(self.h_size), ', '.join(map(str, self.h_size))))
+        print('The inputs are (in this order):')
+        print('Input state variables: {}'.format(', '.join(map(str, self.states_inputs))))
+        print('Input commands: {}'.format(', '.join(map(str, self.command_inputs))))
+        print('The outputs are (in this order): {}'.format(', '.join(map(str, outputs_list))))
 
 
-    def forward(self, predict_len: int, rnn_input, terminate=False, real_time=False):
+    def forward(self, predict_len: int, rnn_input_commands, terminate=False, real_time=False):
         """
         Predicts future CartPole states IN "CLOSED LOOP"
         (at every time step prediction for the next time step is done based on CartPole state
         resulting from the previous prediction; only control input is provided from the ground truth at every step)
         """
-        # From input to RNN (CartPole state + control input) get control input
-        u_effs = rnn_input[:, :, :-1]
+
         # For number of time steps given in predict_len predict the state of the CartPole
         # At every time step RNN get as its input the ground truth value of control input
         # BUT instead of the ground truth value of CartPole state
@@ -166,9 +198,9 @@ class Sequence(nn.Module):
 
             # Concatenate the previous prediction and current control input to the input to RNN for a new time step
             if real_time:
-                input_t = torch.cat((self.output, u_effs.squeeze(0)), 1)
+                input_t = torch.cat((self.output, rnn_input_commands.squeeze(0)), 1)
             else:
-                input_t = torch.cat((self.output, u_effs[self.sample_counter, :]), 1)
+                input_t = torch.cat((self.output, rnn_input_commands[self.sample_counter, :]), 1)
 
             # Propagate input through RNN layers
 
@@ -221,7 +253,7 @@ class Sequence(nn.Module):
         else:
             starting_input = rnn_input
 
-        # Initialize hidden layers
+        # Initialize hidden layers - this change at every call as the batch size may vary
         for i in range(len(self.h_size)):
             self.h[i] = torch.zeros(starting_input.size(1), self.h_size[i], dtype=torch.float).to(self.device)
             self.c[i] = torch.zeros(starting_input.size(1), self.h_size[i], dtype=torch.float).to(self.device)
@@ -376,24 +408,34 @@ def load_data(filepath, args):
     time = df['time'].to_numpy()
     deltaTime = np.diff(time)
     deltaTime = np.insert(deltaTime, 0, 0)
+    df['dt'] = deltaTime
+
+
+
+
+
 
     # Get Raw Data
-    x = df[args.features_list]
-    u = df[args.commands_list]
-    y = df[args.targets_list]
+    # x = df[args.features_list]
+    # u = df[args.commands_list]
+    # y = df[args.targets_list]
+    inputs = df[args.inputs_list]
+    outputs = df[args.outputs_list]
+    features = np.array(inputs)[:-1]
+    targets = np.array(outputs)[1:]
 
-    # @Nikhil It seems there is slightly different slicing convention for pandas DataFrame - here it was crashing
-    # I don't know how to do it correctly so I convert it to numpy. You are welcome to change it.
-    states = np.array(x)[:-1]
-    control = np.array(u)[:-1]
-    targets = np.array(y)[1:]
-
- 
-    features = np.hstack((np.array(states), np.array(control)))
-    # features = torch.from_numpy(features).float()
-
-    targets = np.array(targets)
-    # targets = torch.from_numpy(targets).float()
+    # # @Nikhil It seems there is slightly different slicing convention for pandas DataFrame - here it was crashing
+    # # I don't know how to do it correctly so I convert it to numpy. You are welcome to change it.
+    # states = np.array(x)[:-1]
+    # control = np.array(u)[:-1]
+    # targets = np.array(y)[1:]
+    #
+    #
+    # features = np.hstack((np.array(states), np.array(control)))
+    # # features = torch.from_numpy(features).float()
+    #
+    # targets = np.array(targets)
+    # # targets = torch.from_numpy(targets).float()
     #TODO : Compare the dimensions of features, and targets(By Nikhil) with that of raw_features, raw_targets(By Marcin)
     #       and transpose accordingly if required
     # Good job Nikhil! I like your approach!

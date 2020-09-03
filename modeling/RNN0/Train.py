@@ -56,7 +56,7 @@ def train_network(load_pretrained):
     # I would like this to be extracted from args.RNN_name
     #@Marcin I implemented the same for 2 layer network. I believe it can be extended to a variable number of layers
     
-    rnn_name = args.RNN_name
+    rnn_name = args.rnn_name
 
 
       
@@ -83,10 +83,8 @@ def train_network(load_pretrained):
     train_generator = data.DataLoader(dataset=train_set, batch_size=batch_size, shuffle=True, num_workers=args.num_workers)
     dev_generator = data.DataLoader(dataset=dev_set, batch_size=512, shuffle=True, num_workers=args.num_workers)
 
-    nbinputs = len(args.features_list) + len(args.commands_list)
-    nboutputs = len(args.targets_list)
     # Create RNN instance
-    net = Sequence(rnn_name=rnn_name, nbinputs=nbinputs, nboutputs=nboutputs)
+    net = Sequence(rnn_name=rnn_name, inputs_list=args.inputs_list, outputs_list=args.outputs_list)
 
     # If a pretrained model exists load the parameters from disc and into RNN instance
     if load_pretrained:
@@ -99,7 +97,7 @@ def train_network(load_pretrained):
             load_pretrained = False
 
     # Print parameter count
-    print_parameter_count(net)
+    # print_parameter_count(net) # Seems not to function well
 
     # Select Optimizer
     optimizer = optim.Adam(net.parameters(), amsgrad=True, lr=lr)

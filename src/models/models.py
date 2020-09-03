@@ -124,6 +124,83 @@ class RNN_0_model(client_car_model):
         h1_size: int = 64
         h2_size: int = 64
         self.dt = 0.0
+        inputs_list = ['dt', 'cmd.throttle', 'cmd.brake', 'speed']
+        outputs_list = ['speed']
+        self.net = Sequence(rnn_name='GRU-64H1-64H1', inputs_list=inputs_list, outputs_list=outputs_list)
+        # If a pretrained model exists load the parameters from disc and into RNN instance
+        # Also evaluate the performance of this pretrained network
+        # by checking its predictions on a randomly generated CartPole experiment
+        savepathPre = './modeling/RNN0/save/' + 'MyNetPre' + '.pt'
+        load_pretrained_rnn(self.net, savepathPre)
+        self.net = self.net.eval()
+
+    def update_state(self, update_enabled:bool, t: float, car_command: car_command, real_car:car, modeled_car: car) -> None:
+        """
+        Take input time, car_state, and car_command and update the car_state.
+
+        :param update_enabled: True to update model, False to clone the car_state.
+        :param t: new time in seconds.
+        :param car_command: car_command.
+        :param real_car: real car with state we are modeling.
+        :param modeled_car: ghost modeled car whose car_state to update.
+        """
+        # This self.time is inherited from car class
+        dt = t-self.time
+        self.time=t
+
+        if dt < 0:
+            logger.warning('nonmonotonic timestep of {:.3f}s, setting dt=0'.format(dt))
+            return
+
+        if update_enabled:
+
+
+            throttle = modeled_car.car_state.command.throttle
+            brake = modeled_car.car_state.command.brake
+            speed = modeled_car.car_state.speed_m_per_sec
+
+            rnn_input = torch.from_numpy(np.array((dt, throttle, brake, speed))).float().unsqueeze(0).unsqueeze(0)
+
+            new_speed = self.net(predict_len=1, rnn_input=rnn_input, real_time=True)
+
+            # new_speed = real_car.car_state.speed_m_per_sec
+            model2real = new_speed/real_car.car_state.speed_m_per_sec
+            new_vel_x = real_car.car_state.velocity_m_per_sec.x * model2real
+            new_vel_y = real_car.car_state.velocity_m_per_sec.y * model2real
+
+            modeled_car.car_state.position_m.x += dt * new_vel_x
+            modeled_car.car_state.position_m.y += + dt * new_vel_y
+
+            modeled_car.car_state.body_angle_deg = real_car.car_state.body_angle_deg
+
+
+        else:
+
+            modeled_car.car_state = copy.copy(real_car.car_state)  # make copy that just copies the fields
+            modeled_car.car_state.command = copy.copy(real_car.car_state.command)  # and our own command
+
+            throttle = modeled_car.car_state.command.throttle
+            brake = modeled_car.car_state.command.brake
+            speed = modeled_car.car_state.speed_m_per_sec
+
+            rnn_input = torch.from_numpy(np.array((dt, throttle, brake, speed))).float().unsqueeze(0).unsqueeze(0)
+
+            self.net.initialize_sequence(rnn_input=rnn_input, warm_up_len=1, stack_output=False, all_input=True)
+
+
+class RNN_0_model_2(client_car_model):
+    """
+    Most basic RNN model predicting only speed based on throttle, break, dt and speed from previous speed
+    """
+
+    def __init__(self, car: car = None) -> None:
+        super().__init__(car)
+        # Load pretraind RNN
+        # Create RNN instance
+        # TODO: Find more flexible way to load various RNN architectures
+        h1_size: int = 64
+        h2_size: int = 64
+        self.dt = 0.0
         self.net = Sequence(h1_size, h2_size)
         # If a pretrained model exists load the parameters from disc and into RNN instance
         # Also evaluate the performance of this pretrained network
