@@ -56,25 +56,8 @@ def train_network(load_pretrained):
     # I would like this to be extracted from args.RNN_name
     #@Marcin I implemented the same for 2 layer network. I believe it can be extended to a variable number of layers
     
-    RNN_name = args.RNN_name
-    #Split the names into "LSTM/GRU", "128H1", "64H2" etc. 
-    names = RNN_name.split('-')
-    layers = ['H1', 'H2']
-    for name in names:
-        for index, layer in enumerate(layers):    
-            if layer in name:
-                #assign the variable with name obtained from list layers. Is there any better way to do this?
-                globals() [layers[index]] = int(name[:-2]) # Remove the "HX" part of RNN_name slice(X=1,2)
-        if 'GRU' in name:
-            rnn_type = 'GRU'
-        elif'LSTM' in name:
-            rnn_type = 'LSTM'
-        
-    rnn_h1_size = H1
-    rnn_h2_size = H2
-    # print(rnn_h1_size)
-    # print(rnn_h2_size)
-    # rnn_type = 'GRU'
+    rnn_name = args.RNN_name
+
 
       
 
@@ -84,7 +67,7 @@ def train_network(load_pretrained):
 
     # Where to save the newly traing RNN.
     # Maybe you should ad some number/data at the end not to overwrite previous  versions
-    savepath = './save/' + RNN_name + '.pt'
+    savepath = './save/' + rnn_name + '.pt'
 
     ########################################################
     # Create Dataset
@@ -103,7 +86,7 @@ def train_network(load_pretrained):
     nbinputs = len(args.features_list) + len(args.commands_list)
     nboutputs = len(args.targets_list)
     # Create RNN instance
-    net = Sequence(rnn_h1_size, rnn_h2_size, nbinputs, nboutputs)
+    net = Sequence(rnn_name=rnn_name, nbinputs=nbinputs, nboutputs=nboutputs)
 
     # If a pretrained model exists load the parameters from disc and into RNN instance
     if load_pretrained:

@@ -11,7 +11,7 @@ import argparse
 
 path_save_model = './save/' + 'MyNet' + '.pt'
 path_pretrained = './save/' + 'MyNetPre' + '.pt'
-RNN_name = 'GRU-64H1-64H2'
+RNN_name = 'LSTM-64H1-64H2'
 
 def args():
     parser = argparse.ArgumentParser(description='Train a GRU network.')
