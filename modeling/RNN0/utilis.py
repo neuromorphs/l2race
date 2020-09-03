@@ -90,24 +90,54 @@ class Sequence(nn.Module):
     """"
     Our RNN class.
     """
-    def __init__(self, h1_size, h2_size, nbinputs, nboutputs):
+    def __init__(self, rnn_name, nbinputs, nboutputs):
         super(Sequence, self).__init__()
         """Initialization of an RNN instance"""
 
-        self.h1_size = h1_size
-        self.h2_size = h2_size
-
         # Check if GPU is available. If yes device='cuda:0' if not device='cpu'
         self.device = get_device()
-        # Initialize RNN layers
-        self.gru1 = nn.GRUCell(nbinputs, h1_size)  # RNN accepts 5 inputs: CartPole state (4) and control input at time t
-        self.gru2 = nn.GRUCell(h1_size, h2_size)
-        self.linear = nn.Linear(h2_size, nboutputs)  # RNN out
+
+        # Get the information about network architecture from the network name
+        # Split the names into "LSTM/GRU", "128H1", "64H2" etc.
+        names = rnn_name.split('-')
+        layers = ['H1', 'H2', 'H3', 'H4', 'H5']
+        self.h_size = [] # Hidden layers sizes
+        for name in names:
+            for index, layer in enumerate(layers):
+                if layer in name:
+                    # assign the variable with name obtained from list layers.
+                    self.h_size.append(int(name[:-2]))
+        if 'GRU' in names:
+            self.rnn_type = 'GRU'
+        elif 'LSTM' in names:
+            self.rnn_type = 'LSTM'
+        else:
+            self.rnn_type = 'RNN-Basic'
+
+        # Construct network
+
+        if self.rnn_type == 'GRU':
+            self.rnn_cell = [nn.GRUCell(nbinputs, self.h_size[0])]
+            for i in range(len(self.h_size)-1):
+                self.rnn_cell.append(nn.GRUCell(self.h_size[i], self.h_size[i+1]))
+        elif self.rnn_type == 'LSTM':
+            self.rnn_cell = [nn.LSTMCell(nbinputs, self.h_size[0])]
+            for i in range(len(self.h_size)-1):
+                self.rnn_cell.append(nn.LSTMCell(self.h_size[i], self.h_size[i+1]))
+        else:
+            self.rnn_cell = [nn.RNNCell(nbinputs, self.h_size[0])]
+            for i in range(len(self.h_size)-1):
+                self.rnn_cell.append(nn.RNNCell(self.h_size[i], self.h_size[i+1]))
+
+
+        self.linear = nn.Linear(self.h_size[-1], nboutputs)  # RNN out
+
+
         # Count data samples (=time steps)
         self.sample_counter = 0
         # Declaration of the variables keeping internal state of GRU hidden layers
-        self.h_t = None
-        self.h_t2 = None
+        self.h = [None]*len(self.h_size)
+        self.c = [None]*len(self.h_size) # Internal state cell - only matters for LSTM
         # Variable keeping the most recent output of RNN
         self.output = None
         # List storing the history of RNN outputs
@@ -115,6 +145,10 @@ class Sequence(nn.Module):
 
         # Send the whole RNN to GPU if available, otherwise send it to CPU
         self.to(self.device)
+
+        print('Constructed a neural network of type {}, with {} hidden layers with sizes {} respectively.'
+              .format(self.rnn_type, len(self.h_size), ', '.join(map(str,self.h_size))))
+
 
     def forward(self, predict_len: int, rnn_input, terminate=False, real_time=False):
         """
@@ -128,18 +162,28 @@ class Sequence(nn.Module):
         # At every time step RNN get as its input the ground truth value of control input
         # BUT instead of the ground truth value of CartPole state
         # it gets the result of the prediction for the last time step
-        for i in range(predict_len):
+        for iteration in range(predict_len):
+
             # Concatenate the previous prediction and current control input to the input to RNN for a new time step
             if real_time:
-                output_np = self.output.detach().numpy()
-                u_effs_np = u_effs.numpy()
                 input_t = torch.cat((self.output, u_effs.squeeze(0)), 1)
             else:
                 input_t = torch.cat((self.output, u_effs[self.sample_counter, :]), 1)
+
             # Propagate input through RNN layers
-            self.h_t = self.gru1(input_t, self.h_t)
-            self.h_t2 = self.gru2(self.h_t, self.h_t2)
-            self.output = self.linear(self.h_t2)
+
+            if self.rnn_type == 'LSTM':
+                self.h[0], self.c[0] = self.rnn_cell[0](input_t, (self.h[0], self.c[0]))
+                for i in range(len(self.h_size) - 1):
+                    self.h[i+1], self.c[i+1] = self.rnn_cell[i+1](self.h[i], (self.h[i+1], self.c[i+1]))
+            else:
+                self.h[0] = self.rnn_cell[0](input_t, self.h[0])
+                for i in range(len(self.h_size) - 1):
+                    self.h[i+1] = self.rnn_cell[i+1](self.h[i], self.h[i + 1])
+
+
+            self.output = self.linear(self.h[-1])
+
             # Append the output to the outputs history list
             self.outputs += [self.output]
             # Count number of samples
@@ -158,8 +202,8 @@ class Sequence(nn.Module):
         Reset the network (not the weights!)
         """
         self.sample_counter = 0
-        self.h_t = None
-        self.h_t2 = None
+        self.h = [None]*len(self.h_size)
+        self.c = [None] * len(self.h_size)
         self.output = None
         self.outputs = []
 
@@ -178,16 +222,26 @@ class Sequence(nn.Module):
             starting_input = rnn_input
 
         # Initialize hidden layers
-        self.h_t = torch.zeros(starting_input.size(1), self.h1_size, dtype=torch.float).to(self.device)
-        self.h_t2 = torch.zeros(starting_input.size(1), self.h2_size, dtype=torch.float).to(self.device)
+        for i in range(len(self.h_size)):
+            self.h[i] = torch.zeros(starting_input.size(1), self.h_size[i], dtype=torch.float).to(self.device)
+            self.c[i] = torch.zeros(starting_input.size(1), self.h_size[i], dtype=torch.float).to(self.device)
 
         # The for loop takes the consecutive time steps from input plugs them into RNN and save the outputs into a list
         # THE NETWORK GETS ALWAYS THE GROUND TRUTH, THE REAL STATE OF THE CARTPOLE, AS ITS INPUT
         # IT PREDICTS THE STATE OF THE CARTPOLE ONE TIME STEP AHEAD BASED ON TRUE STATE NOW
-        for i, input_t in enumerate(starting_input.chunk(starting_input.size(0), dim=0)):
-            self.h_t = self.gru1(input_t.squeeze(0), self.h_t)
-            self.h_t2 = self.gru2(self.h_t, self.h_t2)
-            self.output = self.linear(self.h_t2)
+        for iteration, input_t in enumerate(starting_input.chunk(starting_input.size(0), dim=0)):
+
+            # Propagate input through RNN layers
+            if self.rnn_type == 'LSTM':
+                self.h[0], self.c[0] = self.rnn_cell[0](input_t.squeeze(0), (self.h[0], self.c[0]))
+                for i in range(len(self.h_size) - 1):
+                    self.h[i + 1], self.c[i + 1] = self.rnn_cell[i + 1](self.h[i], (self.h[i + 1], self.c[i + 1]))
+            else:
+                self.h[0] = self.rnn_cell[0](input_t.squeeze(0), self.h[0])
+                for i in range(len(self.h_size) - 1):
+                    self.h[i+1] = self.rnn_cell[i+1](self.h[i], self.h[i + 1])
+            self.output = self.linear(self.h[-1])
+
             self.outputs += [self.output]
             self.sample_counter = self.sample_counter + 1
 
