@@ -2,6 +2,8 @@
 Utilities for RNNs in l2race challenge
 Adapted from : https://github.com/SensorsINI/CartPoleSimulation
 
+Ref. to dev branch for improved version. 
+
 
 Date created : 30th August
 TODO : 
