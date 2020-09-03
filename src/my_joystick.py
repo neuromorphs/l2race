@@ -51,29 +51,31 @@ class my_joystick:
 
         :raises RuntimeWarning if no joystick is found or it is unknown type
         """
-        self.joy:Optional[joystick.Joystick]=None
-        self.car_command:car_command=car_command()
-        self.user_input:user_input = user_input()
-        self.default_car_command=car_command()
-        self.default_user_input=user_input()
-        self.numAxes:Optional[int]=None
-        self.numButtons:Optional[int]=None
-        self.axes=None
-        self.buttons=None
-        self.name:Optional[str]=None
-        self.joystick_number:int=joystick_number
+        self.joy: Optional[joystick.Joystick] = None
+        self.car_command: car_command = car_command()
+        self.user_input: user_input = user_input()
+        self.default_car_command = car_command()
+        self.default_user_input = user_input()
+        self.numAxes: Optional[int] = None
+        self.numButtons: Optional[int] = None
+        self.axes = None
+        self.buttons = None
+        self.name: Optional[str] = None
+        self.joystick_number: int = joystick_number
         self.lastTime = 0
         self.lastActive = 0
-        self.run_user_model_pressed=False # only used to log changes to/from running user model
+        self.run_user_model_pressed = False  # only used to log changes to/from running user model
 
-        self._rev_was_pressed=False # to go to reverse mode or toggle out of it
+        self._rev_was_pressed = False  # to go to reverse mode or toggle out of it
         joystick.init()
         count = joystick.get_count()
-        if count<1:
+        if count < 1:
             raise RuntimeWarning('no joystick(s) found')
 
+        self.platform = platform.system()
+
         self.lastActive=time.time()
-        if platform.system() == 'Linux':
+        if self.platform == 'Linux':
             if self.joystick_number == 0:
                 self.joy = joystick.Joystick(3)  # TODO why? Antonio: Linux list joysticks from 3 to 0 instead of 0 to 3
             else:
@@ -84,9 +86,12 @@ class my_joystick:
         self.numAxes = self.joy.get_numaxes()
         self.numButtons = self.joy.get_numbuttons()
         self.name=self.joy.get_name()
-        if not self.name==my_joystick.XBOX_ONE_BLUETOOTH_JOYSTICK and not self.name==my_joystick.XBOX_ELITE and not self.name==my_joystick.XBOX_WIRED:
+        if not self.name == my_joystick.XBOX_ONE_BLUETOOTH_JOYSTICK \
+                and not self.name == my_joystick.XBOX_ELITE \
+                and not self.name == my_joystick.XBOX_WIRED:
             logger.warning('Name: {}'.format(self.name))
-            logger.warning('unknown joystick type {} found: add code to correctly map inputs by running my_joystick as main'.format(self.name))
+            logger.warning('Unknown joystick type {} found.'
+                           'Add code to correctly map inputs by running my_joystick as main'.format(self.name))
             raise RuntimeWarning('unknown joystick type {} found'.format(self.name))
         logger.debug('joystick named "{}" found with {} axes and {} buttons'.format(self.name, self.numAxes, self.numButtons))
 
@@ -129,31 +134,80 @@ class my_joystick:
 
         self.check_if_connected()
 
-        self.user_input.restart_client=self.joy.get_button(2) # X button
-        self.car_command.reverse = True if self.joy.get_button(1) == 1 else False  # B button
-        if not self.car_command.reverse: # only if not in reverse
-            self.car_command.autodrive_enabled = True if self.joy.get_button(3) == 1 else False # Y button
-        self.user_input.run_client_model = self.joy.get_button(0) # A button
+        if self.name == my_joystick.XBOX_ONE_BLUETOOTH_JOYSTICK and self.platform == 'Darwin':
+            # Buttons A B X Y
+            A = 0  # ghost (client_model)
+            B = 1  # reverse
+            X = 3  # restart game
+            Y = 4  # autodrive
+            # Quit and Restart Client buttons
+            Quit = 16  # quit client
+            Restart_Client = 11  # restart client
+            # Analog Buttons and Axes
+            Steering = 0
+            Throttle = 4
+            Brake = 5
 
-        if self.name==my_joystick.XBOX_ONE_BLUETOOTH_JOYSTICK:
-            self.car_command.steering = self.joy.get_axis(0) #self.axes[0], returns + for right push, which should make steering angle positive, i.e. CW
-            self.car_command.throttle =  (1 + self.joy.get_axis(5)) / 2. # (1+self.axes[5])/2
-            self.car_command.brake =  (1 + self.joy.get_axis(2)) / 2. #(1+self.axes[2])/2
-            self.user_input.restart_car=self.joy.get_button(7) # menu button
-            self.user_input.quit=self.joy.get_button(6) # windows button
-        elif self.name==my_joystick.XBOX_ELITE: # antonio's older joystick? also XBox One when plugged into USB cable on windows
-            self.car_command.steering = self.joy.get_axis(0) #self.axes[0], returns + for right push, which should make steering angle positive, i.e. CW
-            self.car_command.throttle = (1+self.joy.get_axis(5))/2
-            self.car_command.brake = (1+self.joy.get_axis(2))/2
-            self.user_input.restart_car=self.joy.get_button(7) # menu button
-            self.user_input.quit=self.joy.get_button(6) # windows button
+        elif self.name == my_joystick.XBOX_ONE_BLUETOOTH_JOYSTICK:
+            # Buttons A B X Y
+            A = 0  # ghost (client_model)
+            B = 1  # reverse
+            X = 2  # restart game
+            Y = 3  # autodrive
+            # Quit and Restart Client buttons
+            Quit = 6  # quit client
+            Restart_Client = 7  # restart client
+            # Analog Buttons and Axes
+            Steering = 0
+            Throttle = 5
+            Brake = 2
 
-        elif self.name==my_joystick.XBOX_WIRED:
-            self.car_command.steering = self.joy.get_axis(0) #self.axes[0], returns + for right push, which should make steering angle positive, i.e. CW
-            self.car_command.throttle = self.joy.get_button(7) #(1 + self.joy.get_button(7)) / 2.  # (1+self.axes[5])/2
-            self.car_command.brake = self.joy.get_button(6) #(1 + self.joy.get_button(6)) / 2.  # (1+self.axes[2])/2
-            self.user_input.restart_car = self.joy.get_button(9)  # menu button
-            self.user_input.quit = self.joy.get_button(8)  # windows button
+        elif self.name == my_joystick.XBOX_ELITE: # antonio's older joystick? also XBox One when plugged into USB cable on windows
+            # Buttons A B X Y
+            A = 0  # ghost (client_model)
+            B = 1  # reverse
+            X = 2  # restart game
+            Y = 3  # autodrive
+            # Quit and Restart Client buttons
+            Quit = 6  # quit client
+            Restart_Client = 7  # restart client
+            # Analog Buttons and Axes
+            Steering = 0
+            Throttle = 5
+            Brake = 2
+
+        elif self.name == my_joystick.XBOX_WIRED:
+            # Buttons A B X Y
+            A = 0  # ghost (client_model)
+            B = 1  # reverse
+            X = 2  # restart game
+            Y = 3  # autodrive
+            # Quit and Restart Client buttons
+            Quit = 8  # quit client
+            Restart_Client = 9  # restart client
+            # Analog Buttons and Axes
+            Steering = 0
+            Throttle = 7
+            Brake = 6
+
+        # Buttons A B X Y
+        self.user_input.restart_client = self.joy.get_button(X)  # X button - restart
+        self.car_command.reverse = True if self.joy.get_button(B) == 1 else False  # B button - reverse
+        if not self.car_command.reverse:  # only if not in reverse
+            self.car_command.autodrive_enabled = True if self.joy.get_button(Y) == 1 else False  # Y button - autodrive
+        self.user_input.run_client_model = self.joy.get_button(A)  # A button - ghost
+
+        # Quit and Restart Client buttons
+        self.user_input.restart_car = self.joy.get_button(Restart_Client)  # menu button - Restart Client
+        self.user_input.quit = self.joy.get_button(Quit)  # windows button - Quit Client
+
+        # Analog Buttons and Axes
+        self.car_command.steering = self.joy.get_axis(
+            Steering)  # Steering returns + for right push, which should make steering angle positive, i.e. CW
+        self.car_command.throttle = (1 + self.joy.get_axis(Throttle)) / 2.  # Throttle
+        self.car_command.brake = (1 + self.joy.get_axis(Brake)) / 2.  # Brake
+
+
 
         logger.debug(self)
         return self.car_command, self.user_input
@@ -178,37 +232,42 @@ if __name__ == '__main__':
     init()
     atexit.register(deinit)
     pygame.init()
-    joy=my_joystick()
-    new_axes=np.zeros(joy.numAxes,dtype=np.float)
-    old_axes=new_axes.copy()
-    it=0
+    joy = my_joystick()
+    new_axes = np.zeros(joy.numAxes,dtype=np.float)
+    old_axes = new_axes.copy()
+    it = 0
+    print('Name of the current joystick is {}.'.format(joy.name))
+    print('Your platform name is {}'.format(joy.platform))
     while True:
         # joy.read()
         # print("steer={:4.1f} throttle={:4.1f} brake={:4.1f}".format(joy.steering, joy.throttle, joy.brake))
-
-        pygame.event.get() # must call get() to handle internal queue
+        pygame.event.get()  # must call get() to handle internal queue
         for i in range(joy.numAxes):
-            new_axes[i]=joy.joy.get_axis(i) # assemble list of analog values
-        diff=new_axes-old_axes
-        old_axes=new_axes.copy()
-        joy.buttons=list()
+            new_axes[i] = joy.joy.get_axis(i)  # assemble list of analog values
+        diff = new_axes-old_axes
+        old_axes = new_axes.copy()
+        joy.buttons = list()
         for i in range(joy.numButtons):
             joy.buttons.append(joy.joy.get_button(i))
+
         # format output so changed are red
-        axStr='axes: '
+        axStr = 'axes: '
+        axStrIdx = 'axes:'
         for i in range(joy.numAxes):
-            if abs(diff[i])>0.3:
-                axStr=axStr+(Fore.RED+Style.BRIGHT+'{:5.2f} '.format(new_axes[i]))
+            if abs(diff[i]) > 0.3:
+                axStr += (Fore.RED+Style.BRIGHT+'{:5.2f} '.format(new_axes[i])+Fore.RESET+Style.DIM)
+                axStrIdx += '__'+str(i)+'__'
             else:
-                axStr=axStr+(Fore.RESET+Style.DIM+'{:5.2f} '.format(new_axes[i]))
+                axStr += (Fore.RESET+Style.DIM+'{:5.2f} '.format(new_axes[i]))
+                axStrIdx += '______'
 
-        butStr='buttons: '
-        for i in joy.buttons:
-            butStr=butStr+('1' if i else '_')
+        butStr = 'buttons: '
+        for button_index, button_on in enumerate(joy.buttons):
+            butStr = butStr+(str(button_index) if button_on else '_')
 
-
-        print(str(it)+': '+axStr+' '+butStr)
-        it+=1
+        print(str(it) + ': ' + axStr + ' '+butStr)
+        print(str(it) + ': ' + axStrIdx)
+        it += 1
         pygame.time.wait(300)
 
 

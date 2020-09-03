@@ -11,20 +11,20 @@ import argparse
 
 path_save_model = './save/' + 'MyNet' + '.pt'
 path_pretrained = './save/' + 'MyNetPre' + '.pt'
-RNN_name = 'LSTM-64H1-64H2'
+RNN_name = 'GRU-64H1-64H2'
 
 def args():
     parser = argparse.ArgumentParser(description='Train a GRU network.')
 
     # Defining the model
-    parser.add_argument('--RNN_name', default=RNN_name, type=str,
+    parser.add_argument('--rnn_name', default=RNN_name, type=str,
                         help='Name defining the RNN.'
                              'It has to have the form:'
                              '(RNN type [GRU/LSTM])-(size first hidden layer)H1-(size second hidden layer)H2-...'
                              'e.g. GRU-64H1-64H2')
-    parser.add_argument('--inputs_list', nargs="+", default=['dt', 'throttle', 'brake', 'speed'],
+    parser.add_argument('--inputs_list', nargs="+", default=['throttle', 'brake', 'pos.x', 'pos.y', 'vel.x', 'vel.y', 'body_angle', 'cmd.steering'],
                         help='List of inputs to RNN')
-    parser.add_argument('--outputs_list', nargs="+", default=['speed'],
+    parser.add_argument('--outputs_list', nargs="+", default=['pos.x', 'pos.y', 'body_angle'],
                         help='List of outputs from RNN')
 
     parser.add_argument('--warm_up_len',    default=512,         type=int,    help='Number of timesteps for a warm-up sequence')
@@ -52,4 +52,43 @@ def args():
     parser.add_argument('--targets_list', nargs="+", default=['speed'],                               help='List of targets')
 
     my_args = parser.parse_args()
+
+    # Adjust args in place to give user more freedom in his input and check it
+    commands_list = ['dt', 'cmd.auto', 'cmd.steering', 'cmd.throttle', 'cmd.brake', 'cmd.reverse'] # Repeat to accept names also without 'cmd.'
+    state_variables_list = ['time', 'pos.x', 'pos.y', 'vel.x', 'vel.y', 'speed', 'accel.x', 'accel.y', 'steering_angle', 'body_angle', 'yaw_rate', 'drift_angle']
+
+    # If user provided command names without cmd. add it.
+    for index, rnn_input in enumerate(my_args.inputs_list):
+        if rnn_input == 'throttle':
+            my_args.inputs_list[index] = 'cmd.throttle'
+        if rnn_input == 'auto':
+            my_args.inputs_list[index] = 'cmd.auto'
+        if rnn_input == 'steering':
+            my_args.inputs_list[index] = 'cmd.steering'
+        if rnn_input == 'brake':
+            my_args.inputs_list[index] = 'cmd.brake'
+        if rnn_input == 'reverse':
+            my_args.inputs_list[index] = 'cmd.reverse'
+
+    # Make sure that inputs are ordered:
+    # First state variables then commands, otherwise alphabetically
+    states_inputs = []
+    command_inputs = []
+    for rnn_input in my_args.inputs_list:
+        if rnn_input in commands_list:
+            command_inputs.append(rnn_input)
+        elif rnn_input in state_variables_list:
+            states_inputs.append(rnn_input)
+        else:
+            s = 'A requested input {} to RNN is neither a command nor a state variable of l2race car model' \
+                .format(rnn_input)
+            raise ValueError(s)
+    my_args.inputs_list = sorted(states_inputs)+sorted(command_inputs)
+
+
+
+
+
+
+
     return my_args
