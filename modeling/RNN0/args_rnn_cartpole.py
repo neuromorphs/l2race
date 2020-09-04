@@ -9,8 +9,7 @@ Created on Fri Jun 19 08:29:29 2020
 
 import argparse
 
-path_save_model = './save/' + 'MyNet' + '.pt'
-path_pretrained = './save/' + 'MyNetPre' + '.pt'
+path_save = './save/'
 RNN_name = 'GRU-64H1-64H2'
 
 def args():
@@ -22,40 +21,34 @@ def args():
                              'It has to have the form:'
                              '(RNN type [GRU/LSTM])-(size first hidden layer)H1-(size second hidden layer)H2-...'
                              'e.g. GRU-64H1-64H2-32H3')
-    parser.add_argument('--inputs_list', nargs="+", default=['throttle', 'brake', 'pos.x', 'pos.y', 'vel.x', 'vel.y', 'body_angle', 'cmd.steering'],
+    parser.add_argument('--inputs_list', nargs="+", default=['throttle', 'brake', 'cmd.steering', 'pos.x', 'pos.y', 'vel.x', 'vel.y', 'body_angle'],
                         help='List of inputs to RNN')
     parser.add_argument('--outputs_list', nargs="+", default=['pos.x', 'pos.y', 'body_angle'],
                         help='List of outputs from RNN')
+    parser.add_argument('close_loop_for', nargs='?', default=['pos.x', 'pos.y', 'body_angle'],
+                        help='In RNN forward function this features will be fed beck from output to input')
 
     parser.add_argument('--warm_up_len',    default=512,         type=int,    help='Number of timesteps for a warm-up sequence')
     parser.add_argument('--seq_len', default=512+512+1, type=int, help='Number of timesteps in a sequence')
 
     # Training parameters
-    parser.add_argument('--epoch_len',      default=2e4,        type=int,    help='How many sequences are fed in NN during one epoch of training')
-    parser.add_argument('--num_epochs',     default=10,         type=int,    help='Number of epochs of training')
+    parser.add_argument('--epoch_len',      default=2e3,        type=int,    help='How many sequences are fed in NN during one epoch of training')
+    parser.add_argument('--num_epochs',     default=1,         type=int,    help='Number of epochs of training')
     parser.add_argument('--batch_size',     default=128,         type=int,    help='Size of a batch')
     parser.add_argument('--seed', default=1873, type=int, help='Set seed for reproducibility')
     parser.add_argument('--lr', default=1.0e-4, type=float, help='Learning rate')
-    parser.add_argument('--path_save_model', default=path_save_model, type=str,
-                        help='Path where to save currently trained model')
+    parser.add_argument('--path_save', default=path_save, type=str,
+                        help='Path where to save/ from where to load models')
     
     parser.add_argument('--num_workers',    default=1,          type=int,    help='Number of workers to produce data from data loaders')
 
-    parser.add_argument('--path_pretrained',           default=path_pretrained, type=str,    help='Path from where to load a pretrained model')
 
-    # The below lines should be redundant and deleted later
-    # parser.add_argument('--features_list',   nargs="+",  default=['pos.x', 'pos.y','vel.x','vel.y','steering_angle','body_angle','yaw_rate','drift_angle'],    help='List of features')
-    # parser.add_argument('--commands_list', nargs="+", default=['cmd.throttle', 'cmd.steering', 'cmd.brake', 'cmd.reverse'],       help='List of commands')
-    # parser.add_argument('--targets_list', nargs="+", default=['pos.x', 'pos.y','vel.x','vel.y','steering_angle','body_angle','yaw_rate','drift_angle'],       help='List of a targets')
-    parser.add_argument('--features_list',   nargs="+",  default=['time', 'speed'],                   help='List of features')
-    parser.add_argument('--commands_list', nargs="+", default=['cmd.throttle', 'cmd.brake', 'cmd.steering'],          help='List of commands')
-    parser.add_argument('--targets_list', nargs="+", default=['speed'],                               help='List of targets')
 
     my_args = parser.parse_args()
 
     # Adjust args in place to give user more freedom in his input and check it
     commands_list = ['dt', 'cmd.auto', 'cmd.steering', 'cmd.throttle', 'cmd.brake', 'cmd.reverse'] # Repeat to accept names also without 'cmd.'
-    state_variables_list = ['time', 'pos.x', 'pos.y', 'vel.x', 'vel.y', 'speed', 'accel.x', 'accel.y', 'steering_angle', 'body_angle', 'yaw_rate', 'drift_angle']
+    state_variables_list = ['time', 'hit_distance', 'pos.x', 'pos.y', 'vel.x', 'vel.y', 'speed', 'accel.x', 'accel.y', 'steering_angle', 'body_angle', 'yaw_rate', 'drift_angle']
 
     # If user provided command names without cmd. add it.
     for index, rnn_input in enumerate(my_args.inputs_list):
@@ -83,8 +76,13 @@ def args():
             s = 'A requested input {} to RNN is neither a command nor a state variable of l2race car model' \
                 .format(rnn_input)
             raise ValueError(s)
-    my_args.inputs_list = sorted(states_inputs)+sorted(command_inputs)
+    my_args.inputs_list = sorted(command_inputs)+sorted(states_inputs)
 
+    # Check if arguments for feeding in closed loop are correct
+    for rnn_input in my_args.close_loop_for:
+        if (rnn_input not in my_args.inputs_list) or (rnn_input not in my_args.outputs_list):
+            raise ValueError('The variable {} you requested to be fed back from RNN output to its input '
+                             'is missing on the inputs or outputs list'.format(rnn_input))
 
 
 

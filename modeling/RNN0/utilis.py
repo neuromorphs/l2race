@@ -373,6 +373,9 @@ def computeNormalization(dat: np.array):
 
 
 # def load_data(filepath, args, savepath=None, save_normalization_parameters=False):
+import sys
+sys.path.append('../../')
+from src.track import find_hit_position, meters2pixels, pixels2meters
 def load_data(filepath, args):
     '''
     Loads dataset from CSV file
@@ -405,13 +408,35 @@ def load_data(filepath, args):
     df = pd.read_csv(filepath, comment='#')
 
     print('processing data to generate sequences')
+
+    # Calculate time difference between time steps and at it to data frame
     time = df['time'].to_numpy()
     deltaTime = np.diff(time)
     deltaTime = np.insert(deltaTime, 0, 0)
     df['dt'] = deltaTime
 
+    # Calculate distance to the track edge in front of the car and add it to the data frame
+    # Get used car name
+    import re
+    s = str(pd.read_csv(filepath, skiprows=5, nrows=1))
+    track_name = re.search('"(.*)"', s).group(1)
+    media_folder_path = '../../media/tracks/'
+    track_map = np.load(media_folder_path + track_name + '_map.npy', allow_pickle='TRUE')
+    track_map[track_map != 10] = 0
 
+    def calculate_hit_positions(row):
+        x_map = meters2pixels(row['pos.x'])
+        y_map = meters2pixels(row['pos.y'])
+        pos_map = np.array((x_map, y_map))
+        hit_pos = find_hit_position(angle=row['body_angle'], pos=pos_map, track_map=track_map, dl=2.0)
+        if hit_pos is not None:
+            d_map = np.linalg.norm(np.array(hit_pos) - np.array(pos_map))
+        else:
+            d_map = 0
+        d = pixels2meters(d_map)
+        return d
 
+    df['hit_distance'] = df.apply(calculate_hit_positions, axis=1)
 
 
 
