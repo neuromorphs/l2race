@@ -99,22 +99,27 @@ class pure_pursuit_controller_v2(car_controller):
         # Set throttle
         # Calculate distance to the track edge
         car_pos_map = self.car.track.get_position_on_map(car_state=self.car.car_state)
-        hit_pos = self.car.track.find_hit_position(angle=self.car.car_state.body_angle_deg, pos=car_pos_map, dl=2.0)
-        d = np.linalg.norm(np.array(hit_pos) - np.array(car_pos_map))
-        dd = self.d_max-self.d_min
-        if d < self.d_min:
-            self.max_speed = 0
-        elif d > self.d_max:
-            self.max_speed = np.inf
-        else:
-            self.max_speed = MAX_SPEED
 
-        if self.car.car_state.speed_m_per_sec < self.max_speed:
-            self.car_command.throttle = min((d/dd)-(self.d_min/dd), 1.0)
-            self.car_command.brake = 0
+        hit_pos = self.car.track.find_hit_position(angle=self.car.car_state.body_angle_deg, pos=car_pos_map, dl=2.0)
+        if hit_pos is not None:
+            d = np.linalg.norm(np.array(hit_pos) - np.array(car_pos_map))
+            dd = self.d_max-self.d_min
+            if d < self.d_min:
+                self.max_speed = 0
+            elif d > self.d_max:
+                self.max_speed = np.inf
+            else:
+                self.max_speed = MAX_SPEED
+
+            if self.car.car_state.speed_m_per_sec < self.max_speed:
+                self.car_command.throttle = min((d/dd)-(self.d_min/dd), 1.0)
+                self.car_command.brake = 0
+            else:
+                self.car_command.brake = min((-d/dd)+(self.d_max/dd), 1.0)
+                self.car_command.throttle = 0
         else:
-            self.car_command.brake = min((-d/dd)+(self.d_max/dd), 1.0)
             self.car_command.throttle = 0
+            self.car_command.brake = 0
 
         self.car_command.autodrive_enabled = True
         return self.car_command

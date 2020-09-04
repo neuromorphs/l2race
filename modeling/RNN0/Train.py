@@ -52,22 +52,35 @@ def train_network(load_pretrained):
     lr = args.lr  # learning rate
     batch_size = args.batch_size  # Mini-batch size
     num_epochs = args.num_epochs  # Number of epochs to train the network
-
-    # I would like this to be extracted from args.RNN_name
-    #@Marcin I implemented the same for 2 layer network. I believe it can be extended to a variable number of layers
     
     rnn_name = args.rnn_name
+    rnn_full_name = rnn_name[:4] + str(len(args.inputs_list))+'IN-' + rnn_name[4:] + '-'+str(len(args.outputs_list))+'OUT'
+
+    # Create log for this file
+    net_index = 0
+    while True:
+
+        csv_path = args.path_save + rnn_full_name + '-' + str(net_index) + '.csv'
+        name_pretrained_default = rnn_full_name + '-' + str(net_index-1)
+        if os.path.isfile(csv_path):
+            pass
+        else:
+            rnn_full_name += '-' + str(net_index)
+            f = open(csv_path, 'w')
+            f.write('RNN NAME: ' + rnn_name + '\n')
+            f.write('RNN FULL NAME: ' + rnn_full_name + '\n')
+            f.write('INPUTS: ' + ', '.join(map(str, args.inputs_list)) + '\n')
+            f.write('OUTPUTS: ' + ', '.join(map(str, args.outputs_list)) + '\n')
+            f.close()
+            break
+
+        net_index += 1
 
 
-      
 
     # Renaming this to simple file name. TODO: In future needs to be made parsable through arguments
     train_file = '../../data/'+'train.csv'
     val_file = '../../data/'+'test.csv'
-
-    # Where to save the newly traing RNN.
-    # Maybe you should ad some number/data at the end not to overwrite previous  versions
-    savepath = './save/' + rnn_name + '.pt'
 
     ########################################################
     # Create Dataset
@@ -290,7 +303,7 @@ def train_network(load_pretrained):
         if dev_loss <= min_dev_loss:
             epoch_saved = epoch
             min_dev_loss = dev_loss
-            torch.save(net.state_dict(), args.path_save_model)
+            torch.save(net.state_dict(), args.path_save + rnn_full_name + '.pt')
             print('>>> saving best model from epoch {}'.format(epoch))
         else:
             print('>>> We keep model from epoch {}'.format(epoch_saved))
