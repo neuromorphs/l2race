@@ -3,8 +3,12 @@ import pickle
 import numpy as np
 import pandas as pd
 import pysindy as ps
+import copy
 
 from pygame.math import Vector2
+
+from src.car_state import car_state
+from src.car_command import car_command
 
 from random import randrange
 from scipy.interpolate import interp1d
@@ -53,11 +57,11 @@ class Data:
         if len(file_list) == 0:
             raise Exception("Data directory is empty!")
 
-        elif len(file_list) == 1:
+        elif len(file_list) == 1: # TODO generalize single file loading as case of multiple file loading (one item list)
             multiple_trajectories = False
 
             data = pd.read_csv(file_list[0], comment='#')
-            data = data.drop_duplicates('time')
+            data = data.drop_duplicates('time')  # removes "duplicate" timestamps; TODO check if needed
             
             t = data['time'].values
             u = data[COMMANDS].values
@@ -73,7 +77,7 @@ class Data:
             u = []
             for f in file_list:
                 data = pd.read_csv(f, comment='#')
-                data = data.drop_duplicates('time') # removes "duplicate" timestamps 
+                data = data.drop_duplicates('time') # TODO check if needed
 
                 t_single = data['time']
                 u_single = data[COMMANDS]
@@ -95,8 +99,29 @@ class SINDy(ps.SINDy):
     """
     Custom SINDy model
     """
-    def __init__(self, optimizer=None, feature_library=None, differentiation_method=None, feature_names=None, t_default=1, discrete_time=False, n_jobs=1):
-        super().__init__(optimizer, feature_library, differentiation_method, feature_names, t_default, discrete_time, n_jobs)
+    def __init__(self, optimizer=None, feature_library=None, differentiation_method=None, features=None, commands=None, t_default=1, discrete_time=False, n_jobs=1):
+        super().__init__(optimizer, feature_library, differentiation_method, features+commands, t_default, discrete_time, n_jobs)
+        self.features = features
+        self.commands = commands
+
+        self.command_attributes = [x.split('.')[1] for x in self.commands] # maps .csv file command names to car_command class attributes
+
+        # maps .csv file state names to car_state class attributes
+        self.feature_attributes = []
+        all_feature_attributes = ['position_m', 'velocity_m_per_sec','speed_m_per_sec','accel_m_per_sec_2', \
+            'steering_angle_deg', 'body_angle_deg','yaw_rate_deg_per_sec', 'drift_angle_deg']
+
+        if 'pos.x' in features or 'pos.y' in features:
+            self.feature_attributes.append('position_m')
+        if 'vel.x' in features or 'vel.y' in features:
+            self.feature_attributes.append('velocity_m_per_sec')
+        if 'speed' in features:
+            self.feature_attributes.append('speed_m_per_sec')
+        if 'accel.x' in features or 'accel.y' in features:
+            self.feature_attributes.append('accel_m_per_sec_2')
+        
+        self.feature_attributes += [x for x in all_feature_attributes if '_'.join(x.split('_')[:2]) in features]
+
 
     def fit(self, data, calculate_derivatives=True):
         """
@@ -156,7 +181,7 @@ class SINDy(ps.SINDy):
         u_interp = interp1d(test_data.t, test_data.u, axis=0, kind='cubic',fill_value="extrapolate")
         x_predicted = model.simulate(test_data.x[0], test_data.t, u=u_interp)
 
-        fig, axs = plt.subplots(len(FEATURES)+1, 1, figsize=(9, 16))
+        _, axs = plt.subplots(len(FEATURES)+1, 1, figsize=(9, 16))
 
         axs[0].plot(test_data.x[:,0], test_data.x[:,1], 'g+', label='simulation (ground truth)')
         axs[0].plot(x_predicted[:,0], x_predicted[:, 1], 'r+', label='model')
@@ -179,15 +204,26 @@ class SINDy(ps.SINDy):
         with open(Path.cwd().joinpath(path), 'wb') as f:
             pickle.dump(self, f)
 
-    def simulate_step(self, car_state, car_command, t, dt):
-        u = lambda t: np.array([car_command.steering, car_command.throttle]) # u has to be callable in order to work with pysindy in continuous time
-        s0 = np.concatenate([car_state.position_m, [car_state.body_angle_deg]]) # starting state
-        
+    def simulate_step(self, curr_state, curr_command, t, dt):
+        cmds = [getattr(curr_command, x) for x in self.command_attributes] # get values of all used commands
+        u = lambda t: np.array(cmds) # u has to be callable in order to work with pysindy in continuous time
+
+        states  = [getattr(curr_state, x) for x in self.feature_attributes] # get values of all used states    
+        s0 = np.concatenate([s if hasattr(s, '__iter__') else [s] for s in states]) # stitch them into a starting state
+
         sim = super().simulate(s0, [t-dt, t], u)
 
-        new_state = dict()
-        new_state['position_m'] = Vector2(sim[1,0], sim[1,1])
-        new_state['body_angle_deg'] = sim[1,2]
+        new_state = copy.deepcopy(curr_state) # copy state object
+
+        # construct new state
+        i = 0
+        for f in self.feature_attributes: # TODO solve case when feature of just one coordinate is used (e.g., vel.y, but not vel.x) ; do we need this?
+            if f in ['position_m', 'velocity_m_per_sec','accel_m_per_sec_2']:
+                setattr(new_state, f, Vector2(sim[1,i], sim[1,i+1]))
+                i += 2
+            else:
+                setattr(new_state, f, sim[1,i])
+                i += 1
 
         return new_state
 
@@ -201,18 +237,20 @@ if __name__=='__main__':
     train_dir = 'data' # name of directory relative to l2race root folder
     test_dir = 'data_test'
 
-    FEATURES = ['pos.x', 'pos.y', 'body_angle']
-    COMMANDS = ['cmd.throttle', 'cmd.steering']
-    PRECALCULATED_DERIVATIVES = []
+    # respect the feature order from .csv files; in case of position, velocity, acceleration, both coordinates need to be used
+    FEATURES = ['pos.x', 'pos.y', 'vel.y', 'vel.x','body_angle']
+    COMMANDS = ['cmd.throttle', 'cmd.steering','cmd.brake']
+    PRECALCULATED_DERIVATIVES = [] # TODO check use with precalculated derivatives
 
     # usage example
-    optimizer=ps.SR3(threshold=0.01, thresholder='l1', normalize=True, max_iter=1000) # define optimizer
-    feature_lib=ps.PolynomialLibrary(degree=2) # define feature library
+    optimizer=ps.SR3(threshold=0.01, thresholder='l1', normalize=True, max_iter=1000) # TODO test different optimizers
+    feature_lib=ps.PolynomialLibrary(degree=2) # TODO test different feature libs
 
     model = SINDy(
         optimizer,
         feature_library=feature_lib,
-        feature_names=FEATURES+COMMANDS) # define model object
+        features=FEATURES,
+        commands=COMMANDS) # TODO test different differetiation methods
 
     train_data = Data(train_dir)
     model.fit(train_data)
