@@ -11,6 +11,8 @@ import argparse
 
 path_save = './save/'
 RNN_name = 'GRU-64H1-64H2'
+TRAIN_file_name = '../../data/oval_easy_14_rounds.csv'
+VAL_file_name = '../../data/oval_easy_12_rounds.csv'
 
 def args():
     parser = argparse.ArgumentParser(description='Train a GRU network.')
@@ -21,7 +23,13 @@ def args():
                              'It has to have the form:'
                              '(RNN type [GRU/LSTM])-(size first hidden layer)H1-(size second hidden layer)H2-...'
                              'e.g. GRU-64H1-64H2-32H3')
-    parser.add_argument('--inputs_list', nargs="+", default=['throttle', 'brake', 'cmd.steering', 'pos.x', 'pos.y', 'vel.x', 'vel.y', 'body_angle'],
+    parser.add_argument('--train_file_name', default=TRAIN_file_name, type=str,
+                        help='File name of the recording to be used for training the RNN'
+                               'e.g. oval_easy.csv ')
+    parser.add_argument('--val_file_name', default=VAL_file_name, type=str,
+                        help='File name of the recording to be used for validating the RNN'
+                               'e.g. oval_easy_test.csv ')
+    parser.add_argument('--inputs_list', nargs="+", default=['cmd.throttle', 'cmd.brake', 'cmd.steering', 'pos.x', 'pos.y', 'vel.x', 'vel.y', 'body_angle'],
                         help='List of inputs to RNN')
     parser.add_argument('--outputs_list', nargs="+", default=['pos.x', 'pos.y', 'body_angle'],
                         help='List of outputs from RNN')
