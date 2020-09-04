@@ -534,7 +534,7 @@ class track:
         """
         return pixels2meters(x_map=x_map)
 
-    def find_hit_position(self, angle, pos, track_map, dl=1.0):
+    def find_hit_position(self, angle, pos, dl=1.0):
         """
         This function returns the point at which
             a beam coming from point pos at angle given by angle variable
@@ -550,4 +550,5 @@ class track:
          :return the point on the track boundary which the beam first hits ((x,y) in pixels)
                         (e.g. which the car would hit if it would go on a straight line)
         """
+        track_map = self.map_lidar
         return find_hit_position(angle=angle, pos=pos, track_map=track_map, dl=dl)
