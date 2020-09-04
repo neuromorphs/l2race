@@ -76,18 +76,12 @@ def train_network(load_pretrained):
 
         net_index += 1
 
-
-
-    # Renaming this to simple file name. TODO: In future needs to be made parsable through arguments
-    train_file = '../../data/'+'train.csv'
-    val_file = '../../data/'+'test.csv'
-
     ########################################################
     # Create Dataset
     ########################################################
 
-    train_features, train_targets = load_data(train_file, args)
-    dev_features, dev_targets = load_data(val_file, args)
+    train_features, train_targets = load_data(args.train_file_name,args)
+    dev_features, dev_targets = load_data(args.val_file_name,args)
 
     train_set = Dataset(train_features, train_targets, args)
     dev_set = Dataset(dev_features, dev_targets, args)
