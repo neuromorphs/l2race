@@ -21,7 +21,7 @@ def args():
                         help='Name defining the RNN.'
                              'It has to have the form:'
                              '(RNN type [GRU/LSTM])-(size first hidden layer)H1-(size second hidden layer)H2-...'
-                             'e.g. GRU-64H1-64H2')
+                             'e.g. GRU-64H1-64H2-32H3')
     parser.add_argument('--inputs_list', nargs="+", default=['throttle', 'brake', 'pos.x', 'pos.y', 'vel.x', 'vel.y', 'body_angle', 'cmd.steering'],
                         help='List of inputs to RNN')
     parser.add_argument('--outputs_list', nargs="+", default=['pos.x', 'pos.y', 'body_angle'],

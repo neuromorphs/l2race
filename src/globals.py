@@ -21,8 +21,10 @@ UPNP_LEASE_TIME=1200 # the lease time for these ports in seconds
 # AUTODRIVE_MODULE='src.controllers.pid_next_waypoint_car_controller'
 # AUTODRIVE_CLASS='pid_next_waypoint_car_controller'
 # overridden by command line --autodrive
-AUTODRIVE_MODULE='src.controllers.pure_pursuit_controller'
-AUTODRIVE_CLASS = 'pure_pursuit_controller'
+# AUTODRIVE_MODULE='src.controllers.pure_pursuit_controller'
+# AUTODRIVE_CLASS = 'pure_pursuit_controller'
+AUTODRIVE_MODULE='src.controllers.pure_pursuit_controller_v2'
+AUTODRIVE_CLASS = 'pure_pursuit_controller_v2'
 
 # your model class that takes car state and control and predicts the next state given a future time.
 # overridden by command line --model
