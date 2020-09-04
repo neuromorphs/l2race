@@ -93,16 +93,11 @@ class SINDy_model(client_car_model):
                 logger.warning('nonmonotonic timestep of {:.3f}s, setting dt=0'.format(dt))
                 return
 
-            new_state = self.model.simulate_step(modeled_car.car_state, car_command, t, dt)
-
-            modeled_car.car_state.position_m = new_state['position_m']
-            modeled_car.car_state.body_angle_deg = new_state['body_angle_deg']
-            # update other states too
+            new_state = self.model.simulate_step(modeled_car.car_state, real_car.car_state.command, t, dt)
+            modeled_car.car_state = new_state 
         else:
-            modeled_car.car_state = copy.copy(real_car.car_state)  # make copy that just copies the fields
-            modeled_car.car_state.command=copy.copy(real_car.car_state.command) # and our own command
-
-        # logger.info('\nreal car state:  {}\nghost car state: {}'.format(real_car.car_state,modeled_car.car_state))
+            modeled_car.car_state = copy.copy(real_car.car_state)
+            modeled_car.car_state.command=copy.copy(real_car.car_state.command)
 
 
 import torch
