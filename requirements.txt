@@ -11,3 +11,6 @@ cython # cython needs to be compiled using setup.py
 scipy
 upnpy
 pandas
+pysindy
+torch # go to https://pytorch.org/get-started/locally/ for correct pip or conda command generator
+IPython
