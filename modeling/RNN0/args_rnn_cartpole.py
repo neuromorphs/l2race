@@ -10,9 +10,9 @@ Created on Fri Jun 19 08:29:29 2020
 import argparse
 
 path_save = './save/'
-RNN_name = 'GRU-64H1-64H2'
 TRAIN_file_name = '../../data/oval_easy_14_rounds.csv'
 VAL_file_name = '../../data/oval_easy_12_rounds.csv'
+RNN_name = 'GRU-64H1-64H2'
 
 def args():
     parser = argparse.ArgumentParser(description='Train a GRU network.')
@@ -29,19 +29,23 @@ def args():
     parser.add_argument('--val_file_name', default=VAL_file_name, type=str,
                         help='File name of the recording to be used for validating the RNN'
                                'e.g. oval_easy_test.csv ')
-    parser.add_argument('--inputs_list', nargs="+", default=['cmd.throttle', 'cmd.brake', 'cmd.steering', 'pos.x', 'pos.y', 'vel.x', 'vel.y', 'body_angle'],
+    parser.add_argument('--inputs_list', nargs="?", default=['cmd.throttle', 'cmd.brake', 'cmd.steering', 'pos.x', 'pos.y', 'vel.x', 'vel.y', 'body_angle'],
                         help='List of inputs to RNN')
-    parser.add_argument('--outputs_list', nargs="+", default=['pos.x', 'pos.y', 'body_angle'],
+    parser.add_argument('--outputs_list', nargs="?", default=['pos.x', 'pos.y', 'body_angle'],
                         help='List of outputs from RNN')
     parser.add_argument('close_loop_for', nargs='?', default=['pos.x', 'pos.y', 'body_angle'],
                         help='In RNN forward function this features will be fed beck from output to input')
+    parser.add_argument('--load_rnn', nargs='?', default=None, const='last', type=str,
+                        help='Full name defining the RNN which should be loaded without .csv nor .pt extension'
+                             'e.g. GRU-8IN-64H1-64H2-3OUT-1')
+
+
 
     parser.add_argument('--warm_up_len',    default=512,         type=int,    help='Number of timesteps for a warm-up sequence')
     parser.add_argument('--seq_len', default=512+512+1, type=int, help='Number of timesteps in a sequence')
 
     # Training parameters
-    parser.add_argument('--epoch_len',      default=2e3,        type=int,    help='How many sequences are fed in NN during one epoch of training')
-    parser.add_argument('--num_epochs',     default=1,         type=int,    help='Number of epochs of training')
+    parser.add_argument('--num_epochs',     default=20,         type=int,    help='Number of epochs of training')
     parser.add_argument('--batch_size',     default=128,         type=int,    help='Size of a batch')
     parser.add_argument('--seed', default=1873, type=int, help='Set seed for reproducibility')
     parser.add_argument('--lr', default=1.0e-4, type=float, help='Learning rate')
