@@ -41,6 +41,7 @@ class my_joystick:
     XBOX_ONE_BLUETOOTH_JOYSTICK = 'Xbox One S Controller' # XBox One when connected as Bluetooth in Windows
     XBOX_WIRED = 'Xbox 360 Wireless Receiver' #Although in the name the word 'Wireless' appears, the controller is wired
     XBOX_ELITE = 'Xbox One Elite Controller' # XBox One when plugged into USB in Windows
+    PS4_DUALSHOCK4 = 'Sony Interactive Entertainment Wireless Controller' # Only wired connection tested
 
     def __init__(self, joystick_number=JOYSTICK_NUMBER):
         """
@@ -88,7 +89,8 @@ class my_joystick:
         self.name=self.joy.get_name()
         if not self.name == my_joystick.XBOX_ONE_BLUETOOTH_JOYSTICK \
                 and not self.name == my_joystick.XBOX_ELITE \
-                and not self.name == my_joystick.XBOX_WIRED:
+                and not self.name == my_joystick.XBOX_WIRED \
+                and not self.name == my_joystick.PS4_DUALSHOCK4:
             logger.warning('Name: {}'.format(self.name))
             logger.warning('Unknown joystick type {} found.'
                            'Add code to correctly map inputs by running my_joystick as main'.format(self.name))
@@ -190,12 +192,36 @@ class my_joystick:
             Throttle = 7
             Brake = 6
 
-        # Buttons A B X Y
-        self.user_input.restart_client = self.joy.get_button(X)  # X button - restart
-        self.car_command.reverse = True if self.joy.get_button(B) == 1 else False  # B button - reverse
-        if not self.car_command.reverse:  # only if not in reverse
-            self.car_command.autodrive_enabled = True if self.joy.get_button(Y) == 1 else False  # Y button - autodrive
-        self.user_input.run_client_model = self.joy.get_button(A)  # A button - ghost
+        elif self.name == my_joystick.PS4_DUALSHOCK4:
+            # Buttons X O Square Triangle
+            X = 0  # ghost (client_model)
+            O = 1  # reverse
+            Square = 3  # restart game
+            Triangle = 2  # autodrive
+            # Quit and Restart Client buttons
+            Quit = 10
+            Restart_Client = 3
+            # Analog Buttons and Axes
+            Steering = 0
+            Throttle = 5
+            Brake = 2
+            
+            
+        if 'Xbox' in self.name:
+            # Buttons A B X Y
+            self.user_input.restart_client = self.joy.get_button(X)  # X button - restart
+            self.car_command.reverse = True if self.joy.get_button(B) == 1 else False  # B button - reverse
+            if not self.car_command.reverse:  # only if not in reverse
+                self.car_command.autodrive_enabled = True if self.joy.get_button(Y) == 1 else False  # Y button - autodrive
+            self.user_input.run_client_model = self.joy.get_button(A)  # A button - ghost
+
+        elif 'Sony' in self.name:
+            # Buttons X O Square Triangle
+            self.user_input.restart_client = self.joy.get_button(Square)  # Square button - restart
+            self.car_command.reverse = True if self.joy.get_button(O) == 1 else False  # O button - reverse
+            if not self.car_command.reverse:  # only if not in reverse
+                self.car_command.autodrive_enabled = True if self.joy.get_button(Triangle) == 1 else False  # Triangle button - autodrive
+            self.user_input.run_client_model = self.joy.get_button(X)  # X button - ghost
 
         # Quit and Restart Client buttons
         self.user_input.restart_car = self.joy.get_button(Restart_Client)  # menu button - Restart Client
