@@ -76,17 +76,20 @@ class my_joystick:
         self.platform = platform.system()
 
         self.lastActive=time.time()
-        if self.platform == 'Linux':
-            if self.joystick_number == 0:
-                self.joy = joystick.Joystick(3) # TODO why?
-            else:
-                self.joy = joystick.Joystick(4 - self.joystick_number)  # TODO why is this cryptic code needed? What does it do?
-        else:
+        try:
             self.joy = joystick.Joystick(self.joystick_number)
+        except:
+            if self.platform == 'Linux':
+                if self.joystick_number == 0:
+                    self.joy = joystick.Joystick(3)
+                else:
+                    self.joy = joystick.Joystick(4 - self.joystick_number)
+
         self.joy.init()
         self.numAxes = self.joy.get_numaxes()
         self.numButtons = self.joy.get_numbuttons()
         self.name=self.joy.get_name()
+
         if not self.name == my_joystick.XBOX_ONE_BLUETOOTH_JOYSTICK \
                 and not self.name == my_joystick.XBOX_ELITE \
                 and not self.name == my_joystick.XBOX_WIRED \
