@@ -247,17 +247,17 @@ class Sequence(nn.Module):
         # Construct network
 
         if self.rnn_type == 'GRU':
-            self.rnn_cell = [nn.GRUCell(len(inputs_list), self.h_size[0])]
+            self.rnn_cell = [nn.GRUCell(len(inputs_list), self.h_size[0]).to(get_device())]
             for i in range(len(self.h_size)-1):
-                self.rnn_cell.append(nn.GRUCell(self.h_size[i], self.h_size[i+1]))
+                self.rnn_cell.append(nn.GRUCell(self.h_size[i], self.h_size[i+1]).to(get_device()))
         elif self.rnn_type == 'LSTM':
-            self.rnn_cell = [nn.LSTMCell(len(inputs_list), self.h_size[0])]
+            self.rnn_cell = [nn.LSTMCell(len(inputs_list), self.h_size[0]).to(get_device())]
             for i in range(len(self.h_size)-1):
-                self.rnn_cell.append(nn.LSTMCell(self.h_size[i], self.h_size[i+1]))
+                self.rnn_cell.append(nn.LSTMCell(self.h_size[i], self.h_size[i+1]).to(get_device()))
         else:
-            self.rnn_cell = [nn.RNNCell(len(inputs_list), self.h_size[0])]
+            self.rnn_cell = [nn.RNNCell(len(inputs_list), self.h_size[0]).to(get_device())]
             for i in range(len(self.h_size)-1):
-                self.rnn_cell.append(nn.RNNCell(self.h_size[i], self.h_size[i+1]))
+                self.rnn_cell.append(nn.RNNCell(self.h_size[i], self.h_size[i+1]).to(get_device()))
 
 
         self.linear = nn.Linear(self.h_size[-1], len(outputs_list))  # RNN out
