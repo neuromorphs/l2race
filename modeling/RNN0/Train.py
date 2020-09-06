@@ -13,13 +13,14 @@ import torch.optim as optim
 import torch.utils.data.dataloader
 from torch.optim import lr_scheduler
 from tqdm import tqdm
+from torch.utils.tensorboard import SummaryWriter
+import torch.nn as nn
 
 import numpy as np
 
 from memory_profiler import profile
 
 import re
-
 
 # Custom functions
 from utilis import *
@@ -28,6 +29,8 @@ from args_rnn_cartpole import args as my_args
 
 
 # Check if GPU is available. If yes device='cuda:0' if not device='cpu'
+from modeling.RNN0.utilis import initialize_weights_and_biases
+
 device = get_device()
 
 args = my_args()
@@ -54,7 +57,7 @@ def train_network():
     lr = args.lr  # learning rate
     batch_size = args.batch_size  # Mini-batch size
     num_epochs = args.num_epochs  # Number of epochs to train the network
-
+    seq_len = args.seq_len
 
     # Network architecture:
     rnn_name = args.rnn_name
@@ -74,14 +77,15 @@ def train_network():
     # Create Dataset
     ########################################################
 
-    train_features, train_targets = load_data(args.train_file_name,args)
-    dev_features, dev_targets = load_data(args.val_file_name,args)
+    train_features, train_targets = load_data(args.train_file_name, args)
+    dev_features, dev_targets = load_data(args.val_file_name, args)
 
     train_set = Dataset(train_features, train_targets, args)
     dev_set = Dataset(dev_features, dev_targets, args)
 
     # Create PyTorch dataloaders for train and dev set
-    train_generator = data.DataLoader(dataset=train_set, batch_size=batch_size, shuffle=True, num_workers=args.num_workers)
+    train_generator = data.DataLoader(dataset=train_set, batch_size=batch_size, shuffle=True,
+                                      num_workers=args.num_workers)
     dev_generator = data.DataLoader(dataset=dev_set, batch_size=512, shuffle=True, num_workers=args.num_workers)
 
     # Print parameter count
@@ -90,16 +94,18 @@ def train_network():
     # Select Optimizer
     optimizer = optim.Adam(net.parameters(), amsgrad=True, lr=lr)
 
-    #TODO: Verify if scheduler is working. Try tweaking parameters of below scheduler and try cyclic lr scheduler
-    
-    # scheduler = lr_scheduler.CyclicLR(optimizer, base_lr=lr, max_lr=0.1)
+    # TODO: Verify if scheduler is working. Try tweaking parameters of below scheduler and try cyclic lr scheduler
 
-    scheduler = lr_scheduler.StepLR(optimizer, step_size=3, gamma=0.1)
+    # scheduler = lr_scheduler.CyclicLR(optimizer, base_lr=lr, max_lr=0.1)
+    scheduler = lr_scheduler.StepLR(optimizer, step_size=500, gamma=0.01)
 
     # Select Loss Function
     criterion = nn.MSELoss()  # Mean square error loss function
-
-
+    '''
+    Init Tensorboard
+    '''
+    comment = f' batch_size={batch_size} lr={lr} seq_len={seq_len}'
+    tb = SummaryWriter(comment=comment)
     ########################################################
     # Training
     ########################################################
@@ -115,7 +121,6 @@ def train_network():
     dict_history['dev_gain'] = []
     dict_history['test_loss'] = []
     dev_gain = 1
-
 
     # The epoch_saved variable will indicate from which epoch is the last RNN model,
     # which was good enough to be saved
@@ -154,7 +159,6 @@ def train_network():
                                     warm_up_len=args.warm_up_len,
                                     all_input=False,
                                     stack_output=False)
-
             # Reset memory of gradients
             optimizer.zero_grad()
 
@@ -224,6 +228,7 @@ def train_network():
                                           warm_up_len=args.warm_up_len,
                                           all_input=False,
                                           stack_output=True)
+
             # Get loss
             # For evaluation we always calculate loss over the whole maximal prediction period
             # This allow us to compare RNN models from different epochs
@@ -242,7 +247,21 @@ def train_network():
         for param_group in optimizer.param_groups:
             lr_curr = param_group['lr']
 
+        '''
+        Add data for tensorboard
+        TODO : Add network graph and I/O to tensorboard
+        '''
+        # tb.add_graph(net)
+        tb.add_scalar('Train Loss', train_loss / train_batches, epoch)
+        tb.add_scalar('Dev Loss', dev_loss / dev_batches, epoch)
+
+        for name, param in net.named_parameters():
+            tb.add_histogram(name, param, epoch)
+            tb.add_histogram(f'{name}.grad', param.grad, epoch)
+        tb.close()
+
         # Write the summary information about the training for the just completed epoch to a dictionary
+
         dict_history['epoch'].append(epoch)
         dict_history['lr'].append(lr_curr)
         dict_history['train_loss'].append(train_loss.detach().cpu().numpy() / train_batches)
