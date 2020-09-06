@@ -18,6 +18,8 @@ import numpy as np
 
 from memory_profiler import profile
 
+import re
+
 
 # Custom functions
 from utilis import *
@@ -35,7 +37,7 @@ print(args.__dict__)
 # Uncomment the @profile(precision=4) to get the report on memory usage after the training
 # Warning! It may affect performance. I would discourage you to use it for long training tasks
 # @profile(precision=4)
-def train_network(load_pretrained):
+def train_network():
     # Start measuring time - to evaluate performance of the training function
     start = timeit.default_timer()
 
@@ -53,28 +55,27 @@ def train_network(load_pretrained):
     batch_size = args.batch_size  # Mini-batch size
     num_epochs = args.num_epochs  # Number of epochs to train the network
 
-    # I would like this to be extracted from args.RNN_name
-    #@Marcin I implemented the same for 2 layer network. I believe it can be extended to a variable number of layers
-    
+
+    # Network architecture:
     rnn_name = args.rnn_name
+    inputs_list = args.inputs_list
+    outputs_list = args.outputs_list
 
+    load_rnn = args.load_rnn  # If specified this is the name of pretrained RNN which should be loaded
+    path_save = args.path_save
 
-      
+    # Create rnn instance and update lists of input, outputs and its name (if pretraind net loaded)
+    net, rnn_name, inputs_list, outputs_list\
+        = create_rnn_instance(rnn_name, inputs_list, outputs_list, load_rnn, path_save, device)
 
-    # Renaming this to simple file name. TODO: In future needs to be made parsable through arguments
-    train_file = '../../data/'+'train.csv'
-    val_file = '../../data/'+'test.csv'
-
-    # Where to save the newly traing RNN.
-    # Maybe you should ad some number/data at the end not to overwrite previous  versions
-    savepath = './save/' + rnn_name + '.pt'
-
+    # Create log for this RNN and determine its full name
+    rnn_full_name = create_log_file(rnn_name, inputs_list, outputs_list, path_save)
     ########################################################
     # Create Dataset
     ########################################################
 
-    train_features, train_targets = load_data(train_file, args)
-    dev_features, dev_targets = load_data(val_file, args)
+    train_features, train_targets = load_data(args.train_file_name,args)
+    dev_features, dev_targets = load_data(args.val_file_name,args)
 
     train_set = Dataset(train_features, train_targets, args)
     dev_set = Dataset(dev_features, dev_targets, args)
@@ -83,21 +84,8 @@ def train_network(load_pretrained):
     train_generator = data.DataLoader(dataset=train_set, batch_size=batch_size, shuffle=True, num_workers=args.num_workers)
     dev_generator = data.DataLoader(dataset=dev_set, batch_size=512, shuffle=True, num_workers=args.num_workers)
 
-    # Create RNN instance
-    net = Sequence(rnn_name=rnn_name, inputs_list=args.inputs_list, outputs_list=args.outputs_list)
-
-    # If a pretrained model exists load the parameters from disc and into RNN instance
-    if load_pretrained:
-        try:
-            load_pretrained_rnn(net, args.path_pretrained)
-            # Evaluate the performance of this pretrained network
-            # plot_results(net, args)
-        except FileNotFoundError:
-            print('No pretrained model found')
-            load_pretrained = False
-
     # Print parameter count
-    # print_parameter_count(net) # Seems not to function well
+    print_parameter_count(net)  # Seems not to function well
 
     # Select Optimizer
     optimizer = optim.Adam(net.parameters(), amsgrad=True, lr=lr)
@@ -111,9 +99,6 @@ def train_network(load_pretrained):
     # Select Loss Function
     criterion = nn.MSELoss()  # Mean square error loss function
 
-    # Initialize weights and biases - should be only applied if no pretrained net loaded
-    if not load_pretrained:
-        initialize_weights_and_biases(net)
 
     ########################################################
     # Training
@@ -290,7 +275,7 @@ def train_network(load_pretrained):
         if dev_loss <= min_dev_loss:
             epoch_saved = epoch
             min_dev_loss = dev_loss
-            torch.save(net.state_dict(), args.path_save_model)
+            torch.save(net.state_dict(), args.path_save + rnn_full_name + '.pt')
             print('>>> saving best model from epoch {}'.format(epoch))
         else:
             print('>>> We keep model from epoch {}'.format(epoch_saved))
@@ -311,5 +296,5 @@ def train_network(load_pretrained):
 
 
 if __name__ == '__main__':
-    time_to_accomplish = train_network(load_pretrained=False)
+    time_to_accomplish = train_network()
     print('Total time of training the network: ' + str(time_to_accomplish))
