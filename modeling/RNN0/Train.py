@@ -101,7 +101,7 @@ def train_network():
     # TODO: Verify if scheduler is working. Try tweaking parameters of below scheduler and try cyclic lr scheduler
 
     # scheduler = lr_scheduler.CyclicLR(optimizer, base_lr=lr, max_lr=0.1)
-    scheduler = lr_scheduler.StepLR(optimizer, step_size=100, gamma=0.1)
+    scheduler = lr_scheduler.StepLR(optimizer, step_size=200, gamma=0.5)
 
     # Select Loss Function
     criterion = nn.MSELoss()  # Mean square error loss function
@@ -247,7 +247,8 @@ def train_network():
         # Reset the network (internal states of hidden layers and output history not the weights!)
         net.reset()
         # Get current learning rate
-        # TODO: I think now the learning rate do not change during traing, or it is not a right way to get this info.
+        # TODO(Fixed. It does changes now): I think now the learning rate do not change during traing, or it is not a right way to get this info.
+
         for param_group in optimizer.param_groups:
             lr_curr = param_group['lr']
 
@@ -322,8 +323,8 @@ if __name__ == '__main__':
 
     parameters = dict(
         lr=[.1, .01]
-        , batch_size=[100, 200, 300]
-        , seq_len=[512+512+1, 256+256+1, 128+128+1]
+        , batch_size=[100, 200, 300, 400]
+        , seq_len=[512+512+1]
     )
     param_values = [v for v in parameters.values()]
 
