@@ -145,6 +145,7 @@ def create_rnn_instance(rnn_name=None, inputs_list=None, outputs_list=None, load
         outputs_list = lines[10].rstrip("\n").split(sep=', ')
         f.close()
 
+        print('Full name of the loaded RNN is {}'.format(pre_rnn_full_name))
         print('Inputs to the loaded RNN: {}'.format(', '.join(map(str, inputs_list))))
         print('Outputs from the loaded RNN: {}'.format(', '.join(map(str, outputs_list))))
 
