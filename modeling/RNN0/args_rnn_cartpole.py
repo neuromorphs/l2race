@@ -39,7 +39,7 @@ def args():
                         help='Full name defining the RNN which should be loaded without .csv nor .pt extension'
                              'e.g. GRU-8IN-64H1-64H2-3OUT-1')
     parser.add_argument("--extend_df", action='store_true',
-                             help="Extend loaded data with distance to 'hit-point' and positions of 1st, 5th and 20th nearest waypoints")
+                        help="Extend loaded data with distance to 'hit-point' and positions of 1st, 5th and 20th nearest waypoints")
 
 
 
