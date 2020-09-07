@@ -77,6 +77,7 @@ def train_network():
 
     # Create log for this RNN and determine its full name
     rnn_full_name = create_log_file(rnn_name, inputs_list, outputs_list, path_save)
+
     ########################################################
     # Create Dataset
     ########################################################
@@ -153,7 +154,6 @@ def train_network():
             if torch.cuda.is_available():
                 batch = batch.float().cuda().transpose(0, 1)
                 labels = labels.float().cuda()
-
             else:
                 batch = batch.float().transpose(0, 1)
                 labels = labels.float()
@@ -163,12 +163,13 @@ def train_network():
                                     warm_up_len=args.warm_up_len,
                                     all_input=False,
                                     stack_output=False)
+
             # Reset memory of gradients
             optimizer.zero_grad()
 
             # Forward propagation - These are the results from which we calculate the update to RNN weights
             # GRU Input size must be (seq_len, batch, input_size)
-            out = net.initialize_sequence(rnn_input=batch[:args.warm_up_len, :, :],
+            out = net.initialize_sequence(rnn_input=batch[args.warm_up_len:, :, :],
                                           warm_up_len=args.warm_up_len,
                                           all_input=False,
                                           stack_output=True)
