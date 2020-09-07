@@ -17,7 +17,7 @@ from scipy.special import tandg, cotdg, cosdg, sindg
 logger = logging.getLogger(__name__)
 
 
-def list_tracks()->List[str]:
+def list_tracks() -> List[str]:
     """list all available tracks as list(str)
 
     :returns: List of track names
@@ -48,8 +48,7 @@ def list_tracks()->List[str]:
     return tr
 
 
-
-def get_position_on_map(car_state=None, x=None, y=None) -> Optional[Tuple[float,float]]:
+def get_position_on_map(car_state=None, x=None, y=None) -> Optional[Tuple[float, float]]:
     """
     The function converts the physical position (meters) to the position on the map (pixels).
     As the ..._map.npy is a discrete map the position is rounded down to the nearest integer after conversion.
@@ -78,7 +77,7 @@ def pixels2meters(x_map: float):
     :param x_map: value in map units (pixels, not necessarily integer)
     :return x_track: Value converted to physical units (meters)
     """
-    x_track = x_map*M_PER_PIXEL
+    x_track = x_map * M_PER_PIXEL
     return x_track
 
 
@@ -90,7 +89,7 @@ def meters2pixels(x_track: float):
     :param x_track: Value converted to physical units (meters)
     :return x_map: Value in map units (pixels, not necessarily integer!)
     """
-    x_map = x_track/M_PER_PIXEL
+    x_map = x_track / M_PER_PIXEL
     return x_map
 
 
@@ -125,20 +124,20 @@ def get_neighbours(p_ref, ref_array):
         neighbours.append((i - 1, j))
         if j > 0:
             neighbours.append((i - 1, j - 1))
-        if j < (w-1):
+        if j < (w - 1):
             neighbours.append((i - 1, j + 1))
 
-    if i < (h-1):
+    if i < (h - 1):
         neighbours.append((i + 1, j))
         if j > 0:
             neighbours.append((i + 1, j - 1))
-        if j < (w-1):
+        if j < (w - 1):
             neighbours.append((i + 1, j + 1))
 
     if j > 0:
         neighbours.append((i, j - 1))
 
-    if j < (w-1):
+    if j < (w - 1):
         neighbours.append((i, j + 1))
 
     return neighbours
@@ -209,6 +208,14 @@ def find_hit_position(angle, pos, track_map, dl=1.0):
     return hit_pos
 
 
+def calculate_distance(pos_1, pos_2):
+    if pos_1 is not None and pos_2 is not None:
+        d = np.linalg.norm(np.array(pos_1) - np.array(pos_2))
+    else:
+        d = 0
+    return d
+
+
 class track:
     def __init__(self, track_name='track', media_folder_path=TRACKS_FOLDER, waypoints_visible=1):
         """
@@ -221,8 +228,8 @@ class track:
         self.track_image = pygame.image.load(media_folder_path + track_name + '.png')
         self.track_map = np.load(media_folder_path + track_name + '_map.npy', allow_pickle='TRUE')
         self.TrackInfo = np.load(media_folder_path + track_name + '_info.npy', allow_pickle='TRUE').item()
-        self.waypoints_x = self.TrackInfo['waypoint_x']
-        self.waypoints_y = self.TrackInfo['waypoint_y']
+        self.waypoints_x = self.TrackInfo['waypoint_x']  # Waypoint x coordinates in pixels
+        self.waypoints_y = self.TrackInfo['waypoint_y']  # Waypoint y coordinates in pixels
         self.num_waypoints = len(self.waypoints_x)
 
         self.angle_next_segment_east = self.TrackInfo['AngleNextSegmentEast']
@@ -235,29 +242,27 @@ class track:
             self.waypoints_search_radius = 80
             dy = 70
 
-        self.starting_line_rect = pygame.Rect(self.waypoints_x[0], self.waypoints_y[0]-dy, 100, 2*dy)
+        self.starting_line_rect = pygame.Rect(self.waypoints_x[0], self.waypoints_y[0] - dy, 100, 2 * dy)
         # This is a pygame rectangle to automatically check if you passed the starting line
         # take for it +/-dy = 52 in map units
-        self.anti_cheat_rect = pygame.Rect(self.waypoints_x[self.num_waypoints//2], self.waypoints_y[self.num_waypoints//2]-60, 120, 120)
+        self.anti_cheat_rect = pygame.Rect(self.waypoints_x[self.num_waypoints // 2],
+                                           self.waypoints_y[self.num_waypoints // 2] - 60, 120, 120)
 
         self.start_angle = self.angle_next_segment_east[0]
-        if self.waypoints_y[0] > max(self.waypoints_y)/2:  # Remember y points down, Here I am down
-            self.start_position_1 = np.array((self.waypoints_x[0], self.waypoints_y[0]+20))  # out
-            self.start_position_2 = np.array((self.waypoints_x[0]+40, self.waypoints_y[0]-20))    # in
+        if self.waypoints_y[0] > max(self.waypoints_y) / 2:  # Remember y points down, Here I am down
+            self.start_position_1 = np.array((self.waypoints_x[0], self.waypoints_y[0] + 20))  # out
+            self.start_position_2 = np.array((self.waypoints_x[0] + 40, self.waypoints_y[0] - 20))  # in
         else:  # Here I am up
-            self.start_position_1 = np.array((self.waypoints_x[0], self.waypoints_y[0]-20))  # out
-            self.start_position_2 = np.array((self.waypoints_x[0]-40, self.waypoints_y[0]+20))  # in
+            self.start_position_1 = np.array((self.waypoints_x[0], self.waypoints_y[0] - 20))  # out
+            self.start_position_2 = np.array((self.waypoints_x[0] - 40, self.waypoints_y[0] + 20))  # in
 
         # The following part plots waypoints on the track
         self.surface_waypoints = None
         if waypoints_visible is not None:
             self.create_waypoints_surface(waypoints_visible)
 
-
         self.map_lidar = np.copy(self.track_map)
         self.map_lidar[self.map_lidar != 10] = 0
-
-
 
     def create_waypoints_surface(self, waypoints_visible):
         """
@@ -271,12 +276,12 @@ class track:
         map_waypoints[map_waypoints != 40] = 0
         map_waypoints[map_waypoints == 40] = 1
         # Make waypoints bigger to make them better visible
-        for i in range(waypoints_visible): # waypoints visible defines the magnification of the waypoints
+        for i in range(waypoints_visible):  # waypoints visible defines the magnification of the waypoints
             for p_ref in np.argwhere(map_waypoints == 1).tolist():
                 neighbours = get_neighbours(p_ref, map_waypoints)
                 for p in neighbours:
                     map_waypoints[p] = 1
-        map_waypoints = np.stack((255*map_waypoints, 0*map_waypoints, 0*map_waypoints, ), axis=2)
+        map_waypoints = np.stack((255 * map_waypoints, 0 * map_waypoints, 0 * map_waypoints,), axis=2)
         self.surface_waypoints = pygame.surfarray.make_surface(map_waypoints.transpose((1, 0, 2)))
         BLACK = (0, 0, 0)
         self.surface_waypoints.set_colorkey(BLACK)  # Black colors will not be blit.
@@ -291,7 +296,6 @@ class track:
         surface.blit(self.track_image, (0, 0))
         if self.surface_waypoints is not None:
             surface.blit(self.surface_waypoints, (0, 0))
-
 
     def get_surface_type(self, car_state=None, x=None, y=None):
         """
@@ -341,7 +345,6 @@ class track:
 
         if len(waypoints_idx_considered) == 0:
             waypoints_idx_considered = range(len(self.waypoints_x))
-
 
         idx = closest_node(x=x_map,
                            y=y_map,
@@ -426,7 +429,6 @@ class track:
         :return: Signed distance from the nearest segment
         """
 
-
         x_map, y_map = get_position_on_map(car_state=car_state, x=x_car, y=y_car)
 
         if nearest_waypoint_idx is None:
@@ -447,8 +449,8 @@ class track:
 
         d = d * M_PER_PIXEL
 
-        v1 = (p_car-p1)/np.linalg.norm(p_car-p1)
-        v2 = (p2-p1)/np.linalg.norm(p2-p1)
+        v1 = (p_car - p1) / np.linalg.norm(p_car - p1)
+        v2 = (p2 - p1) / np.linalg.norm(p2 - p1)
 
         if v1[0] * v2[1] - v1[1] * v2[0] > 0:
             d = -d
@@ -482,19 +484,21 @@ class track:
                 car_model.car_state.time_results.append(current_time_car)
                 if car_model.round_num == 0:
                     s = 'Start! '
-                    logger.info('Car crossed start line and is starting lap at {}s ***************************************************'.format(car_model.time))
+                    logger.info(
+                        'Car crossed start line and is starting lap at {}s ***************************************************'.format(
+                            car_model.time))
                 elif car_model.round_num == 1:
                     s0 = 'Car completed lap number {} at {}'.format(str(car_model.round_num), car_model.time)
                     logger.info(s0)
-                    s1 = 'Your time in the last lap was  {:.2f}s'\
-                        .format(current_time_car-car_model.car_state.time_results[car_model.round_num-1])
+                    s1 = 'Your time in the last lap was  {:.2f}s' \
+                        .format(current_time_car - car_model.car_state.time_results[car_model.round_num - 1])
                     logger.info(s1)
                     s = s0 + '\n' + s1
                 else:
                     s0 = 'Car completed lap number {} at {}'.format(str(car_model.round_num), car_model.time)
                     logger.info(s0)
-                    s1 = 'Your time in the last lap was  {:.2f}s'\
-                        .format(current_time_car-car_model.car_state.time_results[car_model.round_num-1])
+                    s1 = 'Your time in the last lap was  {:.2f}s' \
+                        .format(current_time_car - car_model.car_state.time_results[car_model.round_num - 1])
                     logger.info(s1)
                     s = s0 + '\n' + s1
                 car_model.round_num += 1
@@ -552,3 +556,24 @@ class track:
         """
         track_map = self.map_lidar
         return find_hit_position(angle=angle, pos=pos, track_map=track_map, dl=dl)
+
+    def get_hit_distance(self, angle=None, x_car=None, y_car=None, car_state=None, dl=1.0):
+        """
+        The functions calculate the distance (in meters) to the point at which the object starting at position x_car, y_car
+        and moving in the direction given by angle would hit the track boundary.
+        :param angle: angle at which the object is moving from starting point (in degrees)
+        :param car_state: If angle or starting position not given, they can be extracted from car_state
+        :param x_car: x coordinate of the starting position (in meters)
+        :param y_car: y coordinate of the starting position (in meters)
+        :param dl: Precision with which the "hit-point" should be determined (in pixels)
+        :return: distance to the "hit-point" in meters
+        """
+        x_map, y_map = get_position_on_map(car_state=car_state, x=x_car, y=y_car)
+        pos_map = (x_map, y_map)
+        track_map = self.map_lidar
+        if angle is None:
+            angle = car_state.body_angle_deg
+        hit_pos = find_hit_position(angle=angle, pos=pos_map, track_map=track_map, dl=dl)
+        d_map = calculate_distance(pos_map, hit_pos)
+        d = pixels2meters(d_map)
+        return d
