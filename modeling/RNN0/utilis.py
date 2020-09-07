@@ -99,15 +99,19 @@ def create_rnn_instance(rnn_name=None, inputs_list=None, outputs_list=None, load
 
         filename = load_rnn
         print('Loading a pretrained RNN with the full name: {}'.format(filename))
-        txt_filename = filename+'.txt'
-        pt_filename = filename+'.pt'
+        txt_filename = filename + '.txt'
+        pt_filename = filename + '.pt'
         txt_path = path_save + txt_filename
         pt_path = path_save + pt_filename
 
         if not os.path.isfile(txt_path):
-            raise ValueError('The corresponding .txt file is missing (information about inputs and outputs) at the location {}'.format(txt_path))
+            raise ValueError(
+                'The corresponding .txt file is missing (information about inputs and outputs) at the location {}'.format(
+                    txt_path))
         if not os.path.isfile(pt_path):
-            raise ValueError('The corresponding .pt file is missing (information about weights and biases) at the location {}'.format(pt_path))
+            raise ValueError(
+                'The corresponding .pt file is missing (information about weights and biases) at the location {}'.format(
+                    pt_path))
 
         f = open(txt_path, 'r')
         lines = f.readlines()
@@ -149,7 +153,9 @@ def create_rnn_instance(rnn_name=None, inputs_list=None, outputs_list=None, load
 
         pt_path = path_save + pre_rnn_full_name + '.pt'
         if not os.path.isfile(pt_path):
-            raise ValueError('The corresponding .pt file is missing (information about weights and biases) at the location {}'.format(pt_path))
+            raise ValueError(
+                'The corresponding .pt file is missing (information about weights and biases) at the location {}'.format(
+                    pt_path))
 
         # Load the parameters
         load_pretrained_rnn(net, pt_path, device)
@@ -165,7 +171,7 @@ def create_rnn_instance(rnn_name=None, inputs_list=None, outputs_list=None, load
 
 
 def create_log_file(rnn_name, inputs_list, outputs_list, path_save):
-    rnn_full_name = rnn_name[:4] + str(len(inputs_list))+'IN-' + rnn_name[4:] + '-'+str(len(outputs_list))+'OUT'
+    rnn_full_name = rnn_name[:4] + str(len(inputs_list)) + 'IN-' + rnn_name[4:] + '-' + str(len(outputs_list)) + 'OUT'
 
     net_index = 0
     while True:
@@ -191,8 +197,10 @@ class Sequence(nn.Module):
     """"
     Our RNN class.
     """
-    commands_list = ['dt', 'cmd.auto', 'cmd.steering', 'cmd.throttle', 'cmd.brake', 'cmd.reverse'] # Repeat to accept names also without 'cmd.'
-    state_variables_list = ['time', 'pos.x', 'pos.y', 'vel.x', 'vel.y', 'speed', 'accel.x', 'accel.y', 'steering_angle', 'body_angle', 'yaw_rate', 'drift_angle']
+    commands_list = ['dt', 'cmd.auto', 'cmd.steering', 'cmd.throttle', 'cmd.brake',
+                     'cmd.reverse']  # Repeat to accept names also without 'cmd.'
+    state_variables_list = ['time', 'pos.x', 'pos.y', 'vel.x', 'vel.y', 'speed', 'accel.x', 'accel.y', 'steering_angle',
+                            'body_angle', 'yaw_rate', 'drift_angle']
 
     def __init__(self, rnn_name, inputs_list, outputs_list):
         super(Sequence, self).__init__()
@@ -208,17 +216,16 @@ class Sequence(nn.Module):
             elif rnn_input in Sequence.state_variables_list:
                 self.states_inputs.append(rnn_input)
             else:
-                s = 'A requested input {} to RNN is neither a command nor a state variable of l2race car model'\
+                s = 'A requested input {} to RNN is neither a command nor a state variable of l2race car model' \
                     .format(rnn_input)
                 raise ValueError(s)
 
         # Check if requested outputs are fine
         for rnn_output in outputs_list:
             if (rnn_output not in Sequence.state_variables_list) and (rnn_output not in Sequence.commands_list):
-                s = 'A requested output {} of RNN is neither a command nor a state variable of l2race car model'\
+                s = 'A requested output {} of RNN is neither a command nor a state variable of l2race car model' \
                     .format(rnn_output)
                 raise ValueError(s)
-
 
         # Check if GPU is available. If yes device='cuda:0' if not device='cpu'
         self.device = get_device()
@@ -248,17 +255,16 @@ class Sequence(nn.Module):
 
         if self.rnn_type == 'GRU':
             self.rnn_cell = [nn.GRUCell(len(inputs_list), self.h_size[0]).to(get_device())]
-            for i in range(len(self.h_size)-1):
-                self.rnn_cell.append(nn.GRUCell(self.h_size[i], self.h_size[i+1]).to(get_device()))
+            for i in range(len(self.h_size) - 1):
+                self.rnn_cell.append(nn.GRUCell(self.h_size[i], self.h_size[i + 1]).to(get_device()))
         elif self.rnn_type == 'LSTM':
             self.rnn_cell = [nn.LSTMCell(len(inputs_list), self.h_size[0]).to(get_device())]
-            for i in range(len(self.h_size)-1):
-                self.rnn_cell.append(nn.LSTMCell(self.h_size[i], self.h_size[i+1]).to(get_device()))
+            for i in range(len(self.h_size) - 1):
+                self.rnn_cell.append(nn.LSTMCell(self.h_size[i], self.h_size[i + 1]).to(get_device()))
         else:
             self.rnn_cell = [nn.RNNCell(len(inputs_list), self.h_size[0]).to(get_device())]
-            for i in range(len(self.h_size)-1):
-                self.rnn_cell.append(nn.RNNCell(self.h_size[i], self.h_size[i+1]).to(get_device()))
-
+            for i in range(len(self.h_size) - 1):
+                self.rnn_cell.append(nn.RNNCell(self.h_size[i], self.h_size[i + 1]).to(get_device()))
 
         self.linear = nn.Linear(self.h_size[-1], len(outputs_list))  # RNN out
 
@@ -267,12 +273,11 @@ class Sequence(nn.Module):
             self.layers.append(cell)
         self.layers.append(self.linear)
 
-
         # Count data samples (=time steps)
         self.sample_counter = 0
         # Declaration of the variables keeping internal state of GRU hidden layers
-        self.h = [None]*len(self.h_size)
-        self.c = [None]*len(self.h_size)  # Internal state cell - only matters for LSTM
+        self.h = [None] * len(self.h_size)
+        self.c = [None] * len(self.h_size)  # Internal state cell - only matters for LSTM
         # Variable keeping the most recent output of RNN
         self.output = None
         # List storing the history of RNN outputs
@@ -287,7 +292,6 @@ class Sequence(nn.Module):
         print('Input state variables: {}'.format(', '.join(map(str, self.states_inputs))))
         print('Input commands: {}'.format(', '.join(map(str, self.command_inputs))))
         print('The outputs are (in this order): {}'.format(', '.join(map(str, outputs_list))))
-
 
     def forward(self, predict_len: int, rnn_input_commands, terminate=False, real_time=False):
         """
@@ -313,12 +317,11 @@ class Sequence(nn.Module):
             if self.rnn_type == 'LSTM':
                 self.h[0], self.c[0] = self.layers[0](input_t, (self.h[0], self.c[0]))
                 for i in range(len(self.h_size) - 1):
-                    self.h[i+1], self.c[i+1] = self.layers[i+1](self.h[i], (self.h[i+1], self.c[i+1]))
+                    self.h[i + 1], self.c[i + 1] = self.layers[i + 1](self.h[i], (self.h[i + 1], self.c[i + 1]))
             else:
                 self.h[0] = self.layers[0](input_t, self.h[0])
                 for i in range(len(self.h_size) - 1):
-                    self.h[i+1] = self.layers[i+1](self.h[i], self.h[i + 1])
-
+                    self.h[i + 1] = self.layers[i + 1](self.h[i], self.h[i + 1])
 
             self.output = self.layers[-1](self.h[-1])
 
@@ -340,7 +343,7 @@ class Sequence(nn.Module):
         Reset the network (not the weights!)
         """
         self.sample_counter = 0
-        self.h = [None]*len(self.h_size)
+        self.h = [None] * len(self.h_size)
         self.c = [None] * len(self.h_size)
         self.output = None
         self.outputs = []
@@ -377,7 +380,7 @@ class Sequence(nn.Module):
             else:
                 self.h[0] = self.layers[0](input_t.squeeze(0), self.h[0])
                 for i in range(len(self.h_size) - 1):
-                    self.h[i+1] = self.layers[i+1](self.h[i], self.h[i + 1])
+                    self.h[i + 1] = self.layers[i + 1](self.h[i], self.h[i + 1])
             self.output = self.layers[-1](self.h[-1])
 
             self.outputs += [self.output]
@@ -401,9 +404,9 @@ def norm(x):
 
 
 class Dataset(data.Dataset):
-    def __init__(self, data, labels, args):
+    def __init__(self, df, labels, args):
         'Initialization'
-        self.data = data
+        self.data = df
         self.labels = labels
         self.args = args
 
@@ -411,14 +414,12 @@ class Dataset(data.Dataset):
         self.seq_len = args.seq_len  # Sequence length
 
     def __len__(self):
-
         'Total number of samples'
 
         # speed optimized, you only have to get sequencies
         return self.data.shape[0] - self.seq_len
 
     def __getitem__(self, idx):
-
         return self.data[idx:idx + self.seq_len, :], self.labels[idx:idx + self.seq_len]
 
 
@@ -439,23 +440,24 @@ def unnormalize(dat, mean, std):
     dat = dat * std + mean
     return dat
 
+
 def save_normalization(save_path, tr_mean, tr_std, lab_mean, lab_std):
     fn_base = os.path.splitext(save_path)[0]
-    print("\nSaving normalization parameters to " + str(fn_base)+'-XX.pt')
+    print("\nSaving normalization parameters to " + str(fn_base) + '-XX.pt')
     norm = {
-            'tr_mean': tr_mean,
-            'tr_std': tr_std,
-            'lab_mean': lab_mean,
-            'lab_std': lab_std,
-        }
-    torch.save(norm, str(fn_base+'-norm.pt'))
+        'tr_mean': tr_mean,
+        'tr_std': tr_std,
+        'lab_mean': lab_mean,
+        'lab_std': lab_std,
+    }
+    torch.save(norm, str(fn_base + '-norm.pt'))
+
 
 def load_normalization(save_path):
     fn_base = os.path.splitext(save_path)[0]
     print("\nLoading normalization parameters from ", str(fn_base))
-    norm = torch.load(fn_base+'-norm.pt')
+    norm = torch.load(fn_base + '-norm.pt')
     return norm['tr_mean'], norm['tr_std'], norm['lab_mean'], norm['lab_std']
-
 
 
 def computeNormalization(dat: np.array):
@@ -480,8 +482,11 @@ def computeNormalization(dat: np.array):
 
 # def load_data(filepath, args, savepath=None, save_normalization_parameters=False):
 import sys
+
 sys.path.append('../../')
-from src.track import find_hit_position, meters2pixels, pixels2meters
+from src.track import find_hit_position, meters2pixels, pixels2meters, track
+
+
 def load_data(filepath, args):
     '''
     Loads dataset from CSV file
@@ -521,30 +526,39 @@ def load_data(filepath, args):
     deltaTime = np.insert(deltaTime, 0, 0)
     df['dt'] = deltaTime
 
-    # Calculate distance to the track edge in front of the car and add it to the data frame
-    # Get used car name
-    import re
-    s = str(pd.read_csv(filepath, skiprows=5, nrows=1))
-    track_name = re.search('"(.*)"', s).group(1)
-    media_folder_path = '../../media/tracks/'
-    track_map = np.load(media_folder_path + track_name + '_map.npy', allow_pickle='TRUE')
-    track_map[track_map != 10] = 0
+    if args.extend_df:
+        # Calculate distance to the track edge in front of the car and add it to the data frame
+        # Get used car name
+        import re
+        s = str(pd.read_csv(filepath, skiprows=5, nrows=1))
+        track_name = re.search('"(.*)"', s).group(1)
+        media_folder_path = '../../media/tracks/'
+        my_track = track(track_name=track_name, media_folder_path=media_folder_path)
 
-    def calculate_hit_positions(row):
-        x_map = meters2pixels(row['pos.x'])
-        y_map = meters2pixels(row['pos.y'])
-        pos_map = np.array((x_map, y_map))
-        hit_pos = find_hit_position(angle=row['body_angle'], pos=pos_map, track_map=track_map, dl=2.0)
-        if hit_pos is not None:
-            d_map = np.linalg.norm(np.array(hit_pos) - np.array(pos_map))
-        else:
-            d_map = 0
-        d = pixels2meters(d_map)
-        return d
+        def calculate_hit_distance(row):
+            return my_track.get_hit_distance(angle=row['body_angle'], x_car=row['pos.x'], y_car=row['pos.y'])
 
-    df['hit_distance'] = df.apply(calculate_hit_positions, axis=1)
+        df['hit_distance'] = df.apply(calculate_hit_distance, axis=1)
 
+        def nearest_waypoint_idx(row):
+            return my_track.get_nearest_waypoint_idx(x=row['pos.x'], y=row['pos.y'])
 
+        df['nearest_waypoint_idx'] = df.apply(nearest_waypoint_idx, axis=1)
+
+        max_idx = max(df['nearest_waypoint_idx'])
+
+        def get_nth_next_waypoint_x(row, n: int):
+            return pixels2meters(my_track.waypoints_x[int(row['nearest_waypoint_idx'] + n) % max_idx])
+
+        def get_nth_next_waypoint_y(row, n: int):
+            return pixels2meters(my_track.waypoints_y[int(row['nearest_waypoint_idx'] + n) % max_idx])
+
+        df['first_next_waypoint.x'] = df.apply(get_nth_next_waypoint_x, axis=1, args=(1,))
+        df['first_next_waypoint.y'] = df.apply(get_nth_next_waypoint_y, axis=1, args=(1,))
+        df['fifth_next_waypoint.x'] = df.apply(get_nth_next_waypoint_x, axis=1, args=(5,))
+        df['fifth_next_waypoint.y'] = df.apply(get_nth_next_waypoint_y, axis=1, args=(5,))
+        df['twentieth_next_waypoint.x'] = df.apply(get_nth_next_waypoint_x, axis=1, args=(20,))
+        df['twentieth_next_waypoint.y'] = df.apply(get_nth_next_waypoint_y, axis=1, args=(20,))
 
     # Get Raw Data
     # x = df[args.features_list]
@@ -567,7 +581,7 @@ def load_data(filepath, args):
     #
     # targets = np.array(targets)
     # # targets = torch.from_numpy(targets).float()
-    #TODO : Compare the dimensions of features, and targets(By Nikhil) with that of raw_features, raw_targets(By Marcin)
+    # TODO : Compare the dimensions of features, and targets(By Nikhil) with that of raw_features, raw_targets(By Marcin)
     #       and transpose accordingly if required
     # Good job Nikhil! I like your approach!
 
@@ -591,7 +605,6 @@ def load_data(filepath, args):
     # Version with normlaization
     # return features, targets, mean_features, std_features, mean_targets, std_targets
     return features, targets
-
 
 # def plot_results(net, args, val_savepathfile):
 #     """
