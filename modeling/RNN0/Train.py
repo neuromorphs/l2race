@@ -175,8 +175,8 @@ def train_network():
                                           stack_output=True)
 
             # Get loss
-            loss = criterion(out[:, args.warm_up_len: 2 * args.warm_up_len],
-                             labels[:, args.warm_up_len: 2 * args.warm_up_len])
+            loss = criterion(out[:, args.warm_up_len: args.seq_len-1],
+                             labels[:, args.warm_up_len: args.seq_len-1])
 
             # Backward propagation
             loss.backward()
@@ -237,8 +237,8 @@ def train_network():
             # Get loss
             # For evaluation we always calculate loss over the whole maximal prediction period
             # This allow us to compare RNN models from different epochs
-            loss = criterion(out[:, args.warm_up_len: 2 * args.warm_up_len],
-                             labels[:, args.warm_up_len: 2 * args.warm_up_len])
+            loss = criterion(out[:, args.warm_up_len: args.seq_len-1],
+                             labels[:, args.warm_up_len: args.seq_len-1])
 
             # Update variables for loss calculation
             batch_loss = loss.detach()
@@ -270,8 +270,8 @@ def train_network():
 
         dict_history['epoch'].append(epoch)
         dict_history['lr'].append(lr_curr)
-        dict_history['train_loss'].append(train_loss.detach().cpu().numpy() / train_batches)
-        dict_history['dev_loss'].append(dev_loss.detach().cpu().numpy() / dev_batches)
+        dict_history['train_loss'].append(train_loss.detach().cpu().numpy() / train_batches/(args.seq_len-args.warm_up_len-1))
+        dict_history['dev_loss'].append(dev_loss.detach().cpu().numpy() / dev_batches/(args.seq_len-args.warm_up_len-1))
 
         # Get relative loss gain for network evaluation
         if epoch >= 1:
