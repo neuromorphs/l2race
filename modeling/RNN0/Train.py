@@ -15,9 +15,13 @@ from torch.optim import lr_scheduler
 from tqdm import tqdm
 from torch.utils.tensorboard import SummaryWriter
 import torch.nn as nn
-
+from itertools import product
 import numpy as np
-
+from ax.plot.contour import plot_contour
+from ax.plot.trace import optimization_trace_single_method
+from ax.service.managed_loop import optimize
+from ax.utils.notebook.plotting import render, init_notebook_plotting
+from ax.utils.tutorials.cnn_utils import load_mnist, train, evaluate, CNN
 from memory_profiler import profile
 
 import re
@@ -97,7 +101,7 @@ def train_network():
     # TODO: Verify if scheduler is working. Try tweaking parameters of below scheduler and try cyclic lr scheduler
 
     # scheduler = lr_scheduler.CyclicLR(optimizer, base_lr=lr, max_lr=0.1)
-    scheduler = lr_scheduler.StepLR(optimizer, step_size=500, gamma=0.01)
+    scheduler = lr_scheduler.StepLR(optimizer, step_size=100, gamma=0.1)
 
     # Select Loss Function
     criterion = nn.MSELoss()  # Mean square error loss function
@@ -315,5 +319,32 @@ def train_network():
 
 
 if __name__ == '__main__':
-    time_to_accomplish = train_network()
-    print('Total time of training the network: ' + str(time_to_accomplish))
+
+    parameters = dict(
+        lr=[.1, .01]
+        , batch_size=[100, 200, 300]
+        , seq_len=[512+512+1, 256+256+1, 128+128+1]
+    )
+    param_values = [v for v in parameters.values()]
+
+    for lr, batch_size, seq_len in product(*param_values):
+        args.lr = lr
+        args.batch_size = batch_size
+        args.seq_len = seq_len
+        time_to_accomplish = train_network()
+        print('Total time of training the network: ' + str(time_to_accomplish))
+
+    # def train_evaluate(parameterization):
+    #     time_to_accomplish, min_dev_loss = train_network()
+    #     return min_dev_loss
+    # best_parameters, values, experiment, model = optimize(
+    #     parameters=[
+    #         {"name": "args.lr", "type": "range", "bounds": [1e-6, 0.4], "log_scale": True},
+    #         {"name": "args.batch_size", "type": "range", "bounds": [100, 400]},
+    #         {"name": "args.seq_len", "type": "range", "bounds": [500, 700]},
+    #     ],
+    #     evaluation_function=train_evaluate,
+    #     objective_name='Validation Loss',
+    #     minimize=True
+    # )
+
