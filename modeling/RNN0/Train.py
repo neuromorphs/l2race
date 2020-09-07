@@ -300,7 +300,7 @@ def train_network():
         if dev_loss <= min_dev_loss:
             epoch_saved = epoch
             min_dev_loss = dev_loss
-            torch.save(net.state_dict(), args.path_save + rnn_full_name + '.pt')
+            torch.save(net.state_dict(), args.path_save + rnn_full_name + '.pt', _use_new_zipfile_serialization=False)
             print('>>> saving best model from epoch {}'.format(epoch))
         else:
             print('>>> We keep model from epoch {}'.format(epoch_saved))
@@ -329,12 +329,12 @@ if __name__ == '__main__':
     )
     param_values = [v for v in parameters.values()]
 
-    for lr, batch_size, seq_len in product(*param_values):
-        args.lr = lr
-        args.batch_size = batch_size
-        args.seq_len = seq_len
-        time_to_accomplish = train_network()
-        print('Total time of training the network: ' + str(time_to_accomplish))
+    # for lr, batch_size, seq_len in product(*param_values):
+    #     args.lr = lr
+    #     args.batch_size = batch_size
+    #     args.seq_len = seq_len
+    #     time_to_accomplish = train_network()
+    #     print('Total time of training the network: ' + str(time_to_accomplish))
 
     # def train_evaluate(parameterization):
     #     time_to_accomplish, min_dev_loss = train_network()
@@ -349,4 +349,7 @@ if __name__ == '__main__':
     #     objective_name='Validation Loss',
     #     minimize=True
     # )
+
+    time_to_accomplish = train_network()
+    print('Total time of training the network: ' + str(time_to_accomplish))
 
