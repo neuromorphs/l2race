@@ -190,6 +190,8 @@ def create_log_file(rnn_name, inputs_list, outputs_list, path_save):
             break
 
         net_index += 1
+
+    print('Full name given to the currently trained network is {}.'.format(rnn_full_name))
     return rnn_full_name
 
 
@@ -487,7 +489,7 @@ sys.path.append('../../')
 from src.track import find_hit_position, meters2pixels, pixels2meters, track
 
 
-def load_data(filepath, args):
+def load_data(filepath, inputs_list, outputs_list, args):
     '''
     Loads dataset from CSV file
     Args:
@@ -564,8 +566,8 @@ def load_data(filepath, args):
     # x = df[args.features_list]
     # u = df[args.commands_list]
     # y = df[args.targets_list]
-    inputs = df[args.inputs_list]
-    outputs = df[args.outputs_list]
+    inputs = df[inputs_list]
+    outputs = df[outputs_list]
     features = np.array(inputs)[:-1]
     targets = np.array(outputs)[1:]
 

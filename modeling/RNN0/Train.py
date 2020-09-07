@@ -17,12 +17,12 @@ from torch.utils.tensorboard import SummaryWriter
 import torch.nn as nn
 from itertools import product
 import numpy as np
-from ax.plot.contour import plot_contour
-from ax.plot.trace import optimization_trace_single_method
-from ax.service.managed_loop import optimize
-from ax.utils.notebook.plotting import render, init_notebook_plotting
-from ax.utils.tutorials.cnn_utils import load_mnist, train, evaluate, CNN
-from memory_profiler import profile
+# from ax.plot.contour import plot_contour
+# from ax.plot.trace import optimization_trace_single_method
+# from ax.service.managed_loop import optimize
+# from ax.utils.notebook.plotting import render, init_notebook_plotting
+# from ax.utils.tutorials.cnn_utils import load_mnist, train, evaluate, CNN
+# from memory_profiler import profile
 
 import re
 
@@ -82,8 +82,8 @@ def train_network():
     # Create Dataset
     ########################################################
 
-    train_features, train_targets = load_data(args.train_file_name, args)
-    dev_features, dev_targets = load_data(args.val_file_name, args)
+    train_features, train_targets = load_data(args.train_file_name, inputs_list, outputs_list, args)
+    dev_features, dev_targets = load_data(args.val_file_name, inputs_list, outputs_list, args)
 
     train_set = Dataset(train_features, train_targets, args)
     dev_set = Dataset(dev_features, dev_targets, args)
