@@ -125,7 +125,7 @@ class RNN_0_model(client_car_model):
         # If a pretrained model exists load the parameters from disc and into RNN instance
         # Also evaluate the performance of this pretrained network
         # by checking its predictions on a randomly generated CartPole experiment
-        savepathPre = './modeling/RNN0/save/' + 'MyNetPre' + '.pt'
+        savepathPre = './modeling/RNN0/save/' + 'GRU-8IN-64H1-64H2-3OUT-4.pt' + '.pt'
         load_pretrained_rnn(self.net, savepathPre)
         self.net = self.net.eval()
 
