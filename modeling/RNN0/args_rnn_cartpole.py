@@ -13,6 +13,9 @@ path_save = './save/'
 TRAIN_file_name = '../../data/oval_easy_14_rounds.csv'
 VAL_file_name = '../../data/oval_easy_12_rounds.csv'
 RNN_name = 'GRU-64H1-64H2'
+inputs_list = ['cmd.brake', 'cmd.steering', 'cmd.throttle', 'body_angle', 'pos.x', 'pos.y', 'vel.x', 'vel.y']
+outputs_list = ['body_angle', 'pos.x', 'pos.y', 'vel.x', 'vel.y']
+closed_loop_list = ['body_angle', 'pos.x', 'pos.y', 'vel.x', 'vel.y']
 
 def args():
     parser = argparse.ArgumentParser(description='Train a GRU network.')
@@ -29,17 +32,19 @@ def args():
     parser.add_argument('--val_file_name', default=VAL_file_name, type=str,
                         help='File name of the recording to be used for validating the RNN'
                                'e.g. oval_easy_test.csv ')
-    parser.add_argument('--inputs_list', nargs="?", default=None,  const=['cmd.throttle', 'cmd.brake', 'cmd.steering', 'pos.x', 'pos.y', 'vel.x', 'vel.y', 'body_angle'],
+    parser.add_argument('--inputs_list', nargs="?", default=None,  const=inputs_list,
                         help='List of inputs to RNN')
-    parser.add_argument('--outputs_list', nargs="?", default=None, const=['pos.x', 'pos.y', 'body_angle'],
+    parser.add_argument('--outputs_list', nargs="?", default=None, const=outputs_list,
                         help='List of outputs from RNN')
-    parser.add_argument('close_loop_for', nargs='?', default=None, const=['pos.x', 'pos.y', 'body_angle'],
+    parser.add_argument('close_loop_for', nargs='?', default=None, const=closed_loop_list,
                         help='In RNN forward function this features will be fed beck from output to input')
     parser.add_argument('--load_rnn', nargs='?', default=None, const='last', type=str,
                         help='Full name defining the RNN which should be loaded without .csv nor .pt extension'
                              'e.g. GRU-8IN-64H1-64H2-3OUT-1')
     parser.add_argument("--extend_df", action='store_true',
                         help="Extend loaded data with distance to 'hit-point' and positions of 1st, 5th and 20th nearest waypoints")
+    parser.add_argument("--do_not_normalize", action='store_true',
+                        help="Normalize data for trainig and inference.")
 
 
 
