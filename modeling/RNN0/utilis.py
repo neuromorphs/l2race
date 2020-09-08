@@ -563,6 +563,19 @@ def load_data(filepath, inputs_list, outputs_list, args):
         df['twentieth_next_waypoint.x'] = df.apply(get_nth_next_waypoint_x, axis=1, args=(20,))
         df['twentieth_next_waypoint.y'] = df.apply(get_nth_next_waypoint_y, axis=1, args=(20,))
 
+    if args.normalize:
+        df['accel.x'] /= 2.823157895
+        df['accel.y'] /= 2.823157895
+
+        df['pos.x'] /= 100
+        df['pos.y'] /= 100
+
+        df['body_angle'] = ((df['body_angle'] - 180) % 180)/180
+
+        df['vel.x'] /= 24
+        df['vel.y'] /= 24
+        
+        
     # Get Raw Data
     # x = df[args.features_list]
     # u = df[args.commands_list]
@@ -572,6 +585,10 @@ def load_data(filepath, inputs_list, outputs_list, args):
     features = np.array(inputs)[:-1]
     targets = np.array(outputs)[1:]
 
+    
+    
+
+        
     # # @Nikhil It seems there is slightly different slicing convention for pandas DataFrame - here it was crashing
     # # I don't know how to do it correctly so I convert it to numpy. You are welcome to change it.
     # states = np.array(x)[:-1]
