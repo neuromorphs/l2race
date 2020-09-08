@@ -20,6 +20,11 @@ import os
 import random as rnd
 import collections
 
+import sys
+sys.path.append('../../')
+from src.track import find_hit_position, meters2pixels, pixels2meters, track
+from src.globals import *
+
 
 def get_device():
     """
@@ -483,13 +488,6 @@ def computeNormalization(dat: np.array):
     return m, s
 
 
-# def load_data(filepath, args, savepath=None, save_normalization_parameters=False):
-import sys
-
-sys.path.append('../../')
-from src.track import find_hit_position, meters2pixels, pixels2meters, track
-
-
 def load_data(filepath, inputs_list, outputs_list, args):
     '''
     Loads dataset from CSV file
@@ -522,6 +520,8 @@ def load_data(filepath, inputs_list, outputs_list, args):
     df = pd.read_csv(filepath, comment='#')
 
     print('processing data to generate sequences')
+
+    df['body_angle'] = df['body_angle'] % 360
 
     # Calculate time difference between time steps and at it to data frame
     time = df['time'].to_numpy()
@@ -563,17 +563,31 @@ def load_data(filepath, inputs_list, outputs_list, args):
         df['twentieth_next_waypoint.x'] = df.apply(get_nth_next_waypoint_x, axis=1, args=(20,))
         df['twentieth_next_waypoint.y'] = df.apply(get_nth_next_waypoint_y, axis=1, args=(20,))
 
-    if args.normalize:
-        df['accel.x'] /= 2.823157895
-        df['accel.y'] /= 2.823157895
+    if not args.do_not_normalize:
+        normalization_distance = pixels2meters(np.sqrt((SCREEN_HEIGHT_PIXELS**2) + (SCREEN_WIDTH_PIXELS**2)))
+        normalization_velocity = 50.0  # Before from Mark 24
+        normalization_acceleration = 5.0  # 2.823157895
+        normalization_angle = 180.0
 
-        df['pos.x'] /= 100
-        df['pos.y'] /= 100
+        df['pos.x'] /= normalization_distance
+        df['pos.y'] /= normalization_distance
 
-        df['body_angle'] = ((df['body_angle'] - 180) % 180)/180
+        df['vel.x'] /= normalization_velocity
+        df['vel.y'] /= normalization_velocity
 
-        df['vel.x'] /= 24
-        df['vel.y'] /= 24
+        df['accel.x'] /= normalization_acceleration
+        df['accel.y'] /= normalization_acceleration
+
+        df['body_angle'] = (df['body_angle'] % 180)/normalization_angle # Wrapping AND normalizing angle
+
+        if args.extend_df:
+            df['hit_distance'] /= normalization_distance
+            df['first_next_waypoint.x'] /= normalization_distance
+            df['first_next_waypoint.y'] /= normalization_distance
+            df['fifth_next_waypoint.x'] /= normalization_distance
+            df['fifth_next_waypoint.y'] /= normalization_distance
+            df['twentieth_next_waypoint.x'] /= normalization_distance
+            df['twentieth_next_waypoint.y'] /= normalization_distance
         
         
     # Get Raw Data
