@@ -122,7 +122,7 @@ class RNN_model(client_car_model):
         super().__init__(car)
 
         # Parameters. Maybe provide later as arguments?
-        self.rnn_full_name = 'aaa'
+        self.rnn_full_name = 'GRU-8IN-64H1-64H2-5OUT-0'
         self.path_to_rnn = './modeling/RNN0/save/'
         self.closed_loop_list = ['body_angle', 'pos.x', 'pos.y', 'vel.x', 'vel.y']
         self.closed_loop_enabled = False
@@ -149,8 +149,8 @@ class RNN_model(client_car_model):
             'steering_angle': None,
             'body_angle': None,
             'yaw_rate': None,
-            'drift_angle': None,
-        })
+            'drift_angle': None
+        }, index=[0])
 
         normalization_distance = pixels2meters(np.sqrt((SCREEN_HEIGHT_PIXELS**2) + (SCREEN_WIDTH_PIXELS**2)))
         normalization_velocity = 50.0  # Before from Mark 24
@@ -176,8 +176,8 @@ class RNN_model(client_car_model):
             'steering_angle': None,
             'body_angle': normalization_angle,
             'yaw_rate': None,
-            'drift_angle': None,
-        })
+            'drift_angle': None
+        }, index=[0])
 
         self.rnn_output_previous = None # The rnn predicts next time step. So we have to feed in ghost car its output from previous iteration
 
@@ -194,19 +194,20 @@ class RNN_model(client_car_model):
         :param modeled_car: ghost modeled car whose car_state to update.
         """
         self.update_real_info(t, real_car)
-        rnn_input = self.real_info[:, self.inputs_list]
+        # Check if state not None:
+        rnn_input = self.real_info[self.inputs_list]
         if update_enabled and self.closed_loop_enabled and (self.rnn_output_previous is not None):
             self.get_closed_loop_input(rnn_input=rnn_input)
         self.normalize_input(rnn_input)
-        rnn_input.to_numpy()
+        rnn_input = np.squeeze(rnn_input.to_numpy())
         rnn_input = torch.from_numpy(rnn_input).float().unsqueeze(0).unsqueeze(0).to(self.device)
-        rnn_output = self.net(predict_len=1, rnn_input=rnn_input, real_time=True)
-        rnn_output = rnn_output.detach().cpu().numpy()
-        rnn_output = pd.DataFrame(data=rnn_output, columns=self.outputs_list)
+        rnn_output = self.net.initialize_sequence(rnn_input=rnn_input, all_input=True, stack_output=False)
+        rnn_output = list(np.squeeze(rnn_output.detach().cpu().numpy()))
+        rnn_output = pd.DataFrame(data=[rnn_output], columns=self.outputs_list)
         self.denormalize_output(rnn_output)
 
-        modeled_car.car_state = copy.copy(real_car.car_state)  # make copy that just copies the fields
-        modeled_car.car_state.command = copy.copy(real_car.car_state.command)  # and our own command
+        modeled_car.car_state = copy.deepcopy(real_car.car_state)  # make copy that just copies the fields
+        modeled_car.car_state.command = copy.deepcopy(real_car.car_state.command)  # and our own command
 
         if update_enabled and (self.rnn_output_previous is not None):
             self.update_modeled_car_from_rnn(modeled_car=modeled_car, rnn_output=self.rnn_output_previous)
@@ -225,34 +226,34 @@ class RNN_model(client_car_model):
             logger.warning('nonmonotonic timestep of {:.3f}s, setting dt=0'.format(dt))
             return
 
-        self.real_info['time'] = real_car.car_state.time
+        self.real_info['time'] = copy.deepcopy(real_car.car_state.time)
         self.real_info['dt'] = dt
-        self.real_info['cmd.auto'] = real_car.car_state.command.auto
-        self.real_info['cmd.steering'] = real_car.car_state.command.steering
-        self.real_info['cmd.throttle'] = real_car.car_state.command.throttle
-        self.real_info['cmd.brake'] = real_car.car_state.command.brake
-        self.real_info['cmd.reverse'] = real_car.car_state.command.reverse
-        self.real_info['pos.x'] = real_car.car_state.position_m.x
-        self.real_info['pos.y'] = real_car.car_state.position_m.y
-        self.real_info['vel.x'] = real_car.car_state.velocity_m_per_sec.x
-        self.real_info['vel.y'] = real_car.car_state.velocity_m_per_sec.y
-        self.real_info['speed'] = real_car.car_state.speed_m_per_sec
-        self.real_info['accel.x'] = real_car.car_state.accel_m_per_sec_2.x
-        self.real_info['accel.y'] = real_car.car_state.accel_m_per_sec_2.y
-        self.real_info['steering_angle'] = real_car.car_state.steering_angle_deg
-        self.real_info['body_angle'] = real_car.car_state.body_angle_deg
-        self.real_info['yaw_rate'] = real_car.car_state.yaw_rate_deg_per_sec
-        self.real_info['drift_angle'] = real_car.car_state.drift_angle_deg
+        self.real_info['cmd.auto'] = copy.deepcopy(real_car.car_state.command.autodrive_enabled)
+        self.real_info['cmd.steering'] = copy.deepcopy(real_car.car_state.command.steering)
+        self.real_info['cmd.throttle'] = copy.deepcopy(real_car.car_state.command.throttle)
+        self.real_info['cmd.brake'] = copy.deepcopy(real_car.car_state.command.brake)
+        self.real_info['cmd.reverse'] = copy.deepcopy(real_car.car_state.command.reverse)
+        self.real_info['pos.x'] = copy.deepcopy(real_car.car_state.position_m.x)
+        self.real_info['pos.y'] = copy.deepcopy(real_car.car_state.position_m.y)
+        self.real_info['vel.x'] = copy.deepcopy(real_car.car_state.velocity_m_per_sec.x)
+        self.real_info['vel.y'] = copy.deepcopy(real_car.car_state.velocity_m_per_sec.y)
+        self.real_info['speed'] = copy.deepcopy(real_car.car_state.speed_m_per_sec)
+        self.real_info['accel.x'] = copy.deepcopy(real_car.car_state.accel_m_per_sec_2.x)
+        self.real_info['accel.y'] = copy.deepcopy(real_car.car_state.accel_m_per_sec_2.y)
+        self.real_info['steering_angle'] = copy.deepcopy(real_car.car_state.steering_angle_deg)
+        self.real_info['body_angle'] = copy.deepcopy(real_car.car_state.body_angle_deg)
+        self.real_info['yaw_rate'] = copy.deepcopy(real_car.car_state.yaw_rate_deg_per_sec)
+        self.real_info['drift_angle'] = copy.deepcopy(real_car.car_state.drift_angle_deg)
 
     def normalize_input(self, rnn_input):
-        for (columnName, columnData) in rnn_input.iteritems():
-            if self.normalization_info[columnName] is not None:
-                rnn_input[columnName] /= self.normalization_info[columnName]
+        for column in rnn_input:
+            if self.normalization_info.iloc[0][column] is not None:
+                rnn_input.iloc[0][column] /= self.normalization_info.iloc[0][column]
 
     def denormalize_output(self, rnn_output):
-        for (columnName, columnData) in rnn_output.iteritems():
-            if self.normalization_info[columnName] is not None:
-                rnn_output[columnName] *= self.normalization_info[columnName]
+        for column in rnn_output:
+            if self.normalization_info.iloc[0][column] is not None:
+                rnn_output.iloc[0][column] *= self.normalization_info.iloc[0][column]
 
 
     def update_modeled_car_from_rnn(self, modeled_car, rnn_output):
@@ -261,7 +262,7 @@ class RNN_model(client_car_model):
             modeled_car.car_state.time = rnn_output['time']
 
         if 'cmd.auto' in rnn_output.columns:
-            modeled_car.car_state.command.auto = rnn_output['cmd.auto']
+            modeled_car.car_state.command.autodrive_enabled = rnn_output['cmd.auto']
 
         if 'cmd.steering' in rnn_output.columns:
             modeled_car.car_state.command.steering = rnn_output['cmd.steering']
