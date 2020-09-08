@@ -1,4 +1,6 @@
 # class for Car, holds other important stuff
+import copy
+import math
 import os
 from math import radians, cos, sin
 from typing import Optional, Tuple
@@ -78,6 +80,12 @@ class car:
         # draw our car
         rotated = pygame.transform.rotate(self.image, -self.car_state.body_angle_deg)
         rect = rotated.get_rect()
+
+        p=self.car_state.position_m
+        if math.isnan(p.x) or math.isnan(p.y) or math.isnan(self.car_state.body_angle_deg):
+            logger.warning('cannot draw ghost car; some value of position or angle is NaN')
+            return
+
         screen.blit(rotated, ((self.car_state.position_m/M_PER_PIXEL) - (int(rect.width / 2), int(rect.height / 2))))
         # label name
         self.game_font.render_to(screen, (self.car_state.position_m.x/M_PER_PIXEL, self.car_state.position_m.y/M_PER_PIXEL), self.car_state.static_info.name, [200,200,200]),
