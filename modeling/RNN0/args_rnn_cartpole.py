@@ -54,6 +54,8 @@ def args():
     parser.add_argument('--path_save', default=path_save, type=str,
                         help='Path where to save/ from where to load models')
     
+    parser.add_argument('--normalize',    default=True,          type=bool,    help='Make all data between 0 and 1')
+    
     parser.add_argument('--num_workers',    default=1,          type=int,    help='Number of workers to produce data from data loaders')
 
 
