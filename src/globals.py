@@ -34,8 +34,8 @@ CAR_MODEL_CLASS = 'linear_extrapolation_model' # the class within the file
 
 #display
 FPS=20 # frames per second for simulation and animation
-GAME_FONT_NAME='Consolas' # local display font, default is Consolas
-GAME_FONT_SIZE=16 # default is 16
+GAME_FONT_NAME = 'Consolas'  # local display font, default is Consolas
+GAME_FONT_SIZE = 16  # default is 16
 
 # Joystick connectivity
 CHECK_FOR_JOYSTICK_INTERVAL = 100 # check for missing joystick every this many cycles
