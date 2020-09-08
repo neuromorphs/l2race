@@ -119,11 +119,13 @@ class client:
         self.heightPixels = heightPixels
         self.screen = pygame.display.set_mode(size=(self.widthPixels, self.heightPixels), flags=0)
         pygame.freetype.init()
+        pygame.game_font: pygame.freetype.SysFont =None
         try:
             self.game_font = pygame.freetype.SysFont(GAME_FONT_NAME, GAME_FONT_SIZE)
         except:
             logger.warning('cannot get specified globals.py font {}, using pygame default font'.format(GAME_FONT_NAME))
-            self.game_font = pygame.font.Font(pygame.font.get_default_font(), GAME_FONT_SIZE)
+            self.game_font = pygame.freetype.SysFont(pygame.font.get_default_font(), GAME_FONT_SIZE)
+        self.ghost_car_running_font: pygame.font.Font=None
         self.clock = pygame.time.Clock()
         self.exit = False
         self.input = None
@@ -501,6 +503,18 @@ class client:
         """
         if self.ghost_car and self.user_input.run_client_model:
             self.ghost_car.draw(self.screen)
+        if self.user_input.run_client_model:
+            # show it prominently in display
+            size=24
+            if self.ghost_car_running_font is None:
+                try:
+                    self.ghost_car_running_font = pygame.freetype.SysFont(GAME_FONT_NAME, size=size)
+                except:
+                    logger.warning('cannot get specified globals.py font {}, using pygame default font'.format(GAME_FONT_NAME))
+                    self.ghost_car_running_font = pygame.freetype.SysFont(pygame.font.get_default_font(), size=size)
+
+            self.ghost_car_running_font.render_to(surf=self.screen, dest=(10, self.screen.get_height()-10-self.ghost_car_running_font.get_sized_height()), text='Ghost car model is running', fgcolor=(255,0,0))
+
 
     def draw_other_cars(self):
         """ Draws all the others"""
@@ -806,8 +820,6 @@ class client:
             self.ghost_car.image=loadAndScaleCarImage(self.ghost_car.image_name, self.ghost_car.car_state.static_info.length_m, self.screen)
 
         self.client_car_model.update_state(self.user_input.run_client_model, self.car.car_state.time, self.car_command, self.car, self.ghost_car)
-
-
 
 # A wrapper around Game class to make it easier for a user to provide arguments
 def define_game(gui=True,  # set to False to prevent gooey dialog
