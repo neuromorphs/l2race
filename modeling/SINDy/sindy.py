@@ -1,4 +1,12 @@
+"""
+L2RACE SINDy framework
+Built on PySINDy: https://github.com/dynamicslab/pysindy
+
+@author Ante Maric
+"""
+
 from pathlib import Path
+from functools import wraps
 import pickle
 import numpy as np
 import pandas as pd
@@ -7,15 +15,20 @@ import copy
 
 from pygame.math import Vector2
 
+from src.car_model import car_model
 from src.car_state import car_state
 from src.car_command import car_command
 
 from random import randrange
+from scipy.integrate import solve_ivp, odeint
 from scipy.interpolate import interp1d
 import matplotlib.pyplot as plt
 
-class CustomUnpickler(pickle.Unpickler):
 
+class CustomUnpickler(pickle.Unpickler):
+    """
+    Custom unpickler for loading saved models in different scripts
+    """
     def find_class(self, module, name):
         if name == 'SINDy':
             from modeling.SINDy.sindy import SINDy
@@ -55,7 +68,7 @@ class Data:
         file_list = [x for x in full_path.glob('*.csv')]
 
         if len(file_list) == 0:
-            raise Exception("Data directory is empty!")
+            raise Exception("Directory is empty or non-existent!")
 
         elif len(file_list) == 1: # TODO generalize single file loading as case of multiple file loading (one item list)
             multiple_trajectories = False
@@ -94,6 +107,7 @@ class Data:
         self.u = u
         self.t = t
         self.multiple_trajectories = multiple_trajectories
+
 
 class SINDy(ps.SINDy):
     """
@@ -144,10 +158,10 @@ class SINDy(ps.SINDy):
 
         if calculate_derivatives:
             super().fit(x=data.x, u=data.u, t=data.t,
-                multiple_trajectories=data.multiple_trajectories)       
+                multiple_trajectories=data.multiple_trajectories, unbias=True)       
         else:
             super().fit(x=data.x, x_dot=data.x_dot, u=data.u, t=data.t,
-                multiple_trajectories=data.multiple_trajectories)
+                multiple_trajectories=data.multiple_trajectories, unbias=True)
         
 
     def plot(self, test_data, save=False):
@@ -171,6 +185,8 @@ class SINDy(ps.SINDy):
         each feature specified in FEATURES with respect to time (ground truth vs. model simulation)
         """
 
+        plt.rcParams.update({'font.size': 18})
+
         if test_data.multiple_trajectories:
             i = randrange(len(test_data.x))
             test_data.x = test_data.x[i]
@@ -179,26 +195,50 @@ class SINDy(ps.SINDy):
             test_data.t = test_data.t[i]
 
         u_interp = interp1d(test_data.t, test_data.u, axis=0, kind='cubic',fill_value="extrapolate")
+
+        # use newer solver (multiple available methods):
+        #def flipped_arguments(fun):
+        #    @wraps(fun)
+        #    def fun_flipped(x, y):
+        #        return fun(y, x)
+        #    return fun_flipped
+
+        #solve_ivp_wrapped = lambda fun, y0, t, *args, **kwargs: solve_ivp(flipped_arguments(fun), tuple([t[0],t[-1]]), \
+        #    y0, *args, method='Radau', dense_output=True, t_eval=t, atol=1e-4, rtol=1e-2, **kwargs).y.T
+
+        #x_predicted = model.simulate(test_data.x[0], test_data.t, u=u_interp, integrator=solve_ivp_wrapped)
+        
+        # ----------------------------------------------------------------------------------------------------------------
+
+        # set different integrator parameters for odeint
+        #x_predicted = model.simulate(test_data.x[0], test_data.t, u=u_interp, atol=1e-4, rtol=1e-2, hmin=1e-6, hmax=1e-3)
+
         x_predicted = model.simulate(test_data.x[0], test_data.t, u=u_interp)
 
-        _, axs = plt.subplots(len(FEATURES)+1, 1, figsize=(9, 16))
+        _, axs = plt.subplots(1, 1, figsize=(13, 8))
 
-        axs[0].plot(test_data.x[:,0], test_data.x[:,1], 'g+', label='simulation (ground truth)')
-        axs[0].plot(x_predicted[:,0], x_predicted[:, 1], 'r+', label='model')
-        axs[0].invert_yaxis()
-        axs[0].legend()
-        axs[0].set(title='Car path', xlabel=r'$x$', ylabel=r'$y$')
+        axs.plot(test_data.x[:,0], test_data.x[:,1], 'g+', label='simulation (ground truth)')
+        axs.plot(x_predicted[:,0], x_predicted[:, 1], 'r+', label='model')
+        axs.invert_yaxis()
+        axs.legend()
+        axs.set(title='Car path', xlabel=r'$x$', ylabel=r'$y$')
+        plt.tight_layout()
+
+        if save: plt.savefig('car_path.png')
+
+        _, axs = plt.subplots(len(FEATURES), 1, figsize=(12, 18))
 
         for i, feature in enumerate(FEATURES):
-            axs[i+1].plot(test_data.t, test_data.x[:,i], 'k', label='true simulation')
-            axs[i+1].plot(test_data.t, x_predicted[:,i], 'r--', label='model simulation')
-            axs[i+1].legend()
-            axs[i+1].set(title=feature, xlabel=r'$t\ [s]$', ylabel=feature)
+            axs[i].plot(test_data.t, test_data.x[:,i], 'k', label='true simulation')
+            axs[i].plot(test_data.t, x_predicted[:,i], 'r--', label='model simulation')
+            axs[i].legend()
+            axs[i].set(title=feature, xlabel=r'$t\ [s]$', ylabel=feature)
 
         plt.tight_layout()
-        plt.show()
 
-        if save: plt.savefig('plot.png')
+        if save: plt.savefig('features.png')
+
+        plt.show()
 
     def save(self, path):
         with open(Path.cwd().joinpath(path), 'wb') as f:
@@ -238,18 +278,21 @@ if __name__=='__main__':
     test_dir = 'data_test'
 
     # respect the feature order from .csv files; in case of position, velocity, acceleration, both coordinates need to be used
-    FEATURES = ['pos.x', 'pos.y', 'vel.y', 'vel.x','body_angle']
-    COMMANDS = ['cmd.throttle', 'cmd.steering','cmd.brake']
+    FEATURES = ['pos.x', 'pos.y', 'vel.x', 'vel.y', 'body_angle']
+    COMMANDS = ['cmd.throttle', 'cmd.steering', 'cmd.brake']
     PRECALCULATED_DERIVATIVES = [] # TODO check use with precalculated derivatives
 
     # usage example
-    optimizer=ps.SR3(threshold=0.01, thresholder='l1', normalize=True, max_iter=1000) # TODO test different optimizers
+    optimizer=ps.SR3(threshold=0.01, thresholder='l1', normalize=True, max_iter=100000) # TODO test different optimizers
     feature_lib=ps.PolynomialLibrary(degree=2) # TODO test different feature libs
+
+    #smoothed_fd = ps.SmoothedFiniteDifference(drop_endpoints=True)
 
     model = SINDy(
         optimizer,
         feature_library=feature_lib,
         features=FEATURES,
+        #differentiation_method=smoothed_fd,
         commands=COMMANDS) # TODO test different differetiation methods
 
     train_data = Data(train_dir)
@@ -257,7 +300,7 @@ if __name__=='__main__':
     model.print()
 
     test_data = Data(test_dir)
-    model.plot(test_data)
+    model.plot(test_data, save=True)
 
     model.save('modeling/SINDy/SINDy_model.pkl')
 
