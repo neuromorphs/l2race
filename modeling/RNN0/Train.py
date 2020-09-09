@@ -15,6 +15,7 @@ from torch.optim import lr_scheduler
 from tqdm import tqdm
 from torch.utils.tensorboard import SummaryWriter
 import torch.nn as nn
+import matplotlib.pyplot as plt
 from itertools import product
 import numpy as np
 # from ax.plot.contour import plot_contour
@@ -267,6 +268,19 @@ def train_network():
         # tb.add_graph(net)
         tb.add_scalar('Train Loss', train_loss / train_batches, epoch)
         tb.add_scalar('Dev Loss', dev_loss / dev_batches, epoch)
+
+        # Add the first sample of batch to tensorboard. Prediction is represented by Dotted line
+        # TODO: Concatenate such graphs. But they are not continous
+        for i in range(labels.shape[2]):
+            time_label = np.arange(0, labels.shape[1], 1)
+            time_out = np.arange(0, out.shape[1], 1)
+            true_data = labels[1, :, i]
+            predicted_data = out[1, :, i]
+            fig = plt.figure(5)
+            plt.plot(time_label, true_data.detach().cpu())
+            plt.plot(time_out, predicted_data.detach().cpu(), linestyle='dashed')
+            tb.add_figure(tag=str(args.outputs_list[i]), figure=fig, global_step=epoch)
+
 
         for name, param in net.named_parameters():
             tb.add_histogram(name, param, epoch)
