@@ -223,7 +223,7 @@ class RNN_model(client_car_model):
         self.time = t
 
         if dt < 0:
-            logger.warning('nonmonotonic timestep of {:.3f}s, setting dt=0'.format(dt))
+            logger.warning('non-monotonic timestep of {:.3f}s, setting dt=0'.format(dt))
             return
 
         self.real_info['time'] = copy.deepcopy(real_car.car_state.time)
@@ -249,11 +249,13 @@ class RNN_model(client_car_model):
         for column in rnn_input:
             if self.normalization_info.iloc[0][column] is not None:
                 rnn_input.iloc[0][column] /= self.normalization_info.iloc[0][column]
+        return rnn_input
 
     def denormalize_output(self, rnn_output):
         for column in rnn_output:
             if self.normalization_info.iloc[0][column] is not None:
                 rnn_output.iloc[0][column] *= self.normalization_info.iloc[0][column]
+        return rnn_output
 
 
     def update_modeled_car_from_rnn(self, modeled_car, rnn_output):

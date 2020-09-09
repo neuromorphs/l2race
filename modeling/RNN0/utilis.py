@@ -135,20 +135,32 @@ def create_rnn_instance(rnn_name=None, inputs_list=None, outputs_list=None, load
         load_pretrained_rnn(net, pt_path, device)
 
     elif load_rnn == 'last':
-        try:
-            import glob
-            list_of_files = glob.glob(path_save + '/*.txt')
-            txt_path = max(list_of_files, key=os.path.getctime)
-        except FileNotFoundError:
-            raise ValueError('No information about any pretrained network found at {}'.format(path_save))
+        files_found = False
+        while(not files_found):
+            try:
+                import glob
+                list_of_files = glob.glob(path_save + '/*.txt')
+                txt_path = max(list_of_files, key=os.path.getctime)
+            except FileNotFoundError:
+                raise ValueError('No information about any pretrained network found at {}'.format(path_save))
 
-        f = open(txt_path, 'r')
-        lines = f.readlines()
-        rnn_name = lines[1].rstrip("\n")
-        pre_rnn_full_name = lines[4].rstrip("\n")
-        inputs_list = lines[7].rstrip("\n").split(sep=', ')
-        outputs_list = lines[10].rstrip("\n").split(sep=', ')
-        f.close()
+            f = open(txt_path, 'r')
+            lines = f.readlines()
+            rnn_name = lines[1].rstrip("\n")
+            pre_rnn_full_name = lines[4].rstrip("\n")
+            inputs_list = lines[7].rstrip("\n").split(sep=', ')
+            outputs_list = lines[10].rstrip("\n").split(sep=', ')
+            f.close()
+
+            pt_path = path_save + pre_rnn_full_name + '.pt'
+            if not os.path.isfile(pt_path):
+                    print('The .pt file is missing (information about weights and biases) at the location {}'.format(
+                        pt_path))
+                    print('I delete the corresponding .txt file and try to search again')
+                    os.remove(txt_path)
+            else:
+                files_found = True
+
 
         print('Full name of the loaded RNN is {}'.format(pre_rnn_full_name))
         print('Inputs to the loaded RNN: {}'.format(', '.join(map(str, inputs_list))))
@@ -156,12 +168,6 @@ def create_rnn_instance(rnn_name=None, inputs_list=None, outputs_list=None, load
 
         # Construct the requested RNN
         net = Sequence(rnn_name=rnn_name, inputs_list=inputs_list, outputs_list=outputs_list)
-
-        pt_path = path_save + pre_rnn_full_name + '.pt'
-        if not os.path.isfile(pt_path):
-            raise ValueError(
-                'The corresponding .pt file is missing (information about weights and biases) at the location {}'.format(
-                    pt_path))
 
         # Load the parameters
         load_pretrained_rnn(net, pt_path, device)
@@ -412,23 +418,48 @@ def norm(x):
 
 
 class Dataset(data.Dataset):
-    def __init__(self, df, labels, args):
+    def __init__(self, df, labels, args, seq_len=None):
         'Initialization'
         self.data = df
         self.labels = labels
         self.args = args
 
         # Hyperparameters
-        self.seq_len = args.seq_len  # Sequence length
+        if seq_len is None:
+            self.seq_len = args.seq_len  # Sequence length
+        else:
+            self.seq_len = seq_len
+
+        self.df_lengths = []
+        self.df_lengths_cs = []
+        if type(self.data) == list:
+            for data_set in self.data:
+                self.df_lengths.append(data_set.shape[0] - self.seq_len)
+                if not self.df_lengths_cs:
+                    self.df_lengths_cs.append(self.df_lengths[0])
+                else:
+                    self.df_lengths_cs.append(self.df_lengths_cs[-1]+self.df_lengths[-1])
+            self.number_of_samples = self.df_lengths_cs[-1]
+
+        else:
+            self.number_of_samples = self.data.shape[0] - self.seq_len
+
+
 
     def __len__(self):
         'Total number of samples'
-
-        # speed optimized, you only have to get sequencies
-        return self.data.shape[0] - self.seq_len
+        return self.number_of_samples
 
     def __getitem__(self, idx):
-        return self.data[idx:idx + self.seq_len, :], self.labels[idx:idx + self.seq_len]
+        if type(self.data) == list:
+            idx_data_set = next(i for i, v in enumerate(self.df_lengths_cs) if v > idx)
+            if idx_data_set == 0:
+                pass
+            else:
+                idx -= self.df_lengths_cs[idx_data_set-1]
+            return self.data[idx_data_set][idx:idx + self.seq_len, :], self.labels[idx_data_set][idx:idx + self.seq_len]
+        else:
+            return self.data[idx:idx + self.seq_len, :], self.labels[idx:idx + self.seq_len]
 
 
 def normalize(dat, mean, std):
@@ -488,7 +519,7 @@ def computeNormalization(dat: np.array):
     return m, s
 
 
-def load_data(filepath, inputs_list, outputs_list, args):
+def load_data(args, filepath=None, inputs_list=None, outputs_list=None):
     '''
     Loads dataset from CSV file
     Args:
@@ -513,96 +544,120 @@ def load_data(filepath, inputs_list, outputs_list, args):
          all sensors for sample0, all sensors for sample1, .....all sensors for sampleN, where N is the prediction length
     '''
 
-    # Hyperparameters
+    if filepath is None:
+        filepath = args.val_file_name
 
-    # Load dataframe
-    print('loading data from ' + str(filepath))
-    df = pd.read_csv(filepath, comment='#')
+    if inputs_list is None:
+        inputs_list = args.inputs_list
 
-    print('processing data to generate sequences')
+    if outputs_list is None:
+        outputs_list = args.outputs_list
 
-    df['body_angle'] = df['body_angle'] % 360
+    if type(filepath) == list:
+        filepaths = filepath
+    else:
+        filepaths = [filepath]
 
-    # Calculate time difference between time steps and at it to data frame
-    time = df['time'].to_numpy()
-    deltaTime = np.diff(time)
-    deltaTime = np.insert(deltaTime, 0, 0)
-    df['dt'] = deltaTime
+    all_features = []
+    all_targets = []
 
-    if args.extend_df:
-        # Calculate distance to the track edge in front of the car and add it to the data frame
-        # Get used car name
-        import re
-        s = str(pd.read_csv(filepath, skiprows=5, nrows=1))
-        track_name = re.search('"(.*)"', s).group(1)
-        media_folder_path = '../../media/tracks/'
-        my_track = track(track_name=track_name, media_folder_path=media_folder_path)
+    for one_filepath in filepaths:
+        # Load dataframe
+        print('loading data from ' + str(one_filepath))
+        df = pd.read_csv(one_filepath, comment='#')
 
-        def calculate_hit_distance(row):
-            return my_track.get_hit_distance(angle=row['body_angle'], x_car=row['pos.x'], y_car=row['pos.y'])
+        print('processing data to generate sequences')
 
-        df['hit_distance'] = df.apply(calculate_hit_distance, axis=1)
+        # df['body_angle'] = df['body_angle'] % 360 ## It is done below already
 
-        def nearest_waypoint_idx(row):
-            return my_track.get_nearest_waypoint_idx(x=row['pos.x'], y=row['pos.y'])
-
-        df['nearest_waypoint_idx'] = df.apply(nearest_waypoint_idx, axis=1)
-
-        max_idx = max(df['nearest_waypoint_idx'])
-
-        def get_nth_next_waypoint_x(row, n: int):
-            return pixels2meters(my_track.waypoints_x[int(row['nearest_waypoint_idx'] + n) % max_idx])
-
-        def get_nth_next_waypoint_y(row, n: int):
-            return pixels2meters(my_track.waypoints_y[int(row['nearest_waypoint_idx'] + n) % max_idx])
-
-        df['first_next_waypoint.x'] = df.apply(get_nth_next_waypoint_x, axis=1, args=(1,))
-        df['first_next_waypoint.y'] = df.apply(get_nth_next_waypoint_y, axis=1, args=(1,))
-        df['fifth_next_waypoint.x'] = df.apply(get_nth_next_waypoint_x, axis=1, args=(5,))
-        df['fifth_next_waypoint.y'] = df.apply(get_nth_next_waypoint_y, axis=1, args=(5,))
-        df['twentieth_next_waypoint.x'] = df.apply(get_nth_next_waypoint_x, axis=1, args=(20,))
-        df['twentieth_next_waypoint.y'] = df.apply(get_nth_next_waypoint_y, axis=1, args=(20,))
-
-    if not args.do_not_normalize:
-        normalization_distance = pixels2meters(np.sqrt((SCREEN_HEIGHT_PIXELS**2) + (SCREEN_WIDTH_PIXELS**2)))
-        normalization_velocity = 50.0  # Before from Mark 24
-        normalization_acceleration = 5.0  # 2.823157895
-        normalization_angle = 180.0
-
-        df['pos.x'] /= normalization_distance
-        df['pos.y'] /= normalization_distance
-
-        df['vel.x'] /= normalization_velocity
-        df['vel.y'] /= normalization_velocity
-
-        df['accel.x'] /= normalization_acceleration
-        df['accel.y'] /= normalization_acceleration
-
-        df['body_angle'] = (df['body_angle'] % 180)/normalization_angle # Wrapping AND normalizing angle
+        # Calculate time difference between time steps and at it to data frame
+        time = df['time'].to_numpy()
+        deltaTime = np.diff(time)
+        deltaTime = np.insert(deltaTime, 0, 0)
+        df['dt'] = deltaTime
 
         if args.extend_df:
-            df['hit_distance'] /= normalization_distance
-            df['first_next_waypoint.x'] /= normalization_distance
-            df['first_next_waypoint.y'] /= normalization_distance
-            df['fifth_next_waypoint.x'] /= normalization_distance
-            df['fifth_next_waypoint.y'] /= normalization_distance
-            df['twentieth_next_waypoint.x'] /= normalization_distance
-            df['twentieth_next_waypoint.y'] /= normalization_distance
-        
-        
-    # Get Raw Data
-    # x = df[args.features_list]
-    # u = df[args.commands_list]
-    # y = df[args.targets_list]
-    inputs = df[inputs_list]
-    outputs = df[outputs_list]
-    features = np.array(inputs)[:-1]
-    targets = np.array(outputs)[1:]
+            # Calculate distance to the track edge in front of the car and add it to the data frame
+            # Get used car name
+            import re
+            s = str(pd.read_csv(one_filepath, skiprows=5, nrows=1))
+            track_name = re.search('"(.*)"', s).group(1)
+            media_folder_path = '../../media/tracks/'
+            my_track = track(track_name=track_name, media_folder_path=media_folder_path)
+
+            def calculate_hit_distance(row):
+                return my_track.get_hit_distance(angle=row['body_angle'], x_car=row['pos.x'], y_car=row['pos.y'])
+
+            df['hit_distance'] = df.apply(calculate_hit_distance, axis=1)
+
+            def nearest_waypoint_idx(row):
+                return my_track.get_nearest_waypoint_idx(x=row['pos.x'], y=row['pos.y'])
+
+            df['nearest_waypoint_idx'] = df.apply(nearest_waypoint_idx, axis=1)
+
+            max_idx = max(df['nearest_waypoint_idx'])
+
+            def get_nth_next_waypoint_x(row, n: int):
+                return pixels2meters(my_track.waypoints_x[int(row['nearest_waypoint_idx'] + n) % max_idx])
+
+            def get_nth_next_waypoint_y(row, n: int):
+                return pixels2meters(my_track.waypoints_y[int(row['nearest_waypoint_idx'] + n) % max_idx])
+
+            df['first_next_waypoint.x'] = df.apply(get_nth_next_waypoint_x, axis=1, args=(1,))
+            df['first_next_waypoint.y'] = df.apply(get_nth_next_waypoint_y, axis=1, args=(1,))
+            df['fifth_next_waypoint.x'] = df.apply(get_nth_next_waypoint_x, axis=1, args=(5,))
+            df['fifth_next_waypoint.y'] = df.apply(get_nth_next_waypoint_y, axis=1, args=(5,))
+            df['twentieth_next_waypoint.x'] = df.apply(get_nth_next_waypoint_x, axis=1, args=(20,))
+            df['twentieth_next_waypoint.y'] = df.apply(get_nth_next_waypoint_y, axis=1, args=(20,))
+
+        if not args.do_not_normalize:
+            normalization_distance = pixels2meters(np.sqrt((SCREEN_HEIGHT_PIXELS**2) + (SCREEN_WIDTH_PIXELS**2)))
+            normalization_velocity = 50.0  # Before from Mark 24
+            normalization_acceleration = 5.0  # 2.823157895
+            normalization_angle = 180.0
+
+            df['pos.x'] /= normalization_distance
+            df['pos.y'] /= normalization_distance
+
+            df['vel.x'] /= normalization_velocity
+            df['vel.y'] /= normalization_velocity
+
+            df['accel.x'] /= normalization_acceleration
+            df['accel.y'] /= normalization_acceleration
+
+            df['body_angle'] = (df['body_angle'] % 180)/normalization_angle # Wrapping AND normalizing angle
+
+            if args.extend_df:
+                df['hit_distance'] /= normalization_distance
+                df['first_next_waypoint.x'] /= normalization_distance
+                df['first_next_waypoint.y'] /= normalization_distance
+                df['fifth_next_waypoint.x'] /= normalization_distance
+                df['fifth_next_waypoint.y'] /= normalization_distance
+                df['twentieth_next_waypoint.x'] /= normalization_distance
+                df['twentieth_next_waypoint.y'] /= normalization_distance
+
+
+        # Get Raw Data
+        # x = df[args.features_list]
+        # u = df[args.commands_list]
+        # y = df[args.targets_list]
+        inputs = df[inputs_list]
+        outputs = df[outputs_list]
+        features = np.array(inputs)[:-1]
+        targets = np.array(outputs)[1:]
+        all_features.append(features)
+        all_targets.append(targets)
+
+    if type(filepath) == list:
+        return all_features, all_targets
+    else:
+        return features, targets
+
 
     
     
 
-        
+    # Other code we used for data loading
     # # @Nikhil It seems there is slightly different slicing convention for pandas DataFrame - here it was crashing
     # # I don't know how to do it correctly so I convert it to numpy. You are welcome to change it.
     # states = np.array(x)[:-1]
@@ -638,126 +693,241 @@ def load_data(filepath, inputs_list, outputs_list, args):
 
     # Version with normlaization
     # return features, targets, mean_features, std_features, mean_targets, std_targets
-    return features, targets
 
-# def plot_results(net, args, val_savepathfile):
-#     """
-#     This function accepts RNN instance, arguments and CartPole instance.
-#     It runs one random experiment with CartPole,
-#     inputs the data into RNN and check how well RNN predicts CartPole state one time step ahead of time
-#     """
-#     # Reset the internal state of RNN cells, clear the output memory, etc.
-#     net.reset()
-#
-#     # Generates ab CartPole  experiment and save its data
-#     dev_features, dev_targets, _, _, _, _ = \
-#         load_data(val_file, args, savepath)
-#
-#     dev_set = Dataset(dev_features, dev_targets, args)
-#
-#     # Format the experiment data
-#     # test_set[0] means that we take one random experiment, first on the list
-#     # The data will be however anyway generated on the fly and is in general not reproducible
-#     # TODO: Make data reproducable: set seed or find another solution
-#     features, targets = test_set[0]
-#
-#     # Add empty dimension to fit the requirements of RNN input shape
-#     # (in fact we add dimension for batches - for testing we use only one batch)
-#     features = features.unsqueeze(0)
-#
-#     # Convert Pytorch tensors to numpy matrices to inspect them - just for debugging purpose.
-#     # Variable explorers of IDEs are often not compatible with Pytorch format
-#     # features_np = features.detach().numpy()
-#     # targets_np = targets.detach().numpy()
-#
-#     # Further modifying the input and output form to fit RNN requirements
-#     # If GPU available we send features to GPU
-#     if torch.cuda.is_available():
-#         features = features.float().cuda().transpose(0, 1)
-#         targets = targets.float()
-#     else:
-#         features = features.float().transpose(0, 1)
-#         targets = targets.float()
-#
-#     # From features we extract control input and save it as a separate vector on the cpu
-#     u_effs = features[:, :, -1].cpu()
-#     # We shift it by one time step and double the last entry to keep the size unchanged
-#     u_effs = u_effs[1:]
-#     u_effs = np.append(u_effs, u_effs[-1])
-#
-#     # Set the RNN in evaluation mode
-#     net = net.eval()
-#     # During several first time steps we let hidden layers adapt to the input data
-#     # train=False says that all the input should be used for initialization
-#     # -> we predict always only one time step ahead of time based on ground truth data
-#     predictions = net.initialize_sequence(features, train=False)
-#
-#     # reformat the output of RNN to a form suitable for plotting the results
-#     # y_pred are prediction from RNN
-#     y_pred = predictions.squeeze().cpu().detach().numpy()
-#     # y_target are expected prediction from RNN, ground truth
-#     y_target = targets.squeeze().cpu().detach().numpy()
-#
-#     # Get the time axes
-#     t = np.arange(0, y_target.shape[0]) * args.dt
-#
-#     # Get position over time
-#     xp = y_pred[args.warm_up_len:, 0]
-#     xt = y_target[:, 0]
-#
-#     # Get velocity over time
-#     vp = y_pred[args.warm_up_len:, 1]
-#     vt = y_target[:, 1]
-#
-#     # get angle theta of the Pole
-#     tp = y_pred[args.warm_up_len:, 2] * 180.0 / np.pi  # t like theta
-#     tt = y_target[:, 2] * 180.0 / np.pi
-#
-#     # Get angular velocity omega of the Pole
-#     op = y_pred[args.warm_up_len:, 3] * 180.0 / np.pi  # o like omega
-#     ot = y_target[:, 3] * 180.0 / np.pi
-#
-#     # Create a figure instance
-#     fig, axs = plt.subplots(5, 1, figsize=(18, 14), sharex=True)  # share x axis so zoom zooms all plots
-#
-#     # %matplotlib inline
-#     # Plot position
-#     axs[0].set_ylabel("Position (m)", fontsize=18)
-#     axs[0].plot(t, xt, 'k:', markersize=12, label='Ground Truth')
-#     axs[0].plot(t[args.warm_up_len:], xp, 'b', markersize=12, label='Predicted position')
-#     axs[0].tick_params(axis='both', which='major', labelsize=16)
-#
-#     # Plot velocity
-#     axs[1].set_ylabel("Velocity (m/s)", fontsize=18)
-#     axs[1].plot(t, vt, 'k:', markersize=12, label='Ground Truth')
-#     axs[1].plot(t[args.warm_up_len:], vp, 'g', markersize=12, label='Predicted velocity')
-#     axs[1].tick_params(axis='both', which='major', labelsize=16)
-#
-#     # Plot angle
-#     axs[2].set_ylabel("Angle (deg)", fontsize=18)
-#     axs[2].plot(t, tt, 'k:', markersize=12, label='Ground Truth')
-#     axs[2].plot(t[args.warm_up_len:], tp, 'c', markersize=12, label='Predicted angle')
-#     axs[2].tick_params(axis='both', which='major', labelsize=16)
-#
-#     # Plot angular velocity
-#     axs[3].set_ylabel("Angular velocity (deg/s)", fontsize=18)
-#     axs[3].plot(t, ot, 'k:', markersize=12, label='Ground Truth')
-#     axs[3].plot(t[args.warm_up_len:], op, 'm', markersize=12, label='Predicted velocity')
-#     axs[3].tick_params(axis='both', which='major', labelsize=16)
-#
-#     # Plot motor input command
-#     axs[4].set_ylabel("motor (N)", fontsize=18)
-#     axs[4].plot(t, u_effs, 'r', markersize=12, label='motor')
-#     axs[4].tick_params(axis='both', which='major', labelsize=16)
-#
-#     # # Plot target position
-#     # axs[5].set_ylabel("position target", fontsize=18)
-#     # axs[5].plot(self.MyCart.dict_history['time'], self.MyCart.dict_history['PositionTarget'], 'k')
-#     # axs[5].tick_params(axis='both', which='major', labelsize=16)
-#
-#     axs[4].set_xlabel('Time (s)', fontsize=18)
-#
-#     plt.show()
-#     # Save figure to png
-#     fig.savefig('my_figure.png')
-#     Image('my_figure.png')
+import copy
+def plot_results(net, args, filepath=None,
+                 inputs_list=None,
+                 outputs_list=None,
+                 closed_loop_list=None,
+                 seq_len=None, warm_up_len=None, closed_loop_enabled=False, comment = ''):
+    """
+    This function accepts RNN instance, arguments and CartPole instance.
+    It runs one random experiment with CartPole,
+    inputs the data into RNN and check how well RNN predicts CartPole state one time step ahead of time
+    """
+
+    if filepath is None:
+        filepath = args.val_file_name
+        if type(filepath) == list:
+            filepath = filepath[0]
+
+    if warm_up_len is None:
+        warm_up_len = args.warm_up_len
+
+    if seq_len is None:
+        seq_len = args.seq_len
+
+    if inputs_list is None:
+        inputs_list = args.inputs_list
+        if inputs_list is None:
+            raise ValueError('RNN inputs not provided!')
+
+    if outputs_list is None:
+        outputs_list = args.outputs_list
+        if outputs_list is None:
+            raise ValueError('RNN outputs not provided!')
+
+    if closed_loop_enabled and (closed_loop_list is None):
+        closed_loop_list = args.close_loop_for
+        if closed_loop_list is None:
+            raise ValueError('RNN closed-loop-inputs not provided!')
+
+    normalization_distance = pixels2meters(np.sqrt((SCREEN_HEIGHT_PIXELS ** 2) + (SCREEN_WIDTH_PIXELS ** 2)))
+    normalization_velocity = 50.0  # Before from Mark 24
+    normalization_acceleration = 5.0  # 2.823157895
+    normalization_angle = 180.0
+    normalization_dt = 1.0e-2
+
+    normalization_info = pd.DataFrame({
+        'time': None,
+        'dt': normalization_dt,
+        'cmd.auto': None,
+        'cmd.steering': None,
+        'cmd.throttle': None,
+        'cmd.brake': None,
+        'cmd.reverse': None,
+        'pos.x': normalization_distance,
+        'pos.y': normalization_distance,
+        'vel.x': normalization_velocity,
+        'vel.y': normalization_velocity,
+        'speed': normalization_velocity,
+        'accel.x': normalization_acceleration,
+        'accel.y': normalization_acceleration,
+        'steering_angle': None,
+        'body_angle': normalization_angle,
+        'yaw_rate': None,
+        'drift_angle': None
+    }, index=[0])
+
+    # Here in contrary to ghoast car implementation I have
+    # rnn_input[name] /= normalization_info.iloc[0][column]
+    # and not
+    # rnn_input.iloc[0][column] /= normalization_info.iloc[0][column]
+    # It is because rnn_input is just row (type = Series) and not the whole DataFrame (type = DataFrame)
+    def normalize_input(input_series):
+        for name in input_series.index:
+            if normalization_info.iloc[0][name] is not None:
+                input_series[name] /= normalization_info.iloc[0][name]
+        return input_series
+
+    def denormalize_output(output_series):
+        for name in output_series.index:
+            if normalization_info.iloc[0][name] is not None:
+                output_series[name] *= normalization_info.iloc[0][name]
+        return output_series
+
+
+    # Reset the internal state of RNN cells, clear the output memory, etc.
+    net.reset()
+    net.eval()
+    rnn_output_previous = None
+    device = get_device()
+
+    dev_features, dev_targets = load_data(args, filepath, inputs_list=inputs_list, outputs_list=outputs_list)
+    dev_set = Dataset(dev_features, dev_targets, args, seq_len=seq_len)
+
+    # Format the experiment data
+    features, targets = dev_set[0]
+
+    features_pd = pd.DataFrame(data=features, columns=inputs_list)
+    targets_pd = pd.DataFrame(data=targets, columns=outputs_list).apply(denormalize_output, axis=1)
+    # rnn_outputs = copy.deepcopy(targets_pd)
+    rnn_outputs = pd.DataFrame(columns=outputs_list)
+    rnn_output = None
+
+    for index, row in features_pd.iterrows():
+        rnn_input = row
+        if closed_loop_enabled and (rnn_output is not None):
+            rnn_input[closed_loop_list] = rnn_output[closed_loop_list]
+        # normalize_input(rnn_input)
+        rnn_input = np.squeeze(rnn_input.to_numpy())
+        rnn_input = torch.from_numpy(rnn_input).float().unsqueeze(0).unsqueeze(0).to(device)
+        rnn_output = net.initialize_sequence(rnn_input=rnn_input, all_input=True, stack_output=False)
+        rnn_output = list(np.squeeze(rnn_output.detach().cpu().numpy()))
+        rnn_output = pd.Series(data=rnn_output, index=outputs_list)
+        denormalize_output(rnn_output)
+        rnn_outputs = rnn_outputs.append(rnn_output, ignore_index=True)
+
+
+    # Get the time or # samples axes
+    experiment_length  = seq_len-1
+
+    if 'time' in features_pd.columns:
+        t = features_pd['time'].to_numpy()
+        time_axis = t
+        time_axis_string = 'time [s]'
+    elif 'dt' in features_pd.columns:
+        dt = features_pd['dt'].to_numpy()
+        t = np.cumsum(dt)
+        time_axis = t
+        time_axis_string = 'time [s]'
+    else:
+        samples = np.arange(0, experiment_length)
+        time_axis = samples
+        time_axis_string = 'Sample number'
+
+    number_of_plots = 0
+
+    if ('pos.x' in targets_pd) and ('pos.x' in rnn_outputs) and ('pos.y' in targets_pd) and ('pos.y' in rnn_outputs):
+        x_target = targets_pd['pos.x'].to_numpy()
+        y_target = targets_pd['pos.y'].to_numpy()
+        x_output = rnn_outputs['pos.x'].to_numpy()
+        y_output = rnn_outputs['pos.y'].to_numpy()
+        number_of_plots += 1
+
+    # Create a figure instance
+    fig, axs = plt.subplots(number_of_plots, 1, figsize=(18, 14), sharex=True)  # share x axis so zoom zooms all plots
+    plt.title(comment)
+    # axs[0].set_ylabel("Position (m)", fontsize=18)
+    # axs[0].plot(x_target, pixels2meters(SCREEN_HEIGHT_PIXELS)-y_target, 'k:', markersize=12, label='Ground Truth')
+    # axs[0].plot(x_output, pixels2meters(SCREEN_HEIGHT_PIXELS)-y_output, 'b', markersize=12, label='Predicted position')
+    # axs[0].tick_params(axis='both', which='major', labelsize=16)
+
+    axs.set_ylabel("Position (m)", fontsize=18)
+    axs.plot(x_target, pixels2meters(SCREEN_HEIGHT_PIXELS)-y_target, 'k:', markersize=12, label='Ground Truth')
+    axs.plot(x_output, pixels2meters(SCREEN_HEIGHT_PIXELS)-y_output, 'b', markersize=12, label='Predicted position')
+
+    axs.plot(x_target[0], pixels2meters(SCREEN_HEIGHT_PIXELS)-y_target[0], 'g.', markersize=16, label='Start')
+    axs.plot(x_output[0], pixels2meters(SCREEN_HEIGHT_PIXELS)-y_output[0], 'g.', markersize=16)
+    axs.plot(x_target[-1], pixels2meters(SCREEN_HEIGHT_PIXELS)-y_target[-1], 'r.', markersize=16, label='End')
+    axs.plot(x_output[-1], pixels2meters(SCREEN_HEIGHT_PIXELS)-y_output[-1], 'r.', markersize=16)
+
+    axs.tick_params(axis='both', which='major', labelsize=16)
+
+    plt.legend()
+
+    # axs[-1].set_xlabel('Time (s)', fontsize=18)
+
+    axs.set_xlabel('Time (s)', fontsize=18)
+
+    plt.ion()
+    plt.show()
+    plt.pause(.001)
+
+    # Make name settable and with time-date stemp
+    # Save figure to png
+    fig.savefig('my_figure.png')
+    Image('my_figure.png')
+
+
+    #
+    # # Get position over time
+    # xp = y_pred[args.warm_up_len:, 0]
+    # xt = y_target[:, 0]
+    #
+    # # Get velocity over time
+    # vp = y_pred[args.warm_up_len:, 1]
+    # vt = y_target[:, 1]
+    #
+    # # get angle theta of the Pole
+    # tp = y_pred[args.warm_up_len:, 2] * 180.0 / np.pi  # t like theta
+    # tt = y_target[:, 2] * 180.0 / np.pi
+    #
+    # # Get angular velocity omega of the Pole
+    # op = y_pred[args.warm_up_len:, 3] * 180.0 / np.pi  # o like omega
+    # ot = y_target[:, 3] * 180.0 / np.pi
+    #
+    # # Create a figure instance
+    # fig, axs = plt.subplots(5, 1, figsize=(18, 14), sharex=True)  # share x axis so zoom zooms all plots
+    #
+    # # %matplotlib inline
+    # # Plot position
+    # axs[0].set_ylabel("Position (m)", fontsize=18)
+    # axs[0].plot(t, xt, 'k:', markersize=12, label='Ground Truth')
+    # axs[0].plot(t[args.warm_up_len:], xp, 'b', markersize=12, label='Predicted position')
+    # axs[0].tick_params(axis='both', which='major', labelsize=16)
+    #
+    # # Plot velocity
+    # axs[1].set_ylabel("Velocity (m/s)", fontsize=18)
+    # axs[1].plot(t, vt, 'k:', markersize=12, label='Ground Truth')
+    # axs[1].plot(t[args.warm_up_len:], vp, 'g', markersize=12, label='Predicted velocity')
+    # axs[1].tick_params(axis='both', which='major', labelsize=16)
+    #
+    # # Plot angle
+    # axs[2].set_ylabel("Angle (deg)", fontsize=18)
+    # axs[2].plot(t, tt, 'k:', markersize=12, label='Ground Truth')
+    # axs[2].plot(t[args.warm_up_len:], tp, 'c', markersize=12, label='Predicted angle')
+    # axs[2].tick_params(axis='both', which='major', labelsize=16)
+    #
+    # # Plot angular velocity
+    # axs[3].set_ylabel("Angular velocity (deg/s)", fontsize=18)
+    # axs[3].plot(t, ot, 'k:', markersize=12, label='Ground Truth')
+    # axs[3].plot(t[args.warm_up_len:], op, 'm', markersize=12, label='Predicted velocity')
+    # axs[3].tick_params(axis='both', which='major', labelsize=16)
+    #
+    # # Plot motor input command
+    # axs[4].set_ylabel("motor (N)", fontsize=18)
+    # axs[4].plot(t, u_effs, 'r', markersize=12, label='motor')
+    # axs[4].tick_params(axis='both', which='major', labelsize=16)
+    #
+    # # # Plot target position
+    # # axs[5].set_ylabel("position target", fontsize=18)
+    # # axs[5].plot(self.MyCart.dict_history['time'], self.MyCart.dict_history['PositionTarget'], 'k')
+    # # axs[5].tick_params(axis='both', which='major', labelsize=16)
+    #
+    # axs[4].set_xlabel('Time (s)', fontsize=18)
+    #
+    # plt.show()
+    # # Save figure to png
+    # fig.savefig('my_figure.png')
+    # Image('my_figure.png')

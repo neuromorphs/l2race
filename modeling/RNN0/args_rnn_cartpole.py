@@ -10,7 +10,7 @@ Created on Fri Jun 19 08:29:29 2020
 import argparse
 
 path_save = './save/'
-TRAIN_file_name = '../../data/oval_easy_14_rounds.csv'
+TRAIN_file_name = ['../../data/oval_easy_14_rounds.csv', '../../data/train.csv']
 VAL_file_name = '../../data/oval_easy_12_rounds.csv'
 RNN_name = 'GRU-64H1-64H2'
 inputs_list = ['cmd.brake', 'cmd.steering', 'cmd.throttle', 'body_angle', 'pos.x', 'pos.y', 'vel.x', 'vel.y']

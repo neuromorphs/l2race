@@ -82,11 +82,18 @@ def train_network():
     # Create Dataset
     ########################################################
 
-    train_features, train_targets = load_data(args.train_file_name, inputs_list, outputs_list, args)
-    dev_features, dev_targets = load_data(args.val_file_name, inputs_list, outputs_list, args)
+    train_features, train_targets = load_data(args, args.train_file_name, inputs_list, outputs_list)
+    dev_features, dev_targets = load_data(args, args.val_file_name, inputs_list, outputs_list)
 
     train_set = Dataset(train_features, train_targets, args)
     dev_set = Dataset(dev_features, dev_targets, args)
+    print('Number of samples in training set: {}'.format(train_set.number_of_samples))
+    print('The training sets sizes are: {}'.format(train_set.df_lengths))
+    print('Number of samples in validation set: {}'.format(dev_set.number_of_samples))
+
+    plot_results(net=net, args=args, filepath='../../data/oval_easy_12_rounds.csv', seq_len=400, comment='This is the network at the beginning of the training',
+                 inputs_list=inputs_list, outputs_list=outputs_list)
+
 
     # Create PyTorch dataloaders for train and dev set
     train_generator = data.DataLoader(dataset=train_set, batch_size=batch_size, shuffle=True,
