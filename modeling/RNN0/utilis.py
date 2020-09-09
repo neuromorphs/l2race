@@ -843,7 +843,7 @@ def plot_results(net, args, filepath=None,
     # axs[0].plot(x_output, pixels2meters(SCREEN_HEIGHT_PIXELS)-y_output, 'b', markersize=12, label='Predicted position')
     # axs[0].tick_params(axis='both', which='major', labelsize=16)
 
-    axs.set_ylabel("Position (m)", fontsize=18)
+    axs.set_ylabel("Position y (m)", fontsize=18)
     axs.plot(x_target, pixels2meters(SCREEN_HEIGHT_PIXELS)-y_target, 'k:', markersize=12, label='Ground Truth')
     axs.plot(x_output, pixels2meters(SCREEN_HEIGHT_PIXELS)-y_output, 'b', markersize=12, label='Predicted position')
 
@@ -858,7 +858,7 @@ def plot_results(net, args, filepath=None,
 
     # axs[-1].set_xlabel('Time (s)', fontsize=18)
 
-    axs.set_xlabel('Time (s)', fontsize=18)
+    axs.set_xlabel('Position x (m)', fontsize=18)
 
     plt.ion()
     plt.show()
