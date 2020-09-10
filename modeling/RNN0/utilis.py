@@ -737,20 +737,15 @@ def plot_results(net,
         net.initialize_sequence(rnn_input=rnn_input, all_input=True, stack_output=False)
         warm_up_idx += 1
 
-    periodic_closing = False
-    periodic_closing_idx = 200
+    close_the_loop = False
     close_loop_idx = 300
 
     for index, row in features_pd.iterrows():
         rnn_input = copy.deepcopy(row)
-        # if index % periodic_closing_idx == 0:
-        #     periodic_closing = not periodic_closing
-        # # if closed_loop_enabled and (rnn_output is not None):
-        # #     rnn_input[closed_loop_list] = normalized_rnn_output[closed_loop_list]
-        # if index == close_loop_idx:
-        #     periodic_closing = True
-        # if periodic_closing and (rnn_output is not None):
-        #     rnn_input[closed_loop_list] = normalized_rnn_output[closed_loop_list]
+        if index == close_loop_idx:
+            close_the_loop = True
+        if closed_loop_enabled and close_the_loop and (rnn_output is not None):
+            rnn_input[closed_loop_list] = normalized_rnn_output[closed_loop_list]
         rnn_input = np.squeeze(rnn_input.to_numpy())
         rnn_input = torch.from_numpy(rnn_input).float().unsqueeze(0).unsqueeze(0).to(device)
         normalized_rnn_output = net.initialize_sequence(rnn_input=rnn_input, all_input=True, stack_output=False)
@@ -798,6 +793,15 @@ def plot_results(net,
         body_angle_output = rnn_outputs['body_angle'].to_numpy()
         number_of_plots += 1
 
+    if ('vel.x' in targets_pd) and ('vel.x' in rnn_outputs) and ('vel.y' in targets_pd) and ('vel.y' in rnn_outputs):
+        vel_x_target = targets_pd['vel.x'].to_numpy()
+        vel_y_target = targets_pd['vel.y'].to_numpy()
+        vel_x_output = rnn_outputs['vel.x'].to_numpy()
+        vel_y_output = rnn_outputs['vel.y'].to_numpy()
+        speed_target = np.sqrt((vel_x_target**2)+(vel_y_target**2))
+        speed_output = np.sqrt((vel_x_output ** 2) + (vel_y_output ** 2))
+        number_of_plots += 1
+
     # Create a figure instance
     fig, axs = plt.subplots(number_of_plots, 1, figsize=(18, 10)) #, sharex=True)  # share x axis so zoom zooms all plots
     plt.subplots_adjust(hspace=0.4)
@@ -812,8 +816,9 @@ def plot_results(net,
     axs[0].plot(x_output[0], pixels2meters(SCREEN_HEIGHT_PIXELS)-y_output[0], 'g.', markersize=16)
     axs[0].plot(x_target[-1], pixels2meters(SCREEN_HEIGHT_PIXELS)-y_target[-1], 'r.', markersize=16, label='End')
     axs[0].plot(x_output[-1], pixels2meters(SCREEN_HEIGHT_PIXELS)-y_output[-1], 'r.', markersize=16)
-    axs[0].plot(x_target[close_loop_idx], pixels2meters(SCREEN_HEIGHT_PIXELS)-y_target[close_loop_idx], '.', color='darkorange', markersize=16, label='connect output->input')
-    axs[0].plot(x_output[close_loop_idx], pixels2meters(SCREEN_HEIGHT_PIXELS)-y_output[close_loop_idx], '.', color='darkorange', markersize=16)
+    if closed_loop_enabled:
+        axs[0].plot(x_target[close_loop_idx], pixels2meters(SCREEN_HEIGHT_PIXELS)-y_target[close_loop_idx], '.', color='darkorange', markersize=16, label='connect output->input')
+        axs[0].plot(x_output[close_loop_idx], pixels2meters(SCREEN_HEIGHT_PIXELS)-y_output[close_loop_idx], '.', color='darkorange', markersize=16)
 
     axs[0].tick_params(axis='both', which='major', labelsize=16)
 
@@ -830,8 +835,9 @@ def plot_results(net,
     axs[1].plot(time_axis[0], body_angle_output[0], 'g.', markersize=16)
     axs[1].plot(time_axis[-1], body_angle_target[-1], 'r.', markersize=16, label='End')
     axs[1].plot(time_axis[-1], body_angle_output[-1], 'r.', markersize=16)
-    axs[1].plot(time_axis[close_loop_idx], body_angle_target[close_loop_idx], '.', color='darkorange', markersize=16, label='connect output->input')
-    axs[1].plot(time_axis[close_loop_idx], body_angle_output[close_loop_idx], '.', color='darkorange', markersize=16)
+    if closed_loop_enabled:
+        axs[1].plot(time_axis[close_loop_idx], body_angle_target[close_loop_idx], '.', color='darkorange', markersize=16, label='connect output->input')
+        axs[1].plot(time_axis[close_loop_idx], body_angle_output[close_loop_idx], '.', color='darkorange', markersize=16)
 
     axs[1].tick_params(axis='both', which='major', labelsize=16)
 
@@ -840,6 +846,22 @@ def plot_results(net,
     axs[1].legend()
 
 
+    axs[2].set_ylabel("Speed (m/s)", fontsize=18)
+    axs[2].plot(time_axis, speed_target, 'k:', markersize=12, label='Ground Truth')
+    axs[2].plot(time_axis, speed_output, 'b', markersize=12, label='Predicted position')
+
+    axs[2].plot(time_axis[0], speed_target[0], 'g.', markersize=16, label='Start')
+    axs[2].plot(time_axis[0], speed_output[0], 'g.', markersize=16)
+    axs[2].plot(time_axis[-1], speed_target[-1], 'r.', markersize=16, label='End')
+    axs[2].plot(time_axis[-1], speed_output[-1], 'r.', markersize=16)
+    if closed_loop_enabled:
+        axs[2].plot(time_axis[close_loop_idx], speed_target[close_loop_idx], '.', color='darkorange', markersize=16, label='connect output->input')
+        axs[2].plot(time_axis[close_loop_idx], speed_output[close_loop_idx], '.', color='darkorange', markersize=16)
+
+    axs[2].tick_params(axis='both', which='major', labelsize=16)
+
+    axs[2].set_xlabel(time_axis_string, fontsize=18)
+    axs[2].legend()
 
     # plt.ion()
     # plt.show()
