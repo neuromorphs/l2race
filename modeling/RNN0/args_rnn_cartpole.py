@@ -13,9 +13,9 @@ path_save = './save/'
 TRAIN_file_name = ['../../data/oval_easy_14_rounds.csv', '../../data/train.csv']
 VAL_file_name = '../../data/oval_easy_12_rounds.csv'
 RNN_name = 'GRU-64H1-64H2'
-inputs_list = ['cmd.brake', 'cmd.steering', 'cmd.throttle', 'body_angle', 'pos.x', 'pos.y', 'vel.x', 'vel.y']
-outputs_list = ['body_angle', 'pos.x', 'pos.y', 'vel.x', 'vel.y']
-closed_loop_list = ['body_angle', 'pos.x', 'pos.y', 'vel.x', 'vel.y']
+inputs_list = ['cmd.brake', 'cmd.steering', 'cmd.throttle', 'body_angle.cos', 'body_angle.sin', 'pos.x', 'pos.y', 'vel.x', 'vel.y']
+outputs_list = ['body_angle.cos', 'body_angle.sin', 'pos.x', 'pos.y', 'vel.x', 'vel.y']
+closed_loop_list = ['body_angle.cos', 'body_angle.sin', 'pos.x', 'pos.y', 'vel.x', 'vel.y']
 
 def args():
     parser = argparse.ArgumentParser(description='Train a GRU network.')
@@ -69,7 +69,7 @@ def args():
 
     # Adjust args in place to give user more freedom in his input and check it
     commands_list = ['dt', 'cmd.auto', 'cmd.steering', 'cmd.throttle', 'cmd.brake', 'cmd.reverse'] # Repeat to accept names also without 'cmd.'
-    state_variables_list = ['time', 'hit_distance', 'pos.x', 'pos.y', 'vel.x', 'vel.y', 'speed', 'accel.x', 'accel.y', 'steering_angle', 'body_angle', 'yaw_rate', 'drift_angle']
+    state_variables_list = ['time', 'hit_distance', 'pos.x', 'pos.y', 'vel.x', 'vel.y', 'speed', 'accel.x', 'accel.y', 'steering_angle', 'body_angle', 'body_angle.cos', 'body_angle.sin', 'yaw_rate', 'drift_angle']
 
 
     if my_args.inputs_list is not None:

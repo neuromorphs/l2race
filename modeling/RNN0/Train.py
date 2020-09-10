@@ -46,6 +46,7 @@ print(args.__dict__)
 # Warning! It may affect performance. I would discourage you to use it for long training tasks
 # @profile(precision=4)
 def train_network():
+    print('Start!')
     # Start measuring time - to evaluate performance of the training function
     start = timeit.default_timer()
 
@@ -93,7 +94,7 @@ def train_network():
     print('Number of samples in validation set: {}'.format(dev_set.number_of_samples))
 
     plot_results(net=net, args=args, filepath='../../data/oval_easy_12_rounds.csv', seq_len=400, comment='This is the network at the beginning of the training',
-                 inputs_list=inputs_list, outputs_list=outputs_list)
+                 inputs_list=inputs_list, outputs_list=outputs_list, rnn_full_name=rnn_full_name)
 
 
     # Create PyTorch dataloaders for train and dev set
@@ -325,6 +326,11 @@ def train_network():
             print('>>> saving best model from epoch {}'.format(epoch))
         else:
             print('>>> We keep model from epoch {}'.format(epoch_saved))
+
+        plot_string = 'This is the network after {} training epoch'.format(epoch+1)
+        plot_results(net=net, args=args, filepath='../../data/oval_easy_12_rounds.csv', seq_len=400,
+                     comment=plot_string,
+                     inputs_list=inputs_list, outputs_list=outputs_list, rnn_full_name=rnn_full_name)
         # Evaluate the performance of the current network
         # by checking its predictions on a randomly generated CartPole experiment
         # plot_results(net, args, val_file)

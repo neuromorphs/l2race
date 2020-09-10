@@ -13,17 +13,20 @@ from torch.utils import data
 from IPython.display import Image
 
 import matplotlib.pyplot as plt
+from datetime import datetime
 
 import pandas as pd
 import os
+import time
 
 import random as rnd
 import collections
 
 import sys
 sys.path.append('../../')
-from src.track import find_hit_position, meters2pixels, pixels2meters, track
 from src.globals import *
+from src.track import find_hit_position, meters2pixels, pixels2meters, track
+
 
 
 def get_device():
@@ -212,9 +215,9 @@ class Sequence(nn.Module):
     Our RNN class.
     """
     commands_list = ['dt', 'cmd.auto', 'cmd.steering', 'cmd.throttle', 'cmd.brake',
-                     'cmd.reverse']  # Repeat to accept names also without 'cmd.'
+                     'cmd.reverse']
     state_variables_list = ['time', 'pos.x', 'pos.y', 'vel.x', 'vel.y', 'speed', 'accel.x', 'accel.y', 'steering_angle',
-                            'body_angle', 'yaw_rate', 'drift_angle', 'body_angle.sin', 'body_angle.cos']
+                            'body_angle', 'body_angle.cos', 'body_angle.sin', 'yaw_rate', 'drift_angle', 'body_angle.sin', 'body_angle.cos']
 
     def __init__(self, rnn_name, inputs_list, outputs_list):
         super(Sequence, self).__init__()
@@ -461,64 +464,23 @@ class Dataset(data.Dataset):
         else:
             return self.data[idx:idx + self.seq_len, :], self.labels[idx:idx + self.seq_len]
 
+from math import fmod
+def wrap_angle_deg(angle):
+    angle = fmod(angle, 360) # % yields positive for negative angle
+    angle = fmod((angle + 360), 360)
+    if angle > 180:
+        angle -= 360
+    return angle
 
-def normalize(dat, mean, std):
-    rep = int(dat.shape[-1] / mean.shape[
-        0])  # there is 1 mean for each input sensor value, repeat it for each element in sequence in data
-    mean = np.tile(mean, rep)
-    std = np.tile(std, rep)
-    dat = (dat - mean) / std
-    return dat
+def SinCos2Angle(sine, cosine):
+    angle = np.rad2deg(np.arctan2(sine, cosine))
+    return angle
 
+def SinCos2Angle_wrapper(row):
+    angle = SinCos2Angle(row['body_angle.sin'], row['body_angle.cos'])
+    return angle
 
-def unnormalize(dat, mean, std):
-    rep = int(dat.shape[-1] / mean.shape[0])  # results in cw_len to properly tile for applying to dat.
-    # there is 1 mean for each input sensor value, repeat it for each element in sequence in data
-    mean = np.tile(mean, rep)
-    std = np.tile(std, rep)
-    dat = dat * std + mean
-    return dat
-
-
-def save_normalization(save_path, tr_mean, tr_std, lab_mean, lab_std):
-    fn_base = os.path.splitext(save_path)[0]
-    print("\nSaving normalization parameters to " + str(fn_base) + '-XX.pt')
-    norm = {
-        'tr_mean': tr_mean,
-        'tr_std': tr_std,
-        'lab_mean': lab_mean,
-        'lab_std': lab_std,
-    }
-    torch.save(norm, str(fn_base + '-norm.pt'))
-
-
-def load_normalization(save_path):
-    fn_base = os.path.splitext(save_path)[0]
-    print("\nLoading normalization parameters from ", str(fn_base))
-    norm = torch.load(fn_base + '-norm.pt')
-    return norm['tr_mean'], norm['tr_std'], norm['lab_mean'], norm['lab_std']
-
-
-def computeNormalization(dat: np.array):
-    '''
-    Computes the special normalization of our data
-    Args:
-        dat: numpy array of data arranged as [sample, sensor/control vaue]
-
-    Returns:
-        mean and std, each one is a vector of values
-    '''
-    # Collect desired prediction
-    # All terms are weighted equally by the loss function (either L1 or L2),
-    # so we need to make sure that we don't have values here that are too different in range
-    # Since the derivatives are computed on normalized data, but divided by the delta time in ms,
-    # we need to normalize the derivatives too. (We include the delta time to make more physical units of time
-    # so that the values don't change with different sample rate.)
-    m = np.mean(dat, 0)
-    s = np.std(dat, 0)
-    return m, s
-
-
+from scipy.special import sindg, cosdg
 def load_data(args, filepath=None, inputs_list=None, outputs_list=None):
     '''
     Loads dataset from CSV file
@@ -568,13 +530,24 @@ def load_data(args, filepath=None, inputs_list=None, outputs_list=None):
 
         print('processing data to generate sequences')
 
-        # df['body_angle'] = df['body_angle'] % 360 ## It is done below already
+        # Wrap body_angle to be in range +/- 180
+        df['body_angle'] = df['body_angle'].apply(wrap_angle_deg)
+        print('Max angle is {} and min angle is {}.'.format(max(df['body_angle']), min(df['body_angle'])))
+        df['body_angle.cos'] = df['body_angle'].apply(cosdg)
+        df['body_angle.sin'] = df['body_angle'].apply(sindg)
+
+        if df['body_angle'].equals(df.apply(SinCos2Angle_wrapper, axis=1)):
+            print('Conversion of angle ideal')
+        else:
+            print('Angle conversion error: {}'.format(max(abs(df['body_angle']-df.apply(SinCos2Angle_wrapper, axis=1)))))
+
 
         # Calculate time difference between time steps and at it to data frame
         time = df['time'].to_numpy()
         deltaTime = np.diff(time)
         deltaTime = np.insert(deltaTime, 0, 0)
         df['dt'] = deltaTime
+
 
         if args.extend_df:
             # Calculate distance to the track edge in front of the car and add it to the data frame
@@ -611,10 +584,6 @@ def load_data(args, filepath=None, inputs_list=None, outputs_list=None):
             df['twentieth_next_waypoint.y'] = df.apply(get_nth_next_waypoint_y, axis=1, args=(20,))
 
         if not args.do_not_normalize:
-            normalization_distance = pixels2meters(np.sqrt((SCREEN_HEIGHT_PIXELS**2) + (SCREEN_WIDTH_PIXELS**2)))
-            normalization_velocity = 50.0  # Before from Mark 24
-            normalization_acceleration = 5.0  # 2.823157895
-            normalization_angle = 180.0
 
             df['pos.x'] /= normalization_distance
             df['pos.y'] /= normalization_distance
@@ -625,10 +594,23 @@ def load_data(args, filepath=None, inputs_list=None, outputs_list=None):
             df['accel.x'] /= normalization_acceleration
             df['accel.y'] /= normalization_acceleration
 
-            df['body_angle'] = (((df['body_angle'] + 180) % 360) - 180)/normalization_angle # Wrapping AND normalizing angle
+            # https://stackoverflow.com/questions/2320986/easy-way-to-keeping-angles-between-179-and-180-degrees
 
-            df['body_angle.sin'] = np.sin(((((df['body_angle'] + 180) % 360) - 180)*normalization_angle + 180)*np.pi/180)
-            df['body_angle.cos'] = np.cos(((((df['body_angle'] + 180) % 360) - 180)*normalization_angle + 180)*np.pi/180)
+
+            # The first line is not workign for e.g. -200
+            # df['body_angle'] = (((df['body_angle'] + 180) % 360) - 180) / normalization_angle  # Wrapping AND normalizing angle
+            df['body_angle'] /= normalization_angle # normalizing angle
+
+            # 1) You already wrapped it in the above line.
+            # 2) For cos and sin you do not need to wrap the angle - they do it for you (periodic function)
+            # 3) You surely shouldn't normalize angle you put into sine and cos
+            # 4) Keep going. ;-)
+            # I move the wrapping above and do it always. Here leve only normalization (which sin, cos do not need)
+            # Wrapping due to:
+            # https://stackoverflow.com/questions/2320986/easy-way-to-keeping-angles-between-179-and-180-degrees
+            # df['body_angle.sin'] = np.sin(((((df['body_angle'] + 180) % 360) - 180)*normalization_angle + 180)*np.pi/180)
+            # df['body_angle.cos'] = np.cos(((((df['body_angle'] + 180) % 360) - 180)*normalization_angle + 180)*np.pi/180)
+
 
 
             if args.extend_df:
@@ -642,9 +624,6 @@ def load_data(args, filepath=None, inputs_list=None, outputs_list=None):
 
 
         # Get Raw Data
-        # x = df[args.features_list]
-        # u = df[args.commands_list]
-        # y = df[args.targets_list]
         inputs = df[inputs_list]
         outputs = df[outputs_list]
         features = np.array(inputs)[:-1]
@@ -658,52 +637,17 @@ def load_data(args, filepath=None, inputs_list=None, outputs_list=None):
         return features, targets
 
 
-    
-    
-
-    # Other code we used for data loading
-    # # @Nikhil It seems there is slightly different slicing convention for pandas DataFrame - here it was crashing
-    # # I don't know how to do it correctly so I convert it to numpy. You are welcome to change it.
-    # states = np.array(x)[:-1]
-    # control = np.array(u)[:-1]
-    # targets = np.array(y)[1:]
-    #
-    #
-    # features = np.hstack((np.array(states), np.array(control)))
-    # # features = torch.from_numpy(features).float()
-    #
-    # targets = np.array(targets)
-    # # targets = torch.from_numpy(targets).float()
-    # TODO : Compare the dimensions of features, and targets(By Nikhil) with that of raw_features, raw_targets(By Marcin)
-    #       and transpose accordingly if required
-    # Good job Nikhil! I like your approach!
-
-    # # The normalization of data - I am not sure how necessary it is
-    # # If you uncomment this lines please make sure that you unnormalize data before plugging them into ghost car
-    # # compute normalization of data now
-    # mean_features, std_features = computeNormalization(features)
-    # mean_targets, std_targets = computeNormalization(targets)
-    #
-    # if save_normalization_parameters:  # We only save normalization for train set - all the other sets we normalize withr respect to this set
-    #     save_normalization(savepath, mean_features, std_features, mean_targets, std_targets)
-    #     mean_train_features, std_train_features, mean_train_targets, std_train_targets = \
-    #         mean_features, std_features, mean_targets, std_targets
-    # else:
-    #     mean_train_features, std_train_features, mean_train_targets, std_train_targets \
-    #         = load_normalization(savepath)
-    #
-    # features = normalize(features, mean_train_features, std_train_features)
-    # targets = normalize(targets, mean_train_targets, std_train_targets)
-
-    # Version with normlaization
-    # return features, targets, mean_features, std_features, mean_targets, std_targets
-
-import copy
-def plot_results(net, args, filepath=None,
+def plot_results(net,
+                 args,
+                 filepath=None,
                  inputs_list=None,
                  outputs_list=None,
                  closed_loop_list=None,
-                 seq_len=None, warm_up_len=None, closed_loop_enabled=False, comment = ''):
+                 seq_len=None,
+                 warm_up_len=None,
+                 closed_loop_enabled=False,
+                 comment='',
+                 rnn_full_name=None):
     """
     This function accepts RNN instance, arguments and CartPole instance.
     It runs one random experiment with CartPole,
@@ -736,44 +680,13 @@ def plot_results(net, args, filepath=None,
         if closed_loop_list is None:
             raise ValueError('RNN closed-loop-inputs not provided!')
 
-    normalization_distance = pixels2meters(np.sqrt((SCREEN_HEIGHT_PIXELS ** 2) + (SCREEN_WIDTH_PIXELS ** 2)))
-    normalization_velocity = 50.0  # Before from Mark 24
-    normalization_acceleration = 5.0  # 2.823157895
-    normalization_angle = 180.0
-    normalization_dt = 1.0e-2
-
-    normalization_info = pd.DataFrame({
-        'time': None,
-        'dt': normalization_dt,
-        'cmd.auto': None,
-        'cmd.steering': None,
-        'cmd.throttle': None,
-        'cmd.brake': None,
-        'cmd.reverse': None,
-        'pos.x': normalization_distance,
-        'pos.y': normalization_distance,
-        'vel.x': normalization_velocity,
-        'vel.y': normalization_velocity,
-        'speed': normalization_velocity,
-        'accel.x': normalization_acceleration,
-        'accel.y': normalization_acceleration,
-        'steering_angle': None,
-        'body_angle': normalization_angle,
-        'yaw_rate': None,
-        'drift_angle': None
-    }, index=[0])
+    normalization_info = NORMALIZATION_INFO
 
     # Here in contrary to ghoast car implementation I have
     # rnn_input[name] /= normalization_info.iloc[0][column]
     # and not
     # rnn_input.iloc[0][column] /= normalization_info.iloc[0][column]
     # It is because rnn_input is just row (type = Series) and not the whole DataFrame (type = DataFrame)
-    def normalize_input(input_series):
-        for name in input_series.index:
-            print(name +'\n\n')
-            if normalization_info.iloc[0][name] is not None:
-                input_series[name] /= normalization_info.iloc[0][name]
-        return input_series
 
     def denormalize_output(output_series):
         for name in output_series.index:
@@ -785,7 +698,6 @@ def plot_results(net, args, filepath=None,
     # Reset the internal state of RNN cells, clear the output memory, etc.
     net.reset()
     net.eval()
-    rnn_output_previous = None
     device = get_device()
 
     dev_features, dev_targets = load_data(args, filepath, inputs_list=inputs_list, outputs_list=outputs_list)
@@ -796,15 +708,23 @@ def plot_results(net, args, filepath=None,
 
     features_pd = pd.DataFrame(data=features, columns=inputs_list)
     targets_pd = pd.DataFrame(data=targets, columns=outputs_list).apply(denormalize_output, axis=1)
-    # rnn_outputs = copy.deepcopy(targets_pd)
     rnn_outputs = pd.DataFrame(columns=outputs_list)
     rnn_output = None
+
+    warm_up_idx = 0
+    rnn_input_0 = np.zeros(len(inputs_list))
+
+    # Does not bring anything. Why? 0-state shouldn't have zero internal state due to biases...
+    # while warm_up_idx < warm_up_len:
+    #     rnn_input = rnn_input_0
+    #     rnn_input = torch.from_numpy(rnn_input).float().unsqueeze(0).unsqueeze(0).to(device)
+    #     rnn_output = net.initialize_sequence(rnn_input=rnn_input, all_input=True, stack_output=False)
+    #     warm_up_idx += 1
 
     for index, row in features_pd.iterrows():
         rnn_input = row
         if closed_loop_enabled and (rnn_output is not None):
             rnn_input[closed_loop_list] = rnn_output[closed_loop_list]
-        # normalize_input(rnn_input)
         rnn_input = np.squeeze(rnn_input.to_numpy())
         rnn_input = torch.from_numpy(rnn_input).float().unsqueeze(0).unsqueeze(0).to(device)
         rnn_output = net.initialize_sequence(rnn_input=rnn_input, all_input=True, stack_output=False)
@@ -814,18 +734,24 @@ def plot_results(net, args, filepath=None,
         rnn_outputs = rnn_outputs.append(rnn_output, ignore_index=True)
 
 
+    # If RNN was given sin and cos of body angle calculate back the body angle
+    if ('body_angle.cos' in rnn_outputs) and ('body_angle.sin' in rnn_outputs) and ('body_angle' not in rnn_outputs):
+        rnn_outputs['body_angle'] = rnn_outputs.apply(SinCos2Angle_wrapper, axis=1)
+    if ('body_angle.cos' in targets_pd) and ('body_angle.sin' in targets_pd) and ('body_angle' not in targets_pd):
+        targets_pd['body_angle'] = targets_pd.apply(SinCos2Angle_wrapper, axis=1)
+
     # Get the time or # samples axes
-    experiment_length  = seq_len-1
+    experiment_length  = seq_len
 
     if 'time' in features_pd.columns:
         t = features_pd['time'].to_numpy()
         time_axis = t
-        time_axis_string = 'time [s]'
+        time_axis_string = 'Time [s]'
     elif 'dt' in features_pd.columns:
         dt = features_pd['dt'].to_numpy()
         t = np.cumsum(dt)
         time_axis = t
-        time_axis_string = 'time [s]'
+        time_axis_string = 'Time [s]'
     else:
         samples = np.arange(0, experiment_length)
         time_axis = samples
@@ -840,30 +766,48 @@ def plot_results(net, args, filepath=None,
         y_output = rnn_outputs['pos.y'].to_numpy()
         number_of_plots += 1
 
+    if ('body_angle' in targets_pd) and ('body_angle' in rnn_outputs):
+        body_angle_target = targets_pd['body_angle'].to_numpy()
+        body_angle_output = rnn_outputs['body_angle'].to_numpy()
+        number_of_plots += 1
+
     # Create a figure instance
-    fig, axs = plt.subplots(number_of_plots, 1, figsize=(18, 14), sharex=True)  # share x axis so zoom zooms all plots
+    fig, axs = plt.subplots(number_of_plots, 1, figsize=(18, 10)) #, sharex=True)  # share x axis so zoom zooms all plots
     plt.title(comment)
-    # axs[0].set_ylabel("Position (m)", fontsize=18)
-    # axs[0].plot(x_target, pixels2meters(SCREEN_HEIGHT_PIXELS)-y_target, 'k:', markersize=12, label='Ground Truth')
-    # axs[0].plot(x_output, pixels2meters(SCREEN_HEIGHT_PIXELS)-y_output, 'b', markersize=12, label='Predicted position')
-    # axs[0].tick_params(axis='both', which='major', labelsize=16)
 
-    axs.set_ylabel("Position y (m)", fontsize=18)
-    axs.plot(x_target, pixels2meters(SCREEN_HEIGHT_PIXELS)-y_target, 'k:', markersize=12, label='Ground Truth')
-    axs.plot(x_output, pixels2meters(SCREEN_HEIGHT_PIXELS)-y_output, 'b', markersize=12, label='Predicted position')
+    axs[0].set_ylabel("Position y (m)", fontsize=18)
+    axs[0].plot(x_target, pixels2meters(SCREEN_HEIGHT_PIXELS)-y_target, 'k:', markersize=12, label='Ground Truth')
+    axs[0].plot(x_output, pixels2meters(SCREEN_HEIGHT_PIXELS)-y_output, 'b', markersize=12, label='Predicted position')
 
-    axs.plot(x_target[0], pixels2meters(SCREEN_HEIGHT_PIXELS)-y_target[0], 'g.', markersize=16, label='Start')
-    axs.plot(x_output[0], pixels2meters(SCREEN_HEIGHT_PIXELS)-y_output[0], 'g.', markersize=16)
-    axs.plot(x_target[-1], pixels2meters(SCREEN_HEIGHT_PIXELS)-y_target[-1], 'r.', markersize=16, label='End')
-    axs.plot(x_output[-1], pixels2meters(SCREEN_HEIGHT_PIXELS)-y_output[-1], 'r.', markersize=16)
+    axs[0].plot(x_target[0], pixels2meters(SCREEN_HEIGHT_PIXELS)-y_target[0], 'g.', markersize=16, label='Start')
+    axs[0].plot(x_output[0], pixels2meters(SCREEN_HEIGHT_PIXELS)-y_output[0], 'g.', markersize=16)
+    axs[0].plot(x_target[-1], pixels2meters(SCREEN_HEIGHT_PIXELS)-y_target[-1], 'r.', markersize=16, label='End')
+    axs[0].plot(x_output[-1], pixels2meters(SCREEN_HEIGHT_PIXELS)-y_output[-1], 'r.', markersize=16)
 
-    axs.tick_params(axis='both', which='major', labelsize=16)
+    axs[0].tick_params(axis='both', which='major', labelsize=16)
+
+    axs[0].set_xlabel('Position x (m)', fontsize=18)
 
     plt.legend()
 
-    # axs[-1].set_xlabel('Time (s)', fontsize=18)
 
-    axs.set_xlabel('Position x (m)', fontsize=18)
+
+    axs[1].set_ylabel("Body angle (deg)", fontsize=18)
+    axs[1].plot(time_axis, body_angle_target, 'k:', markersize=12, label='Ground Truth')
+    axs[1].plot(time_axis, body_angle_output, 'b', markersize=12, label='Predicted position')
+
+    axs[1].plot(time_axis[0], body_angle_target[0], 'g.', markersize=16, label='Start')
+    axs[1].plot(time_axis[0], body_angle_output[0], 'g.', markersize=16)
+    axs[1].plot(time_axis[-1], body_angle_target[-1], 'r.', markersize=16, label='End')
+    axs[1].plot(time_axis[-1], body_angle_output[-1], 'r.', markersize=16)
+
+    axs[1].tick_params(axis='both', which='major', labelsize=16)
+
+    axs[1].set_xlabel(time_axis_string, fontsize=18)
+
+    plt.legend()
+
+
 
     plt.ion()
     plt.show()
@@ -871,9 +815,12 @@ def plot_results(net, args, filepath=None,
 
     # Make name settable and with time-date stemp
     # Save figure to png
-    fig.savefig('my_figure.png')
-    Image('my_figure.png')
-
+    dateTimeObj = datetime.now()
+    timestampStr = dateTimeObj.strftime("%d%b%Y_%H%M%S")
+    if rnn_full_name is not None:
+        fig.savefig(rnn_full_name+timestampStr+'.png')
+    else:
+        fig.savefig(timestampStr + '.png')
 
     #
     # # Get position over time

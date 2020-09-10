@@ -65,14 +65,14 @@ class linear_extrapolation_model(client_car_model):
         :param real_car: real car with state we are modeling.
         :param modeled_car: ghost modeled car whose car_state to update.
         """
-        dt= time - self.time
-        self.time=time
+        dt = time - self.time
+        self.time = time
         if update_enabled:
-            if dt<0:
+            if dt < 0:
                 logger.warning('nonmonotonic timestep of {:.3f}s, setting dt=0'.format(dt))
                 return
-            modeled_car.car_state.position_m+= dt * modeled_car.car_state.velocity_m_per_sec #+(dt*dt)/2*modeled_car.car_state.accel_m_per_sec_2
-            modeled_car.car_state.body_angle_deg+= dt * modeled_car.car_state.yaw_rate_deg_per_sec
+            modeled_car.car_state.position_m += dt * modeled_car.car_state.velocity_m_per_sec #+(dt*dt)/2*modeled_car.car_state.accel_m_per_sec_2
+            modeled_car.car_state.body_angle_deg += dt * modeled_car.car_state.yaw_rate_deg_per_sec
         else:
             modeled_car.car_state = copy.copy(real_car.car_state)  # make copy that just copies the fields
             modeled_car.car_state.command=copy.copy(real_car.car_state.command) # and our own command
@@ -98,10 +98,10 @@ class SINDy_model(client_car_model):
         :param real_car: real car with state we are modeling.
         :param modeled_car: ghost modeled car whose car_state to update.
         """
-        dt=t-self.time
-        self.time=t
+        dt = t-self.time
+        self.time = t
         if update_enabled:
-            if dt<0:
+            if dt < 0:
                 logger.warning('nonmonotonic timestep of {:.3f}s, setting dt=0'.format(dt))
                 return
 
@@ -152,32 +152,9 @@ class RNN_model(client_car_model):
             'drift_angle': None
         }, index=[0])
 
-        normalization_distance = pixels2meters(np.sqrt((SCREEN_HEIGHT_PIXELS**2) + (SCREEN_WIDTH_PIXELS**2)))
-        normalization_velocity = 50.0  # Before from Mark 24
-        normalization_acceleration = 5.0  # 2.823157895
-        normalization_angle = 180.0
-        normalization_dt = 1.0e-2
 
-        self.normalization_info = pd.DataFrame({
-            'time': None,
-            'dt': normalization_dt,
-            'cmd.auto': None,
-            'cmd.steering': None,
-            'cmd.throttle': None,
-            'cmd.brake': None,
-            'cmd.reverse': None,
-            'pos.x': normalization_distance,
-            'pos.y': normalization_distance,
-            'vel.x': normalization_velocity,
-            'vel.y': normalization_velocity,
-            'speed': normalization_velocity,
-            'accel.x': normalization_acceleration,
-            'accel.y': normalization_acceleration,
-            'steering_angle': None,
-            'body_angle': normalization_angle,
-            'yaw_rate': None,
-            'drift_angle': None
-        }, index=[0])
+
+        self.normalization_info = NORMALIZATION_INFO
 
         self.rnn_output_previous = None # The rnn predicts next time step. So we have to feed in ghost car its output from previous iteration
 

@@ -12,10 +12,10 @@ G=scipy.constants.value('standard acceleration of gravity')
 
 # SERVER_HOST='telluridevm.iniforum.ch' # metanet 16-core model server
 SERVER_HOST='localhost'
-SERVER_PING_INTERVAL_S=1 # interval between trying for server
-SERVER_TIMEOUT_SEC = 1 # timeout in seconds for UDP socket reads during game running
-ENABLE_UPNP=True # set True to try unpnp to forward CLIENT_PORT_RANGE ports to local machine
-UPNP_LEASE_TIME=1200 # the lease time for these ports in seconds
+SERVER_PING_INTERVAL_S = 1  # interval between trying for server
+SERVER_TIMEOUT_SEC = 1  # timeout in seconds for UDP socket reads during game running
+ENABLE_UPNP = True  # set True to try unpnp to forward CLIENT_PORT_RANGE ports to local machine
+UPNP_LEASE_TIME = 1200  # the lease time for these ports in seconds
 
 # your autodrive controller module (i.e. folder) and class name, must be a class that has read method that returns the car_command() object
 # AUTODRIVE_MODULE='src.controllers.pid_next_waypoint_car_controller'
@@ -90,4 +90,46 @@ MODEL_UPDATE_RATE_HZ=100 # rate that server attempts to update all the car model
 MAX_CARS_PER_TRACK=6 # only this many cars can run on each track
 MAX_SPECTATORS_PER_TRACK=10 # only this many spectators can connect to each track
 KS_TO_ST_SPEED_M_PER_SEC=2.0 # transistion speed from KS to ST model types
+
+
+### Constants for RNN0 model:
+import pandas as pd
+import numpy as np
+from src.track import pixels2meters
+normalization_distance = pixels2meters(np.sqrt((SCREEN_HEIGHT_PIXELS ** 2) + (SCREEN_WIDTH_PIXELS ** 2)))
+normalization_velocity = 50.0  # Before from Mark 24
+normalization_acceleration = 5.0  # 2.823157895
+normalization_angle = 180.0
+normalization_dt = 1.0e-1
+
+NORMALIZATION_INFO = pd.DataFrame({
+    'time': None,
+    'dt': normalization_dt,
+    'cmd.auto': None,
+    'cmd.steering': None,
+    'cmd.throttle': None,
+    'cmd.brake': None,
+    'cmd.reverse': None,
+    'pos.x': normalization_distance,
+    'pos.y': normalization_distance,
+    'vel.x': normalization_velocity,
+    'vel.y': normalization_velocity,
+    'speed': normalization_velocity,
+    'accel.x': normalization_acceleration,
+    'accel.y': normalization_acceleration,
+    'steering_angle': None,
+    'body_angle': normalization_angle,
+    'body_angle.cos': None,
+    'body_angle.sin': None,
+    'yaw_rate': None,
+    'drift_angle': None,
+    'hit_distance': normalization_distance,
+    'nearest_waypoint_idx': None,
+    'first_next_waypoint.x': normalization_distance,
+    'first_next_waypoint.y': normalization_distance,
+    'fifth_next_waypoint.x': normalization_distance,
+    'fifth_next_waypoint.y': normalization_distance,
+    'twentieth_next_waypoint.x': normalization_distance,
+    'twentieth_next_waypoint.y': normalization_distance
+}, index=[0])
 
