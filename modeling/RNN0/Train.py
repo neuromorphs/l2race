@@ -99,7 +99,7 @@ def train_network():
     # Create PyTorch dataloaders for train and dev set
     train_generator = data.DataLoader(dataset=train_set, batch_size=batch_size, shuffle=True,
                                       num_workers=args.num_workers)
-    dev_generator = data.DataLoader(dataset=dev_set, batch_size=512, shuffle=True, num_workers=args.num_workers)
+    dev_generator = data.DataLoader(dataset=dev_set, batch_size=512, shuffle=False, num_workers=args.num_workers)
 
     # Print parameter count
     print_parameter_count(net)  # Seems not to function well
