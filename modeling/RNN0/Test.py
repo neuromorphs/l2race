@@ -44,8 +44,8 @@ def test_network():
     net, rnn_name, inputs_list, outputs_list\
         = create_rnn_instance(rnn_name, inputs_list, outputs_list, load_rnn, path_save, device)
 
-    plot_results(net=net, args=args, filepath='../../data/oval_easy_12_rounds.csv', seq_len=800, comment='Testing the RNN',
-                 inputs_list=inputs_list, outputs_list=outputs_list)
+    plot_results(net=net, args=args, filepath='../../data/oval_easy_12_rounds.csv', warm_up_len=1, seq_len=600, comment='Testing the RNN',
+                 inputs_list=inputs_list, outputs_list=outputs_list, save=True, closed_loop_enabled=True)
 
 
 if __name__ == '__main__':

@@ -10,12 +10,17 @@ Created on Fri Jun 19 08:29:29 2020
 import argparse
 
 path_save = './save/'
-TRAIN_file_name = ['../../data/oval_easy_14_rounds.csv', '../../data/train.csv']
+TRAIN_file_name = ['../../data/oval_easy_14_rounds.csv' , '../../data/train.csv']
 VAL_file_name = '../../data/oval_easy_12_rounds.csv'
-RNN_name = 'GRU-128H1-128H2'
-inputs_list = ['dt', 'cmd.reverse', 'cmd.brake', 'cmd.steering', 'cmd.throttle', 'body_angle.cos', 'body_angle.sin', 'pos.x', 'pos.y', 'vel.x', 'vel.y']
+RNN_name = 'GRU-32H1-32H2-32H3-32H4-32H5-32H6.pt'
+# inputs_list = ['dt', 'cmd.reverse', 'cmd.brake', 'cmd.steering', 'cmd.throttle', 'body_angle.cos', 'body_angle.sin', 'pos.x', 'pos.y', 'vel.x', 'vel.y']
+inputs_list = ['cmd.brake', 'cmd.steering', 'cmd.throttle', 'body_angle.cos', 'body_angle.sin', 'pos.x', 'pos.y', 'vel.x', 'vel.y']
+# outputs_list = ['body_angle.cos', 'body_angle.sin', 'pos.x', 'pos.y', 'vel.x', 'vel.y']
+# outputs_list = ['body_angle', 'pos.x', 'pos.y']
 outputs_list = ['body_angle.cos', 'body_angle.sin', 'pos.x', 'pos.y', 'vel.x', 'vel.y']
 closed_loop_list = ['body_angle.cos', 'body_angle.sin', 'pos.x', 'pos.y', 'vel.x', 'vel.y']
+# closed_loop_list = ['body_angle', 'pos.x', 'pos.y', 'vel.x', 'vel.y']
+# closed_loop_list = ['body_angle.cos', 'body_angle.sin', 'pos.x', 'pos.y']
 
 def args():
     parser = argparse.ArgumentParser(description='Train a GRU network.')
@@ -36,7 +41,7 @@ def args():
                         help='List of inputs to RNN')
     parser.add_argument('--outputs_list', nargs="?", default=None, const=outputs_list,
                         help='List of outputs from RNN')
-    parser.add_argument('close_loop_for', nargs='?', default=None, const=closed_loop_list,
+    parser.add_argument('--close_loop_for', nargs='?', default=None, const=closed_loop_list,
                         help='In RNN forward function this features will be fed beck from output to input')
     parser.add_argument('--load_rnn', nargs='?', default=None, const='last', type=str,
                         help='Full name defining the RNN which should be loaded without .csv nor .pt extension'
@@ -48,10 +53,8 @@ def args():
     parser.add_argument("--cheat_dt", action='store_true',
                         help="Give RNN during training a true (future) dt.")
 
-
-
-    parser.add_argument('--warm_up_len',    default=64,         type=int,    help='Number of timesteps for a warm-up sequence')
-    parser.add_argument('--seq_len', default=256+256+1, type=int, help='Number of timesteps in a sequence')
+    parser.add_argument('--warm_up_len',    default=1,         type=int,    help='Number of timesteps for a warm-up sequence')
+    parser.add_argument('--seq_len', default=5, type=int, help='Number of timesteps in a sequence')
 
     # Training parameters
     parser.add_argument('--num_epochs',     default=30,         type=int,    help='Number of epochs of training')
@@ -122,7 +125,7 @@ def args():
 
 
     # Check if arguments for feeding in closed loop are correct
-    if my_args.close_loop_for is not None:
+    if (my_args.close_loop_for is not None) and (my_args.inputs_list is not None) and (my_args.outputs_list is not None):
         for rnn_input in my_args.close_loop_for:
             if (rnn_input not in my_args.inputs_list) or (rnn_input not in my_args.outputs_list):
                 raise ValueError('The variable {} you requested to be fed back from RNN output to its input '

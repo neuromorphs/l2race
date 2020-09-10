@@ -662,7 +662,8 @@ def plot_results(net,
                  warm_up_len=None,
                  closed_loop_enabled=False,
                  comment='',
-                 rnn_full_name=None):
+                 rnn_full_name=None,
+                 save=False):
     """
     This function accepts RNN instance, arguments and CartPole instance.
     It runs one random experiment with CartPole,
@@ -727,24 +728,35 @@ def plot_results(net,
     rnn_output = None
 
     warm_up_idx = 0
-    rnn_input_0 = np.zeros(len(inputs_list))
-
+    rnn_input_0 = copy.deepcopy(features_pd.iloc[0])
     # Does not bring anything. Why? 0-state shouldn't have zero internal state due to biases...
-    # while warm_up_idx < warm_up_len:
-    #     rnn_input = rnn_input_0
-    #     rnn_input = torch.from_numpy(rnn_input).float().unsqueeze(0).unsqueeze(0).to(device)
-    #     rnn_output = net.initialize_sequence(rnn_input=rnn_input, all_input=True, stack_output=False)
-    #     warm_up_idx += 1
-
-    for index, row in features_pd.iterrows():
-        rnn_input = row
-        if closed_loop_enabled and (rnn_output is not None):
-            rnn_input[closed_loop_list] = rnn_output[closed_loop_list]
+    while warm_up_idx < warm_up_len:
+        rnn_input = rnn_input_0
         rnn_input = np.squeeze(rnn_input.to_numpy())
         rnn_input = torch.from_numpy(rnn_input).float().unsqueeze(0).unsqueeze(0).to(device)
-        rnn_output = net.initialize_sequence(rnn_input=rnn_input, all_input=True, stack_output=False)
-        rnn_output = list(np.squeeze(rnn_output.detach().cpu().numpy()))
-        rnn_output = pd.Series(data=rnn_output, index=outputs_list)
+        net.initialize_sequence(rnn_input=rnn_input, all_input=True, stack_output=False)
+        warm_up_idx += 1
+
+    periodic_closing = False
+    periodic_closing_idx = 200
+    close_loop_idx = 300
+
+    for index, row in features_pd.iterrows():
+        rnn_input = copy.deepcopy(row)
+        # if index % periodic_closing_idx == 0:
+        #     periodic_closing = not periodic_closing
+        # # if closed_loop_enabled and (rnn_output is not None):
+        # #     rnn_input[closed_loop_list] = normalized_rnn_output[closed_loop_list]
+        # if index == close_loop_idx:
+        #     periodic_closing = True
+        # if periodic_closing and (rnn_output is not None):
+        #     rnn_input[closed_loop_list] = normalized_rnn_output[closed_loop_list]
+        rnn_input = np.squeeze(rnn_input.to_numpy())
+        rnn_input = torch.from_numpy(rnn_input).float().unsqueeze(0).unsqueeze(0).to(device)
+        normalized_rnn_output = net.initialize_sequence(rnn_input=rnn_input, all_input=True, stack_output=False)
+        normalized_rnn_output = list(np.squeeze(normalized_rnn_output.detach().cpu().numpy()))
+        normalized_rnn_output = pd.Series(data=normalized_rnn_output, index=outputs_list)
+        rnn_output = copy.deepcopy(normalized_rnn_output)
         denormalize_output(rnn_output)
         rnn_outputs = rnn_outputs.append(rnn_output, ignore_index=True)
 
@@ -788,6 +800,8 @@ def plot_results(net,
 
     # Create a figure instance
     fig, axs = plt.subplots(number_of_plots, 1, figsize=(18, 10)) #, sharex=True)  # share x axis so zoom zooms all plots
+    plt.subplots_adjust(hspace=0.4)
+
     axs[0].set_title(comment, fontsize=20)
 
     axs[0].set_ylabel("Position y (m)", fontsize=18)
@@ -798,6 +812,8 @@ def plot_results(net,
     axs[0].plot(x_output[0], pixels2meters(SCREEN_HEIGHT_PIXELS)-y_output[0], 'g.', markersize=16)
     axs[0].plot(x_target[-1], pixels2meters(SCREEN_HEIGHT_PIXELS)-y_target[-1], 'r.', markersize=16, label='End')
     axs[0].plot(x_output[-1], pixels2meters(SCREEN_HEIGHT_PIXELS)-y_output[-1], 'r.', markersize=16)
+    axs[0].plot(x_target[close_loop_idx], pixels2meters(SCREEN_HEIGHT_PIXELS)-y_target[close_loop_idx], '.', color='darkorange', markersize=16, label='connect output->input')
+    axs[0].plot(x_output[close_loop_idx], pixels2meters(SCREEN_HEIGHT_PIXELS)-y_output[close_loop_idx], '.', color='darkorange', markersize=16)
 
     axs[0].tick_params(axis='both', which='major', labelsize=16)
 
@@ -814,6 +830,8 @@ def plot_results(net,
     axs[1].plot(time_axis[0], body_angle_output[0], 'g.', markersize=16)
     axs[1].plot(time_axis[-1], body_angle_target[-1], 'r.', markersize=16, label='End')
     axs[1].plot(time_axis[-1], body_angle_output[-1], 'r.', markersize=16)
+    axs[1].plot(time_axis[close_loop_idx], body_angle_target[close_loop_idx], '.', color='darkorange', markersize=16, label='connect output->input')
+    axs[1].plot(time_axis[close_loop_idx], body_angle_output[close_loop_idx], '.', color='darkorange', markersize=16)
 
     axs[1].tick_params(axis='both', which='major', labelsize=16)
 
@@ -829,12 +847,18 @@ def plot_results(net,
 
     # Make name settable and with time-date stemp
     # Save figure to png
-    dateTimeObj = datetime.now()
-    timestampStr = dateTimeObj.strftime("%d%b%Y_%H%M%S")
-    if rnn_full_name is not None:
-        fig.savefig(rnn_full_name+timestampStr+'.png')
-    else:
-        fig.savefig(timestampStr + '.png')
+    if save:
+        # Make folders if not yet exist
+        try:
+            os.makedirs('save_plots')
+        except FileExistsError:
+            pass
+        dateTimeObj = datetime.now()
+        timestampStr = dateTimeObj.strftime("%d%b%Y_%H%M%S")
+        if rnn_full_name is not None:
+            fig.savefig(rnn_full_name+timestampStr+'.png')
+        else:
+            fig.savefig('./save_plots/'+timestampStr + '.png')
 
     #
     # # Get position over time
