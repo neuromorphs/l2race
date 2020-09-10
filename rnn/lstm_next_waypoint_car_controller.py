@@ -199,7 +199,7 @@ class lstm_next_waypoint_car_controller:
         self.device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
         # import the multi feature csv
-        multifeature_csv = pd.read_csv(r'/home/arthurlobo/l2race/data/l2race_all_tracks.csv', header=None)
+        multifeature_csv = pd.read_csv(r'/home/arthurlobo/l2race/data/l2race-Wolfie_oval_easy_pure_pursuit+manual_09082020.csv', header=None)
 
         # diplay the contents of the csv file with NO processing
         self.L2Race_Data_processed = multifeature_csv.iloc[:,].values
@@ -229,8 +229,8 @@ class lstm_next_waypoint_car_controller:
 
         self.model = Seq2Seq(self.enc, self.dec, self.device).to(self.device)
 
-        # Car command prediction
-        self.model.load_state_dict(torch.load('/home/arthurlobo/l2race/seq2seq/test/l2race-model_09072020_2_flip.pt'))
+        # Load seq2seq model for car command prediction
+        self.model.load_state_dict(torch.load('/home/arthurlobo/l2race/seq2seq/test/l2race-model_09092020_oval_easy_4.pt'))
         self.X = torch.zeros(self.T1,32).to(self.device)
         self.y = torch.zeros(self.T2,4).to(self.device)           # command input to decoder is 0, LSTM should evolve from car state input and fed back output (predicted command)
         self.i = 0
@@ -419,13 +419,13 @@ class lstm_next_waypoint_car_controller:
 
         # T2 car command tuples are output by LSTM decoder for past T1 car state tuples
 #        print("4",self.y_hat_inv.shape)
-        self.car_cmd = self.y_hat_inv[9,:]
+        self.car_cmd = self.y_hat_inv[1,:]
         self.car_command.steering = np.clip(self.car_cmd[0], -1.0, 1.0) #/3.0)
         self.car_command.throttle = self.car_cmd[1]
         self.car_command.brake = self.car_cmd[2]
         self.car_command.reverse = int(abs(self.car_cmd[3]))
 #       print(self.yhat.shape)
-#        self.y = torch.from_numpy(self.yhat).to(self.device)
+        self.y = torch.from_numpy(self.yhat).to(self.device)
 
 
 #        self.__update_steering_error(cte=waypoint_distance)
