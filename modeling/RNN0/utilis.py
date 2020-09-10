@@ -214,7 +214,7 @@ class Sequence(nn.Module):
     commands_list = ['dt', 'cmd.auto', 'cmd.steering', 'cmd.throttle', 'cmd.brake',
                      'cmd.reverse']  # Repeat to accept names also without 'cmd.'
     state_variables_list = ['time', 'pos.x', 'pos.y', 'vel.x', 'vel.y', 'speed', 'accel.x', 'accel.y', 'steering_angle',
-                            'body_angle', 'yaw_rate', 'drift_angle']
+                            'body_angle', 'yaw_rate', 'drift_angle', 'body_angle.sin', 'body_angle.cos']
 
     def __init__(self, rnn_name, inputs_list, outputs_list):
         super(Sequence, self).__init__()
@@ -625,7 +625,11 @@ def load_data(args, filepath=None, inputs_list=None, outputs_list=None):
             df['accel.x'] /= normalization_acceleration
             df['accel.y'] /= normalization_acceleration
 
-            df['body_angle'] = (df['body_angle'] % 180)/normalization_angle # Wrapping AND normalizing angle
+            df['body_angle'] = (((df['body_angle'] + 180) % 360) - 180)/normalization_angle # Wrapping AND normalizing angle
+
+            df['body_angle.sin'] = np.sin(((((df['body_angle'] + 180) % 360) - 180)*normalization_angle + 180)*np.pi/180)
+            df['body_angle.cos'] = np.cos(((((df['body_angle'] + 180) % 360) - 180)*normalization_angle + 180)*np.pi/180)
+
 
             if args.extend_df:
                 df['hit_distance'] /= normalization_distance
@@ -766,6 +770,7 @@ def plot_results(net, args, filepath=None,
     # It is because rnn_input is just row (type = Series) and not the whole DataFrame (type = DataFrame)
     def normalize_input(input_series):
         for name in input_series.index:
+            print(name +'\n\n')
             if normalization_info.iloc[0][name] is not None:
                 input_series[name] /= normalization_info.iloc[0][name]
         return input_series
