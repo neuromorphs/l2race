@@ -39,7 +39,7 @@ T2 = int(sys.argv[2])    # output sentence length # time steps of car commands
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
 # import the multi feature csv
-multifeature_csv = pd.read_csv(r'../../data/l2race_oval_easy.csv', header=None) 
+multifeature_csv = pd.read_csv(r'/home/arthurlobo/l2race/data/l2race-Wolfie_oval_easy_pure_pursuit+manual_09082020.csv', header=None) 
  
 # diplay the contents of the csv file with NO processing
 L2Race_Data_processed = multifeature_csv.iloc[:,].values
@@ -389,7 +389,7 @@ def epoch_time(start_time, end_time):
     return elapsed_mins, elapsed_secs
 
 
-N_EPOCHS = 1000 
+N_EPOCHS = 2000 
 CLIP = 1
 
 best_valid_loss = float('inf')
@@ -398,9 +398,9 @@ train_flag = int(sys.argv[3])
 
 if (train_flag == 1):
 
-  f = open("loss_11_flip.txt", "w")
+  f = open("loss_15.txt", "w")
 
-#  model.load_state_dict(torch.load('l2race-model_09072020_2_flip.pt'))
+#  model.load_state_dict(torch.load('l2race-model_09092020_oval_easy.pt'))  # uncomment for warm start training
 
   for epoch in range(N_EPOCHS):
     
@@ -416,7 +416,7 @@ if (train_flag == 1):
     
     if valid_loss < best_valid_loss:
         best_valid_loss = valid_loss
-        torch.save(model.state_dict(), 'l2race-model_09072020_2_flip.pt')
+        torch.save(model.state_dict(), 'l2race-model_09092020_oval_easy.pt')
     
     print(f'Epoch: {epoch+1:02} | Time: {epoch_mins}m {epoch_secs}s')
     print(f'\tTrain Loss: {train_loss:.7f}')
@@ -427,7 +427,7 @@ if (train_flag == 1):
   f.close()
 
 # Testing 
-model.load_state_dict(torch.load('l2race-model_09072020_2_flip.pt'))
+model.load_state_dict(torch.load('l2race-model_09092020_oval_easy.pt'))
 test_loss = evaluate(model, val_dl, criterion)
 print(f'Test Loss: {test_loss:.7f}')
 
