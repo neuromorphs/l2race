@@ -18,6 +18,7 @@ from datetime import datetime
 import pandas as pd
 import os
 import time
+import copy
 
 import random as rnd
 import collections
@@ -624,10 +625,24 @@ def load_data(args, filepath=None, inputs_list=None, outputs_list=None):
 
 
         # Get Raw Data
-        inputs = df[inputs_list]
-        outputs = df[outputs_list]
-        features = np.array(inputs)[:-1]
-        targets = np.array(outputs)[1:]
+        inputs = copy.deepcopy(df)
+        outputs = copy.deepcopy(df)
+
+        inputs.drop(inputs.tail(1).index, inplace=True) # Drop last row
+        outputs.drop(outputs.head(1).index, inplace=True)
+        inputs.reset_index(inplace=True) # Reset index
+        outputs.reset_index(inplace=True)
+
+        if args.cheat_dt and ('dt' in inputs_list):
+            inputs['dt'] = outputs['dt']
+            print('dt cheating enabled!')
+
+        inputs = inputs[inputs_list]
+        outputs = outputs[outputs_list]
+
+
+        features = np.array(inputs)
+        targets = np.array(outputs)
         all_features.append(features)
         all_targets.append(targets)
 
@@ -773,7 +788,7 @@ def plot_results(net,
 
     # Create a figure instance
     fig, axs = plt.subplots(number_of_plots, 1, figsize=(18, 10)) #, sharex=True)  # share x axis so zoom zooms all plots
-    plt.title(comment)
+    axs[0].set_title(comment, fontsize=20)
 
     axs[0].set_ylabel("Position y (m)", fontsize=18)
     axs[0].plot(x_target, pixels2meters(SCREEN_HEIGHT_PIXELS)-y_target, 'k:', markersize=12, label='Ground Truth')
@@ -787,8 +802,7 @@ def plot_results(net,
     axs[0].tick_params(axis='both', which='major', labelsize=16)
 
     axs[0].set_xlabel('Position x (m)', fontsize=18)
-
-    plt.legend()
+    axs[0].legend()
 
 
 
@@ -805,12 +819,12 @@ def plot_results(net,
 
     axs[1].set_xlabel(time_axis_string, fontsize=18)
 
-    plt.legend()
+    axs[1].legend()
 
 
 
-    plt.ion()
-    plt.show()
+    # plt.ion()
+    # plt.show()
     plt.pause(.001)
 
     # Make name settable and with time-date stemp

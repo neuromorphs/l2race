@@ -46,7 +46,6 @@ print(args.__dict__)
 # Warning! It may affect performance. I would discourage you to use it for long training tasks
 # @profile(precision=4)
 def train_network():
-    print('Start!')
     # Start measuring time - to evaluate performance of the training function
     start = timeit.default_timer()
 
@@ -167,14 +166,17 @@ def train_network():
                 batch = batch.float().transpose(0, 1)
                 labels = labels.float()
 
+            # Reset memory of gradients
+            optimizer.zero_grad()
+
             # Warm-up (open loop prediction) to settle the internal state of RNN hidden layers
             net.initialize_sequence(rnn_input=batch,
                                     warm_up_len=args.warm_up_len,
                                     all_input=False,
                                     stack_output=False)
 
-            # Reset memory of gradients
-            optimizer.zero_grad()
+            # # Reset memory of gradients
+            # optimizer.zero_grad()
 
             # Forward propagation - These are the results from which we calculate the update to RNN weights
             # GRU Input size must be (seq_len, batch, input_size)

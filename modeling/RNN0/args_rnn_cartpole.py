@@ -12,8 +12,8 @@ import argparse
 path_save = './save/'
 TRAIN_file_name = ['../../data/oval_easy_14_rounds.csv', '../../data/train.csv']
 VAL_file_name = '../../data/oval_easy_12_rounds.csv'
-RNN_name = 'GRU-64H1-64H2'
-inputs_list = ['cmd.brake', 'cmd.steering', 'cmd.throttle', 'body_angle.cos', 'body_angle.sin', 'pos.x', 'pos.y', 'vel.x', 'vel.y']
+RNN_name = 'GRU-128H1-128H2'
+inputs_list = ['dt', 'cmd.reverse', 'cmd.brake', 'cmd.steering', 'cmd.throttle', 'body_angle.cos', 'body_angle.sin', 'pos.x', 'pos.y', 'vel.x', 'vel.y']
 outputs_list = ['body_angle.cos', 'body_angle.sin', 'pos.x', 'pos.y', 'vel.x', 'vel.y']
 closed_loop_list = ['body_angle.cos', 'body_angle.sin', 'pos.x', 'pos.y', 'vel.x', 'vel.y']
 
@@ -45,14 +45,16 @@ def args():
                         help="Extend loaded data with distance to 'hit-point' and positions of 1st, 5th and 20th nearest waypoints")
     parser.add_argument("--do_not_normalize", action='store_true',
                         help="Normalize data for trainig and inference.")
+    parser.add_argument("--cheat_dt", action='store_true',
+                        help="Give RNN during training a true (future) dt.")
 
 
 
-    parser.add_argument('--warm_up_len',    default=512,         type=int,    help='Number of timesteps for a warm-up sequence')
-    parser.add_argument('--seq_len', default=512+512+1, type=int, help='Number of timesteps in a sequence')
+    parser.add_argument('--warm_up_len',    default=64,         type=int,    help='Number of timesteps for a warm-up sequence')
+    parser.add_argument('--seq_len', default=256+256+1, type=int, help='Number of timesteps in a sequence')
 
     # Training parameters
-    parser.add_argument('--num_epochs',     default=20,         type=int,    help='Number of epochs of training')
+    parser.add_argument('--num_epochs',     default=30,         type=int,    help='Number of epochs of training')
     parser.add_argument('--batch_size',     default=64,         type=int,    help='Size of a batch')
     parser.add_argument('--seed', default=1873, type=int, help='Set seed for reproducibility')
     parser.add_argument('--lr', default=1.0e-1, type=float, help='Learning rate')
