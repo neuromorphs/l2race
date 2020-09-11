@@ -663,7 +663,8 @@ def plot_results(net,
                  closed_loop_enabled=False,
                  comment='',
                  rnn_full_name=None,
-                 save=False):
+                 save=False,
+                 close_loop_idx = 150):
     """
     This function accepts RNN instance, arguments and CartPole instance.
     It runs one random experiment with CartPole,
@@ -738,11 +739,11 @@ def plot_results(net,
         warm_up_idx += 1
 
     close_the_loop = False
-    close_loop_idx = 300
+    idx_cl = 0
 
     for index, row in features_pd.iterrows():
         rnn_input = copy.deepcopy(row)
-        if index == close_loop_idx:
+        if idx_cl == close_loop_idx:
             close_the_loop = True
         if closed_loop_enabled and close_the_loop and (rnn_output is not None):
             rnn_input[closed_loop_list] = normalized_rnn_output[closed_loop_list]
@@ -754,6 +755,7 @@ def plot_results(net,
         rnn_output = copy.deepcopy(normalized_rnn_output)
         denormalize_output(rnn_output)
         rnn_outputs = rnn_outputs.append(rnn_output, ignore_index=True)
+        idx_cl += 1
 
 
     # If RNN was given sin and cos of body angle calculate back the body angle
@@ -805,15 +807,15 @@ def plot_results(net,
     # Create a figure instance
     fig, axs = plt.subplots(number_of_plots, 1, figsize=(18, 10)) #, sharex=True)  # share x axis so zoom zooms all plots
     plt.subplots_adjust(hspace=0.4)
-
+    start_idx = 0
     axs[0].set_title(comment, fontsize=20)
 
     axs[0].set_ylabel("Position y (m)", fontsize=18)
     axs[0].plot(x_target, pixels2meters(SCREEN_HEIGHT_PIXELS)-y_target, 'k:', markersize=12, label='Ground Truth')
     axs[0].plot(x_output, pixels2meters(SCREEN_HEIGHT_PIXELS)-y_output, 'b', markersize=12, label='Predicted position')
 
-    axs[0].plot(x_target[0], pixels2meters(SCREEN_HEIGHT_PIXELS)-y_target[0], 'g.', markersize=16, label='Start')
-    axs[0].plot(x_output[0], pixels2meters(SCREEN_HEIGHT_PIXELS)-y_output[0], 'g.', markersize=16)
+    axs[0].plot(x_target[start_idx], pixels2meters(SCREEN_HEIGHT_PIXELS)-y_target[start_idx], 'g.', markersize=16, label='Start')
+    axs[0].plot(x_output[start_idx], pixels2meters(SCREEN_HEIGHT_PIXELS)-y_output[start_idx], 'g.', markersize=16)
     axs[0].plot(x_target[-1], pixels2meters(SCREEN_HEIGHT_PIXELS)-y_target[-1], 'r.', markersize=16, label='End')
     axs[0].plot(x_output[-1], pixels2meters(SCREEN_HEIGHT_PIXELS)-y_output[-1], 'r.', markersize=16)
     if closed_loop_enabled:
@@ -829,14 +831,14 @@ def plot_results(net,
 
     axs[1].set_ylabel("Body angle (deg)", fontsize=18)
     axs[1].plot(time_axis, body_angle_target, 'k:', markersize=12, label='Ground Truth')
-    axs[1].plot(time_axis, body_angle_output, 'b', markersize=12, label='Predicted position')
+    axs[1].plot(time_axis, body_angle_output, 'b', markersize=12, label='Predicted speed')
 
-    axs[1].plot(time_axis[0], body_angle_target[0], 'g.', markersize=16, label='Start')
-    axs[1].plot(time_axis[0], body_angle_output[0], 'g.', markersize=16)
+    axs[1].plot(time_axis[start_idx], body_angle_target[start_idx], 'g.', markersize=16, label='Start')
+    axs[1].plot(time_axis[start_idx], body_angle_output[start_idx], 'g.', markersize=16)
     axs[1].plot(time_axis[-1], body_angle_target[-1], 'r.', markersize=16, label='End')
     axs[1].plot(time_axis[-1], body_angle_output[-1], 'r.', markersize=16)
     if closed_loop_enabled:
-        axs[1].plot(time_axis[close_loop_idx], body_angle_target[close_loop_idx], '.', color='darkorange', markersize=16, label='connect output->input')
+        axs[1].plot(time_axis[close_loop_idx], body_angle_target[close_loop_idx], '.', color='darkorange', markersize=16, label='Connect output->input')
         axs[1].plot(time_axis[close_loop_idx], body_angle_output[close_loop_idx], '.', color='darkorange', markersize=16)
 
     axs[1].tick_params(axis='both', which='major', labelsize=16)
@@ -848,14 +850,14 @@ def plot_results(net,
 
     axs[2].set_ylabel("Speed (m/s)", fontsize=18)
     axs[2].plot(time_axis, speed_target, 'k:', markersize=12, label='Ground Truth')
-    axs[2].plot(time_axis, speed_output, 'b', markersize=12, label='Predicted position')
+    axs[2].plot(time_axis, speed_output, 'b', markersize=12, label='Predicted speed')
 
-    axs[2].plot(time_axis[0], speed_target[0], 'g.', markersize=16, label='Start')
-    axs[2].plot(time_axis[0], speed_output[0], 'g.', markersize=16)
+    axs[2].plot(time_axis[start_idx], speed_target[start_idx], 'g.', markersize=16, label='Start')
+    axs[2].plot(time_axis[start_idx], speed_output[start_idx], 'g.', markersize=16)
     axs[2].plot(time_axis[-1], speed_target[-1], 'r.', markersize=16, label='End')
     axs[2].plot(time_axis[-1], speed_output[-1], 'r.', markersize=16)
     if closed_loop_enabled:
-        axs[2].plot(time_axis[close_loop_idx], speed_target[close_loop_idx], '.', color='darkorange', markersize=16, label='connect output->input')
+        axs[2].plot(time_axis[close_loop_idx], speed_target[close_loop_idx], '.', color='darkorange', markersize=16, label='Connect output->input')
         axs[2].plot(time_axis[close_loop_idx], speed_output[close_loop_idx], '.', color='darkorange', markersize=16)
 
     axs[2].tick_params(axis='both', which='major', labelsize=16)
@@ -863,9 +865,9 @@ def plot_results(net,
     axs[2].set_xlabel(time_axis_string, fontsize=18)
     axs[2].legend()
 
-    # plt.ion()
+    plt.ioff()
     # plt.show()
-    plt.pause(.001)
+    plt.pause(1)
 
     # Make name settable and with time-date stemp
     # Save figure to png
@@ -878,7 +880,7 @@ def plot_results(net,
         dateTimeObj = datetime.now()
         timestampStr = dateTimeObj.strftime("%d%b%Y_%H%M%S")
         if rnn_full_name is not None:
-            fig.savefig(rnn_full_name+timestampStr+'.png')
+            fig.savefig('./save_plots/'+rnn_full_name+'.png')
         else:
             fig.savefig('./save_plots/'+timestampStr + '.png')
 

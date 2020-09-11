@@ -43,9 +43,10 @@ def test_network():
     # Create rnn instance and update lists of input, outputs and its name (if pretraind net loaded)
     net, rnn_name, inputs_list, outputs_list\
         = create_rnn_instance(rnn_name, inputs_list, outputs_list, load_rnn, path_save, device)
-
-    plot_results(net=net, args=args, filepath='../../data/oval_easy_12_rounds.csv', warm_up_len=1, seq_len=600, comment='Testing the RNN',
-                 inputs_list=inputs_list, outputs_list=outputs_list, save=True, closed_loop_enabled=True)
+    title = 'Testing RNN: {}'.format(rnn_name)
+    plot_results(net=net, args=args, filepath='../../data/oval_easy_12_rounds.csv', warm_up_len=10, seq_len=600, comment=title,
+                 inputs_list=inputs_list, outputs_list=outputs_list, save=True, closed_loop_enabled=False, rnn_full_name=rnn_name,
+                 close_loop_idx = 250)
 
 
 if __name__ == '__main__':

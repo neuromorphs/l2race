@@ -97,10 +97,12 @@ import pandas as pd
 import numpy as np
 from src.track import pixels2meters
 normalization_distance = pixels2meters(np.sqrt((SCREEN_HEIGHT_PIXELS ** 2) + (SCREEN_WIDTH_PIXELS ** 2)))
-normalization_velocity = 50.0  # Before from Mark 24
+normalization_velocity = 50.0  #  from Mark 24
 normalization_acceleration = 5.0  # 2.823157895
 normalization_angle = 180.0
 normalization_dt = 1.0e-1
+normalization_x = SCREEN_WIDTH_PIXELS
+normalization_y = SCREEN_HEIGHT_PIXELS
 
 NORMALIZATION_INFO = pd.DataFrame({
     'time': None,

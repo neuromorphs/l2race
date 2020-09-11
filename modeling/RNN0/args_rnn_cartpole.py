@@ -5,20 +5,30 @@ Created on Fri Jun 19 08:29:29 2020
 @author: Marcin
 """
 
-
-
 import argparse
 
 path_save = './save/'
-TRAIN_file_name = '../../data/oval_easy_14_rounds.csv'# , '../../data/train.csv']
+TRAIN_file_name = [#'../../data/oval_easy_14_rounds.csv',
+                   '../../data/track_1_10_rounds.csv',
+                   '../../data/track_2_10_rounds.csv',
+                   '../../data/track_3_2_rounds.csv',
+                   '../../data/track_3_3_rounds.csv',
+                   '../../data/track_3_3_rounds_1.csv',
+                   '../../data/track_3_8_rounds.csv.csv' , '../../data/empty_4min.csv', '../../data/empty_6min.csv']
 VAL_file_name = '../../data/oval_easy_12_rounds.csv'
-RNN_name = 'GRU-32H1-32H2-32H3-32H4-32H5-32H6.pt'
+RNN_name = 'GRU-16H1'
 # inputs_list = ['dt', 'cmd.reverse', 'cmd.brake', 'cmd.steering', 'cmd.throttle', 'body_angle.cos', 'body_angle.sin', 'pos.x', 'pos.y', 'vel.x', 'vel.y']
-inputs_list = ['cmd.brake', 'cmd.steering', 'cmd.throttle', 'body_angle.cos', 'body_angle.sin', 'pos.x', 'pos.y', 'vel.x', 'vel.y']
+# inputs_list = ['cmd.brake', 'cmd.steering', 'cmd.throttle', 'body_angle.cos', 'body_angle.sin', 'pos.x', 'pos.y',
+#                'vel.x', 'vel.y']
+inputs_list = ['cmd.brake', 'cmd.steering', 'cmd.throttle', 'body_angle', 'pos.x', 'pos.y',
+               'vel.x', 'vel.y']
 # outputs_list = ['body_angle.cos', 'body_angle.sin', 'pos.x', 'pos.y', 'vel.x', 'vel.y']
 # outputs_list = ['body_angle', 'pos.x', 'pos.y']
-outputs_list = ['body_angle.cos', 'body_angle.sin', 'pos.x', 'pos.y', 'vel.x', 'vel.y']
-closed_loop_list = ['body_angle.cos', 'body_angle.sin', 'pos.x', 'pos.y', 'vel.x', 'vel.y']
+# outputs_list = ['body_angle.cos', 'body_angle.sin', 'pos.x', 'pos.y', 'vel.x', 'vel.y']
+outputs_list = ['body_angle', 'pos.x', 'pos.y', 'vel.x', 'vel.y']
+# closed_loop_list = ['body_angle.cos', 'body_angle.sin', 'pos.x', 'pos.y', 'vel.x', 'vel.y']
+closed_loop_list = ['body_angle', 'pos.x', 'pos.y', 'vel.x', 'vel.y']
+
 # closed_loop_list = ['body_angle', 'pos.x', 'pos.y', 'vel.x', 'vel.y']
 # closed_loop_list = ['body_angle.cos', 'body_angle.sin', 'pos.x', 'pos.y']
 
@@ -33,11 +43,11 @@ def args():
                              'e.g. GRU-64H1-64H2-32H3')
     parser.add_argument('--train_file_name', default=TRAIN_file_name, type=str,
                         help='File name of the recording to be used for training the RNN'
-                               'e.g. oval_easy.csv ')
+                             'e.g. oval_easy.csv ')
     parser.add_argument('--val_file_name', default=VAL_file_name, type=str,
                         help='File name of the recording to be used for validating the RNN'
-                               'e.g. oval_easy_test.csv ')
-    parser.add_argument('--inputs_list', nargs="?", default=None,  const=inputs_list,
+                             'e.g. oval_easy_test.csv ')
+    parser.add_argument('--inputs_list', nargs="?", default=None, const=inputs_list,
                         help='List of inputs to RNN')
     parser.add_argument('--outputs_list', nargs="?", default=None, const=outputs_list,
                         help='List of outputs from RNN')
@@ -53,29 +63,30 @@ def args():
     parser.add_argument("--cheat_dt", action='store_true',
                         help="Give RNN during training a true (future) dt.")
 
-    parser.add_argument('--warm_up_len',    default=1,         type=int,    help='Number of timesteps for a warm-up sequence')
+    parser.add_argument('--warm_up_len', default=1, type=int, help='Number of timesteps for a warm-up sequence')
     parser.add_argument('--seq_len', default=5, type=int, help='Number of timesteps in a sequence')
 
     # Training parameters
-    parser.add_argument('--num_epochs',     default=30,         type=int,    help='Number of epochs of training')
-    parser.add_argument('--batch_size',     default=64,         type=int,    help='Size of a batch')
+    parser.add_argument('--num_epochs', default=5, type=int, help='Number of epochs of training')
+    parser.add_argument('--batch_size', default=64, type=int, help='Size of a batch')
     parser.add_argument('--seed', default=1873, type=int, help='Set seed for reproducibility')
     parser.add_argument('--lr', default=1.0e-1, type=float, help='Learning rate')
     parser.add_argument('--path_save', default=path_save, type=str,
                         help='Path where to save/ from where to load models')
-    
-    parser.add_argument('--normalize',    default=True,          type=bool,    help='Make all data between 0 and 1')
-    
-    parser.add_argument('--num_workers',    default=1,          type=int,    help='Number of workers to produce data from data loaders')
 
+    parser.add_argument('--normalize', default=True, type=bool, help='Make all data between 0 and 1')
 
+    parser.add_argument('--num_workers', default=1, type=int,
+                        help='Number of workers to produce data from data loaders')
 
     my_args = parser.parse_args()
 
     # Adjust args in place to give user more freedom in his input and check it
-    commands_list = ['dt', 'cmd.auto', 'cmd.steering', 'cmd.throttle', 'cmd.brake', 'cmd.reverse'] # Repeat to accept names also without 'cmd.'
-    state_variables_list = ['time', 'hit_distance', 'pos.x', 'pos.y', 'vel.x', 'vel.y', 'speed', 'accel.x', 'accel.y', 'steering_angle', 'body_angle', 'body_angle.cos', 'body_angle.sin', 'yaw_rate', 'drift_angle']
-
+    commands_list = ['dt', 'cmd.auto', 'cmd.steering', 'cmd.throttle', 'cmd.brake',
+                     'cmd.reverse']  # Repeat to accept names also without 'cmd.'
+    state_variables_list = ['time', 'hit_distance', 'pos.x', 'pos.y', 'vel.x', 'vel.y', 'speed', 'accel.x', 'accel.y',
+                            'steering_angle', 'body_angle', 'body_angle.cos', 'body_angle.sin', 'yaw_rate',
+                            'drift_angle']
 
     if my_args.inputs_list is not None:
         # If user provided command names without cmd. add it.
@@ -104,8 +115,7 @@ def args():
                 s = 'A requested input {} to RNN is neither a command nor a state variable of l2race car model' \
                     .format(rnn_input)
                 raise ValueError(s)
-        my_args.inputs_list = sorted(command_inputs)+sorted(states_inputs)
-
+        my_args.inputs_list = sorted(command_inputs) + sorted(states_inputs)
 
     # Make sure that inputs are ordered:
     # First state variables then commands, otherwise alphabetically
@@ -121,11 +131,11 @@ def args():
                 s = 'A requested output {} to RNN is neither a command nor a state variable of l2race car model' \
                     .format(rnn_output)
                 raise ValueError(s)
-        my_args.outputs_list = sorted(command_outputs)+sorted(states_outputs)
-
+        my_args.outputs_list = sorted(command_outputs) + sorted(states_outputs)
 
     # Check if arguments for feeding in closed loop are correct
-    if (my_args.close_loop_for is not None) and (my_args.inputs_list is not None) and (my_args.outputs_list is not None):
+    if (my_args.close_loop_for is not None) and (my_args.inputs_list is not None) and (
+            my_args.outputs_list is not None):
         for rnn_input in my_args.close_loop_for:
             if (rnn_input not in my_args.inputs_list) or (rnn_input not in my_args.outputs_list):
                 raise ValueError('The variable {} you requested to be fed back from RNN output to its input '
