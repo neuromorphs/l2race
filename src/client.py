@@ -811,7 +811,9 @@ class client:
             logger.warning('tried to run client_car_model as ghost car but client_car_model is None')
             return
 
-        if self.ghost_car is None:
+        if self.ghost_car is None :
+            if self.car is None or self.car.car_state is None:
+                return  # we might be spectating, so don't have a car to ghost
             logger.info('making ghost car copy of car for showing client_car_model')
             self.ghost_car = copy.copy(self.car)  # just copy fields
             self.ghost_car.car_state = copy.copy(self.car.car_state)  # make sure we get our own car_state

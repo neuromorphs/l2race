@@ -85,7 +85,7 @@ def vehicleDynamics_ST(x, uInit, p):
     # u1 = steering angle velocity of front wheels
     # u2 = longitudinal acceleration
 
-    # consider steering constraints
+    # consider steering/acceleration constraints
     u = [
         steeringConstraints(x[2], uInit[0], p.steering),
         accelerationConstraints(x[3], uInit[1], p.longitudinal)
@@ -94,8 +94,7 @@ def vehicleDynamics_ST(x, uInit, p):
     u[0] = friction_steering_constraint(u[1], x[5], u[0], x[3], x[4], p)
 
     # switch to kinematic model for small velocities
-    if x[
-        3] < KS_TO_ST_SPEED_M_PER_SEC:  # tobi added for reverse gear and increased to 1m/s to reduce numerical instability at low speed by /speed - hint from matthias
+    if x[3] < KS_TO_ST_SPEED_M_PER_SEC:  # tobi added for reverse gear and increased to 1m/s to reduce numerical instability at low speed by /speed - hint from matthias
         # wheelbase
         lwb = p.a + p.b
 
