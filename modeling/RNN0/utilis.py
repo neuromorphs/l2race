@@ -336,7 +336,15 @@ class Sequence(nn.Module):
         print('Input state variables: {}'.format(', '.join(map(str, self.states_inputs))))
         print('Input commands: {}'.format(', '.join(map(str, self.command_inputs))))
         print('The outputs are (in this order): {}'.format(', '.join(map(str, outputs_list))))
-        print('')
+
+
+            #
+            # # Concatenate the previous prediction and current control input to the input to RNN for a new time step
+            # if real_time:
+            #     input_t = torch.cat((self.output, rnn_input_commands.squeeze(0)), 1)
+            # else:
+            #     input_t = torch.cat((self.output, rnn_input_commands[self.sample_counter, :]), 1)
+
 
     def reset(self):
         """
@@ -348,19 +356,22 @@ class Sequence(nn.Module):
         self.output = None
         self.outputs = []
 
-    def return_outputs_history(self):
-        return torch.stack(self.outputs, 1)
-
-
     def forward(self, rnn_input):
 
-        if self.h == [None] * len(self.h_size):
-            # Initialize hidden layers - this change at every call as the batch size may vary
-            for i in range(len(self.h_size)):
-                self.h[i] = torch.zeros(rnn_input.size(1), self.h_size[i], dtype=torch.float).to(self.device)
-                self.c[i] = torch.zeros(rnn_input.size(1), self.h_size[i], dtype=torch.float).to(self.device)
+        """
+        Predicts future CartPole states IN "OPEN LOOP"
+        (at every time step prediction for the next time step is done based on the true CartPole state)
+        """
+
+
+        # Initialize hidden layers - this change at every call as the batch size may vary
+        for i in range(len(self.h_size)):
+            self.h[i] = torch.zeros(rnn_input.size(1), self.h_size[i], dtype=torch.float).to(self.device)
+            self.c[i] = torch.zeros(rnn_input.size(1), self.h_size[i], dtype=torch.float).to(self.device)
 
         # The for loop takes the consecutive time steps from input plugs them into RNN and save the outputs into a list
+        # THE NETWORK GETS ALWAYS THE GROUND TRUTH, THE REAL STATE OF THE CARTPOLE, AS ITS INPUT
+        # IT PREDICTS THE STATE OF THE CARTPOLE ONE TIME STEP AHEAD BASED ON TRUE STATE NOW
         for iteration, input_t in enumerate(rnn_input.chunk(rnn_input.size(0), dim=0)):
 
             # Propagate input through RNN layers
@@ -377,19 +388,13 @@ class Sequence(nn.Module):
             self.outputs += [self.output]
             self.sample_counter = self.sample_counter + 1
 
-
         # In the train mode we want to continue appending the outputs by calling forward function
         # The outputs will be saved internally in the network instance as a list
         # Otherwise we want to transform outputs list to a tensor and return it
         return self.output
 
-
-
-        # # Concatenate the previous prediction and current control input to the input to RNN for a new time step
-        # if real_time:
-        #     input_t = torch.cat((self.output, rnn_input_commands.squeeze(0)), 1)
-        # else:
-        #     input_t = torch.cat((self.output, rnn_input_commands[self.sample_counter, :]), 1)
+    def return_outputs_history(self):
+        return torch.stack(self.outputs, 1)
 
 
 
@@ -733,15 +738,15 @@ def plot_results(net,
 
     warm_up_idx = 0
     rnn_input_0 = copy.deepcopy(features_pd.iloc[0])
-    # # Does not bring anything. Why? 0-state shouldn't have zero internal state due to biases...
-    # while warm_up_idx < warm_up_len:
-    #     rnn_input = rnn_input_0
-    #     rnn_input = np.squeeze(rnn_input.to_numpy())
-    #     rnn_input = torch.from_numpy(rnn_input).float().unsqueeze(0).unsqueeze(0).to(device)
-    #     net(rnn_input=rnn_input)
-    #     warm_up_idx += 1
-    # net.outputs = []
-    # net.sample_counter = 0
+    # Does not bring anything. Why? 0-state shouldn't have zero internal state due to biases...
+    while warm_up_idx < warm_up_len:
+        rnn_input = rnn_input_0
+        rnn_input = np.squeeze(rnn_input.to_numpy())
+        rnn_input = torch.from_numpy(rnn_input).float().unsqueeze(0).unsqueeze(0).to(device)
+        net(rnn_input=rnn_input)
+        warm_up_idx += 1
+    net.outputs = []
+    net.sample_counter = 0
 
     close_the_loop = False
     idx_cl = 0

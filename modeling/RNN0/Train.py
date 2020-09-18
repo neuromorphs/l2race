@@ -186,8 +186,8 @@ def train_network():
             out = net.return_outputs_history()
 
             # Get loss
-            loss = criterion(out[:, args.warm_up_len: args.seq_len, :],
-                             labels[:, args.warm_up_len: args.seq_len, :])
+            loss = criterion(out[:, args.warm_up_len:, :],
+                             labels[:, args.warm_up_len:, :])
 
             # Backward propagation
             loss.backward()
