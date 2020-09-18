@@ -14,9 +14,23 @@ TRAIN_file_name = [#'../../data/oval_easy_14_rounds.csv',
                    '../../data/track_3_2_rounds.csv',
                    '../../data/track_3_3_rounds.csv',
                    '../../data/track_3_3_rounds_1.csv',
-                   '../../data/track_3_8_rounds.csv.csv' , '../../data/empty_4min.csv', '../../data/empty_6min.csv']
+                   '../../data/track_3_8_rounds.csv.csv' , '../../data/empty_4min.csv', '../../data/empty_6min.csv'
+                    ]
 VAL_file_name = '../../data/oval_easy_12_rounds.csv'
-RNN_name = 'GRU-16H1'
+
+
+# TRAIN_file_name = ['../../data/empty_6min.csv'
+#                     ]
+# VAL_file_name = '../../data/empty_4min.csv'
+
+
+RNN_name = 'GRU-256H1-256H2'
+# inputs_list = ['dt', 'pos.x', 'pos.y']
+# outputs_list = ['vel.x', 'vel.y']
+#
+# files_training = ['A.csv', 'B.csv']
+# files_testing = ['C.csv']
+
 # inputs_list = ['dt', 'cmd.reverse', 'cmd.brake', 'cmd.steering', 'cmd.throttle', 'body_angle.cos', 'body_angle.sin', 'pos.x', 'pos.y', 'vel.x', 'vel.y']
 # inputs_list = ['cmd.brake', 'cmd.steering', 'cmd.throttle', 'body_angle.cos', 'body_angle.sin', 'pos.x', 'pos.y',
 #                'vel.x', 'vel.y']
@@ -64,10 +78,10 @@ def args():
                         help="Give RNN during training a true (future) dt.")
 
     parser.add_argument('--warm_up_len', default=1, type=int, help='Number of timesteps for a warm-up sequence')
-    parser.add_argument('--seq_len', default=5, type=int, help='Number of timesteps in a sequence')
+    parser.add_argument('--seq_len', default=2, type=int, help='Number of timesteps in a sequence')
 
     # Training parameters
-    parser.add_argument('--num_epochs', default=5, type=int, help='Number of epochs of training')
+    parser.add_argument('--num_epochs', default=10, type=int, help='Number of epochs of training')
     parser.add_argument('--batch_size', default=64, type=int, help='Size of a batch')
     parser.add_argument('--seed', default=1873, type=int, help='Set seed for reproducibility')
     parser.add_argument('--lr', default=1.0e-1, type=float, help='Learning rate')

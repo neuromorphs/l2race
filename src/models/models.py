@@ -122,7 +122,7 @@ class RNN_model(client_car_model):
         super().__init__(car)
 
         # Parameters. Maybe provide later as arguments?
-        self.rnn_full_name = 'GRU-8IN-64H1-64H2-5OUT-0'
+        self.rnn_full_name = 'GRU-8IN-256H1-256H2-5OUT-0'
         self.path_to_rnn = './modeling/RNN0/save/'
         self.closed_loop_list = ['body_angle', 'pos.x', 'pos.y', 'vel.x', 'vel.y']
         self.closed_loop_enabled = False

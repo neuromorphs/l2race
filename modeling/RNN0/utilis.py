@@ -58,6 +58,7 @@ def print_parameter_count(net):
     pytorch_trainable_params = sum(p.numel() for p in net.parameters() if p.requires_grad)
     print('::: # network all parameters: ' + str(pytorch_total_params))
     print('::: # network trainable parameters: ' + str(pytorch_trainable_params))
+    print('')
 
 
 def load_pretrained_rnn(net, pt_path, device):
@@ -69,6 +70,7 @@ def load_pretrained_rnn(net, pt_path, device):
     """
     pre_trained_model = torch.load(pt_path, map_location=device)
     print("Loading Model: ", pt_path)
+    print('')
 
     pre_trained_model = list(pre_trained_model.items())
     new_state_dict = collections.OrderedDict()
@@ -81,13 +83,15 @@ def load_pretrained_rnn(net, pt_path, device):
         new_state_dict[key] = weights
         print("Pre-trained Layer: %s - Loaded into new layer: %s" % (layer_name, key))
         count += 1
+    print('')
     net.load_state_dict(new_state_dict)
 
 
 # Initialize weights and biases - should be only applied if no pretrained net loaded
 def initialize_weights_and_biases(net):
+    print('Initialize weights and biases')
     for name, param in net.named_parameters():
-        print(name)
+        print('Initialize {}'.format(name))
         if 'gru' in name:
             if 'weight' in name:
                 nn.init.orthogonal_(param)
@@ -97,6 +101,7 @@ def initialize_weights_and_biases(net):
                 # nn.init.xavier_uniform_(param)
         if 'bias' in name:  # all biases
             nn.init.constant_(param, 0)
+    print('')
 
 
 def create_rnn_instance(rnn_name=None, inputs_list=None, outputs_list=None, load_rnn=None, path_save=None, device=None):
@@ -108,6 +113,7 @@ def create_rnn_instance(rnn_name=None, inputs_list=None, outputs_list=None, load
 
         filename = load_rnn
         print('Loading a pretrained RNN with the full name: {}'.format(filename))
+        print('')
         txt_filename = filename + '.txt'
         pt_filename = filename + '.pt'
         txt_path = path_save + txt_filename
@@ -131,6 +137,7 @@ def create_rnn_instance(rnn_name=None, inputs_list=None, outputs_list=None, load
 
         print('Inputs to the loaded RNN: {}'.format(', '.join(map(str, inputs_list))))
         print('Outputs from the loaded RNN: {}'.format(', '.join(map(str, outputs_list))))
+        print('')
 
         # Construct the requested RNN
         net = Sequence(rnn_name=rnn_name, inputs_list=inputs_list, outputs_list=outputs_list)
@@ -161,6 +168,7 @@ def create_rnn_instance(rnn_name=None, inputs_list=None, outputs_list=None, load
                     print('The .pt file is missing (information about weights and biases) at the location {}'.format(
                         pt_path))
                     print('I delete the corresponding .txt file and try to search again')
+                    print('')
                     os.remove(txt_path)
             else:
                 files_found = True
@@ -169,6 +177,7 @@ def create_rnn_instance(rnn_name=None, inputs_list=None, outputs_list=None, load
         print('Full name of the loaded RNN is {}'.format(pre_rnn_full_name))
         print('Inputs to the loaded RNN: {}'.format(', '.join(map(str, inputs_list))))
         print('Outputs from the loaded RNN: {}'.format(', '.join(map(str, outputs_list))))
+        print('')
 
         # Construct the requested RNN
         net = Sequence(rnn_name=rnn_name, inputs_list=inputs_list, outputs_list=outputs_list)
@@ -179,6 +188,7 @@ def create_rnn_instance(rnn_name=None, inputs_list=None, outputs_list=None, load
 
     else:  # args.load_rnn is None
         print('No pretrained network specified. I will train a network from scratch.')
+        print('')
         # Construct the requested RNN
         net = Sequence(rnn_name=rnn_name, inputs_list=inputs_list, outputs_list=outputs_list)
         initialize_weights_and_biases(net)
@@ -208,7 +218,23 @@ def create_log_file(rnn_name, inputs_list, outputs_list, path_save):
         net_index += 1
 
     print('Full name given to the currently trained network is {}.'.format(rnn_full_name))
+    print('')
     return rnn_full_name
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 class Sequence(nn.Module):
@@ -310,51 +336,7 @@ class Sequence(nn.Module):
         print('Input state variables: {}'.format(', '.join(map(str, self.states_inputs))))
         print('Input commands: {}'.format(', '.join(map(str, self.command_inputs))))
         print('The outputs are (in this order): {}'.format(', '.join(map(str, outputs_list))))
-
-    def forward(self, predict_len: int, rnn_input_commands, terminate=False, real_time=False):
-        """
-        Predicts future CartPole states IN "CLOSED LOOP"
-        (at every time step prediction for the next time step is done based on CartPole state
-        resulting from the previous prediction; only control input is provided from the ground truth at every step)
-        """
-
-        # For number of time steps given in predict_len predict the state of the CartPole
-        # At every time step RNN get as its input the ground truth value of control input
-        # BUT instead of the ground truth value of CartPole state
-        # it gets the result of the prediction for the last time step
-        for iteration in range(predict_len):
-
-            # Concatenate the previous prediction and current control input to the input to RNN for a new time step
-            if real_time:
-                input_t = torch.cat((self.output, rnn_input_commands.squeeze(0)), 1)
-            else:
-                input_t = torch.cat((self.output, rnn_input_commands[self.sample_counter, :]), 1)
-
-            # Propagate input through RNN layers
-
-            if self.rnn_type == 'LSTM':
-                self.h[0], self.c[0] = self.layers[0](input_t, (self.h[0], self.c[0]))
-                for i in range(len(self.h_size) - 1):
-                    self.h[i + 1], self.c[i + 1] = self.layers[i + 1](self.h[i], (self.h[i + 1], self.c[i + 1]))
-            else:
-                self.h[0] = self.layers[0](input_t, self.h[0])
-                for i in range(len(self.h_size) - 1):
-                    self.h[i + 1] = self.layers[i + 1](self.h[i], self.h[i + 1])
-
-            self.output = self.layers[-1](self.h[-1])
-
-            # Append the output to the outputs history list
-            self.outputs += [self.output]
-            # Count number of samples
-            self.sample_counter = self.sample_counter + 1
-
-        # if terminate=True transform outputs history list to a Pytorch tensor and return it
-        # Otherwise store the outputs internally as a list in the RNN instance
-        if terminate:
-            self.outputs = torch.stack(self.outputs, 1)
-            return self.outputs
-        else:
-            return self.output
+        print('')
 
     def reset(self):
         """
@@ -366,29 +348,20 @@ class Sequence(nn.Module):
         self.output = None
         self.outputs = []
 
-    def initialize_sequence(self, rnn_input, warm_up_len=256, stack_output=True, all_input=False):
+    def return_outputs_history(self):
+        return torch.stack(self.outputs, 1)
 
-        """
-        Predicts future CartPole states IN "OPEN LOOP"
-        (at every time step prediction for the next time step is done based on the true CartPole state)
-        """
 
-        # If in training mode we will only run this function during the first several (warm_up_len) data samples
-        # Otherwise we run it for the whole input
-        if not all_input:
-            starting_input = rnn_input[:warm_up_len, :, :]
-        else:
-            starting_input = rnn_input
+    def forward(self, rnn_input):
 
-        # Initialize hidden layers - this change at every call as the batch size may vary
-        for i in range(len(self.h_size)):
-            self.h[i] = torch.zeros(starting_input.size(1), self.h_size[i], dtype=torch.float).to(self.device)
-            self.c[i] = torch.zeros(starting_input.size(1), self.h_size[i], dtype=torch.float).to(self.device)
+        if self.h == [None] * len(self.h_size):
+            # Initialize hidden layers - this change at every call as the batch size may vary
+            for i in range(len(self.h_size)):
+                self.h[i] = torch.zeros(rnn_input.size(1), self.h_size[i], dtype=torch.float).to(self.device)
+                self.c[i] = torch.zeros(rnn_input.size(1), self.h_size[i], dtype=torch.float).to(self.device)
 
         # The for loop takes the consecutive time steps from input plugs them into RNN and save the outputs into a list
-        # THE NETWORK GETS ALWAYS THE GROUND TRUTH, THE REAL STATE OF THE CARTPOLE, AS ITS INPUT
-        # IT PREDICTS THE STATE OF THE CARTPOLE ONE TIME STEP AHEAD BASED ON TRUE STATE NOW
-        for iteration, input_t in enumerate(starting_input.chunk(starting_input.size(0), dim=0)):
+        for iteration, input_t in enumerate(rnn_input.chunk(rnn_input.size(0), dim=0)):
 
             # Propagate input through RNN layers
             if self.rnn_type == 'LSTM':
@@ -404,14 +377,21 @@ class Sequence(nn.Module):
             self.outputs += [self.output]
             self.sample_counter = self.sample_counter + 1
 
+
         # In the train mode we want to continue appending the outputs by calling forward function
         # The outputs will be saved internally in the network instance as a list
         # Otherwise we want to transform outputs list to a tensor and return it
-        if stack_output:
-            outputs_return = torch.stack(self.outputs, 1)
-            return outputs_return
-        else:
-            return self.output
+        return self.output
+
+
+
+        # # Concatenate the previous prediction and current control input to the input to RNN for a new time step
+        # if real_time:
+        #     input_t = torch.cat((self.output, rnn_input_commands.squeeze(0)), 1)
+        # else:
+        #     input_t = torch.cat((self.output, rnn_input_commands[self.sample_counter, :]), 1)
+
+
 
 
 def norm(x):
@@ -428,9 +408,22 @@ class Dataset(data.Dataset):
         self.labels = labels
         self.args = args
 
-        # Hyperparameters
+        self.seq_len = None
+        self.df_lengths = []
+        self.df_lengths_cs = []
+        self.number_of_samples = 0
+
+        self.reset_seq_len(seq_len=seq_len)
+
+
+    def reset_seq_len(self, seq_len=None):
+        """
+        This method should be used if the user wants to change the seq_len without creating new Dataset
+        Please remember that one can reset it again to come back to old configuration
+        :param seq_len: Gives new user defined seq_len. Call empty to come back to default.
+        """
         if seq_len is None:
-            self.seq_len = args.seq_len  # Sequence length
+            self.seq_len = self.args.seq_len  # Sequence length
         else:
             self.seq_len = seq_len
 
@@ -527,9 +520,11 @@ def load_data(args, filepath=None, inputs_list=None, outputs_list=None):
     for one_filepath in filepaths:
         # Load dataframe
         print('loading data from ' + str(one_filepath))
+        print('')
         df = pd.read_csv(one_filepath, comment='#')
 
         print('processing data to generate sequences')
+        print('')
 
         # Wrap body_angle to be in range +/- 180
         df['body_angle'] = df['body_angle'].apply(wrap_angle_deg)
@@ -539,8 +534,10 @@ def load_data(args, filepath=None, inputs_list=None, outputs_list=None):
 
         if df['body_angle'].equals(df.apply(SinCos2Angle_wrapper, axis=1)):
             print('Conversion of angle ideal')
+            print('')
         else:
             print('Angle conversion error: {}'.format(max(abs(df['body_angle']-df.apply(SinCos2Angle_wrapper, axis=1)))))
+            print('')
 
 
         # Calculate time difference between time steps and at it to data frame
@@ -636,6 +633,7 @@ def load_data(args, filepath=None, inputs_list=None, outputs_list=None):
         if args.cheat_dt and ('dt' in inputs_list):
             inputs['dt'] = outputs['dt']
             print('dt cheating enabled!')
+            print('')
 
         inputs = inputs[inputs_list]
         outputs = outputs[outputs_list]
@@ -654,6 +652,7 @@ def load_data(args, filepath=None, inputs_list=None, outputs_list=None):
 
 def plot_results(net,
                  args,
+                 dataset=None,
                  filepath=None,
                  inputs_list=None,
                  outputs_list=None,
@@ -664,7 +663,7 @@ def plot_results(net,
                  comment='',
                  rnn_full_name=None,
                  save=False,
-                 close_loop_idx = 150):
+                 close_loop_idx=150):
     """
     This function accepts RNN instance, arguments and CartPole instance.
     It runs one random experiment with CartPole,
@@ -717,8 +716,12 @@ def plot_results(net,
     net.eval()
     device = get_device()
 
-    dev_features, dev_targets = load_data(args, filepath, inputs_list=inputs_list, outputs_list=outputs_list)
-    dev_set = Dataset(dev_features, dev_targets, args, seq_len=seq_len)
+    if dataset is None:
+        dev_features, dev_targets = load_data(args, filepath, inputs_list=inputs_list, outputs_list=outputs_list)
+        dev_set = Dataset(dev_features, dev_targets, args, seq_len=seq_len)
+    else:
+        dev_set = copy.deepcopy(dataset)
+        dev_set.reset_seq_len(seq_len=seq_len)
 
     # Format the experiment data
     features, targets = dev_set[0]
@@ -730,13 +733,15 @@ def plot_results(net,
 
     warm_up_idx = 0
     rnn_input_0 = copy.deepcopy(features_pd.iloc[0])
-    # Does not bring anything. Why? 0-state shouldn't have zero internal state due to biases...
-    while warm_up_idx < warm_up_len:
-        rnn_input = rnn_input_0
-        rnn_input = np.squeeze(rnn_input.to_numpy())
-        rnn_input = torch.from_numpy(rnn_input).float().unsqueeze(0).unsqueeze(0).to(device)
-        net.initialize_sequence(rnn_input=rnn_input, all_input=True, stack_output=False)
-        warm_up_idx += 1
+    # # Does not bring anything. Why? 0-state shouldn't have zero internal state due to biases...
+    # while warm_up_idx < warm_up_len:
+    #     rnn_input = rnn_input_0
+    #     rnn_input = np.squeeze(rnn_input.to_numpy())
+    #     rnn_input = torch.from_numpy(rnn_input).float().unsqueeze(0).unsqueeze(0).to(device)
+    #     net(rnn_input=rnn_input)
+    #     warm_up_idx += 1
+    # net.outputs = []
+    # net.sample_counter = 0
 
     close_the_loop = False
     idx_cl = 0
@@ -749,7 +754,7 @@ def plot_results(net,
             rnn_input[closed_loop_list] = normalized_rnn_output[closed_loop_list]
         rnn_input = np.squeeze(rnn_input.to_numpy())
         rnn_input = torch.from_numpy(rnn_input).float().unsqueeze(0).unsqueeze(0).to(device)
-        normalized_rnn_output = net.initialize_sequence(rnn_input=rnn_input, all_input=True, stack_output=False)
+        normalized_rnn_output = net(rnn_input=rnn_input)
         normalized_rnn_output = list(np.squeeze(normalized_rnn_output.detach().cpu().numpy()))
         normalized_rnn_output = pd.Series(data=normalized_rnn_output, index=outputs_list)
         rnn_output = copy.deepcopy(normalized_rnn_output)
@@ -883,65 +888,3 @@ def plot_results(net,
             fig.savefig('./save_plots/'+rnn_full_name+'.png')
         else:
             fig.savefig('./save_plots/'+timestampStr + '.png')
-
-    #
-    # # Get position over time
-    # xp = y_pred[args.warm_up_len:, 0]
-    # xt = y_target[:, 0]
-    #
-    # # Get velocity over time
-    # vp = y_pred[args.warm_up_len:, 1]
-    # vt = y_target[:, 1]
-    #
-    # # get angle theta of the Pole
-    # tp = y_pred[args.warm_up_len:, 2] * 180.0 / np.pi  # t like theta
-    # tt = y_target[:, 2] * 180.0 / np.pi
-    #
-    # # Get angular velocity omega of the Pole
-    # op = y_pred[args.warm_up_len:, 3] * 180.0 / np.pi  # o like omega
-    # ot = y_target[:, 3] * 180.0 / np.pi
-    #
-    # # Create a figure instance
-    # fig, axs = plt.subplots(5, 1, figsize=(18, 14), sharex=True)  # share x axis so zoom zooms all plots
-    #
-    # # %matplotlib inline
-    # # Plot position
-    # axs[0].set_ylabel("Position (m)", fontsize=18)
-    # axs[0].plot(t, xt, 'k:', markersize=12, label='Ground Truth')
-    # axs[0].plot(t[args.warm_up_len:], xp, 'b', markersize=12, label='Predicted position')
-    # axs[0].tick_params(axis='both', which='major', labelsize=16)
-    #
-    # # Plot velocity
-    # axs[1].set_ylabel("Velocity (m/s)", fontsize=18)
-    # axs[1].plot(t, vt, 'k:', markersize=12, label='Ground Truth')
-    # axs[1].plot(t[args.warm_up_len:], vp, 'g', markersize=12, label='Predicted velocity')
-    # axs[1].tick_params(axis='both', which='major', labelsize=16)
-    #
-    # # Plot angle
-    # axs[2].set_ylabel("Angle (deg)", fontsize=18)
-    # axs[2].plot(t, tt, 'k:', markersize=12, label='Ground Truth')
-    # axs[2].plot(t[args.warm_up_len:], tp, 'c', markersize=12, label='Predicted angle')
-    # axs[2].tick_params(axis='both', which='major', labelsize=16)
-    #
-    # # Plot angular velocity
-    # axs[3].set_ylabel("Angular velocity (deg/s)", fontsize=18)
-    # axs[3].plot(t, ot, 'k:', markersize=12, label='Ground Truth')
-    # axs[3].plot(t[args.warm_up_len:], op, 'm', markersize=12, label='Predicted velocity')
-    # axs[3].tick_params(axis='both', which='major', labelsize=16)
-    #
-    # # Plot motor input command
-    # axs[4].set_ylabel("motor (N)", fontsize=18)
-    # axs[4].plot(t, u_effs, 'r', markersize=12, label='motor')
-    # axs[4].tick_params(axis='both', which='major', labelsize=16)
-    #
-    # # # Plot target position
-    # # axs[5].set_ylabel("position target", fontsize=18)
-    # # axs[5].plot(self.MyCart.dict_history['time'], self.MyCart.dict_history['PositionTarget'], 'k')
-    # # axs[5].tick_params(axis='both', which='major', labelsize=16)
-    #
-    # axs[4].set_xlabel('Time (s)', fontsize=18)
-    #
-    # plt.show()
-    # # Save figure to png
-    # fig.savefig('my_figure.png')
-    # Image('my_figure.png')
