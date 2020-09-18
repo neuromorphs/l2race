@@ -267,10 +267,10 @@ def train_network():
             time_out = np.arange(0, out.shape[1], 1)
             true_data = labels[1, :, i]
             predicted_data = out[1, :, i]
-            fig = plt.figure(5)
+            fig_tb = plt.figure(5)
             plt.plot(time_label, true_data.detach().cpu())
             plt.plot(time_out, predicted_data.detach().cpu(), linestyle='dashed')
-            tb.add_figure(tag=str(args.outputs_list[i]), figure=fig, global_step=epoch)
+            tb.add_figure(tag=str(args.outputs_list[i]), figure=fig_tb, global_step=epoch)
 
         for name, param in net.named_parameters():
             tb.add_histogram(name, param, epoch)
