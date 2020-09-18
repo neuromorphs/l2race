@@ -113,7 +113,7 @@ def train_network():
     # TODO: Verify if scheduler is working. Try tweaking parameters of below scheduler and try cyclic lr scheduler
 
     # scheduler = lr_scheduler.CyclicLR(optimizer, base_lr=lr, max_lr=0.1)
-    scheduler = lr_scheduler.StepLR(optimizer, step_size=100, gamma=0.5)
+    scheduler = lr_scheduler.StepLR(optimizer, step_size=200, gamma=0.5)
 
     # Select Loss Function
     criterion = nn.MSELoss()  # Mean square error loss function
@@ -172,13 +172,13 @@ def train_network():
                 labels = labels.float()
 
             # # Reset memory of gradients
-            optimizer.zero_grad()
+            # optimizer.zero_grad()
 
             # Warm-up (open loop prediction) to settle the internal state of RNN hidden layers
             net(rnn_input=batch[:args.warm_up_len, :, :])
 
             # Reset memory of gradients
-            # optimizer.zero_grad()
+            optimizer.zero_grad()
 
             # Forward propagation - These are the results from which we calculate the update to RNN weights
             # GRU Input size must be (seq_len, batch, input_size)

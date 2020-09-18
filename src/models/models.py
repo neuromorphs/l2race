@@ -178,7 +178,7 @@ class RNN_model(client_car_model):
         self.normalize_input(rnn_input)
         rnn_input = np.squeeze(rnn_input.to_numpy())
         rnn_input = torch.from_numpy(rnn_input).float().unsqueeze(0).unsqueeze(0).to(self.device)
-        rnn_output = self.net.initialize_sequence(rnn_input=rnn_input, all_input=True, stack_output=False)
+        rnn_output = self.net(rnn_input=rnn_input)
         rnn_output = list(np.squeeze(rnn_output.detach().cpu().numpy()))
         rnn_output = pd.DataFrame(data=[rnn_output], columns=self.outputs_list)
         self.denormalize_output(rnn_output)
