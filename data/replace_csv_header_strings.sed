@@ -17,4 +17,4 @@ s/accel.y/accel_m_per_sec_2.y/g
 s/steering_angle/steering_angle_deg/g
 s/body_angle/body_angle_deg/g
 s/yaw_rate/yaw_rate_deg_per_sec/g
-s/drift_angle/drift_angle_degs/g
+s/drift_angle/drift_angle_deg/g
