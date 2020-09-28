@@ -112,7 +112,7 @@ class SINDy(ps.SINDy):
                                   'steering_angle_deg', 'body_angle_deg',
                                   'yaw_rate_deg_per_sec', 'drift_angle_deg']
 
-        if 'position_m.x' in features or 'position_m'.y in features:
+        if 'position_m.x' in features or 'position_m.y' in features:
             self.feature_attributes.append('position_m')
         if 'velocity_m_per_sec.x' in features or 'velocity_m_per_sec.y' in features:
             self.feature_attributes.append('velocity_m_per_sec')
@@ -350,7 +350,7 @@ if __name__ == '__main__':
 
     # respect the feature order from .csv files
     # in case of pos, vel, accel, both coordinates need to be used
-    FEATURES = ['position_m.x', 'position_m'.y,
+    FEATURES = ['position_m.x', 'position_m.y',
                 'velocity_m_per_sec.x', 'velocity_m_per_sec.y',
                 'body_angle_deg',
                 'drift_angle_deg']

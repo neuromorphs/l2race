@@ -124,7 +124,7 @@ class RNN_model(client_car_model):
         # Parameters. Maybe provide later as arguments?
         self.rnn_full_name = 'GRU-8IN-256H1-256H2-5OUT-0'
         self.path_to_rnn = './modeling/RNN0/save/'
-        self.closed_loop_list = ['body_angle_deg', 'position_m.x', 'position_m'.y, 'velocity_m_per_sec.x', 'velocity_m_per_sec.y']
+        self.closed_loop_list = ['body_angle_deg', 'position_m.x', 'position_m.y', 'velocity_m_per_sec.x', 'velocity_m_per_sec.y']
         self.closed_loop_enabled = False
         self.device = get_device()
         # Load rnn instance and return lists of input, outputs and its name
@@ -140,7 +140,7 @@ class RNN_model(client_car_model):
             'command.brake': None,
             'command.reverse': None,
             'position_m.x': None,
-            'position_m'.y: None,
+            'position_m.y': None,
             'velocity_m_per_sec.x': None,
             'velocity_m_per_sec.y': None,
             'speed_m_per_sec': None,
@@ -211,7 +211,7 @@ class RNN_model(client_car_model):
         self.real_info['command.brake'] = copy.deepcopy(real_car.car_state.command.brake)
         self.real_info['command.reverse'] = copy.deepcopy(real_car.car_state.command.reverse)
         self.real_info['position_m.x'] = copy.deepcopy(real_car.car_state.position_m.x)
-        self.real_info['position_m'.y] = copy.deepcopy(real_car.car_state.position_m.y)
+        self.real_info['position_m.y'] = copy.deepcopy(real_car.car_state.position_m.y)
         self.real_info['velocity_m_per_sec.x'] = copy.deepcopy(real_car.car_state.velocity_m_per_sec.x)
         self.real_info['velocity_m_per_sec.y'] = copy.deepcopy(real_car.car_state.velocity_m_per_sec.y)
         self.real_info['speed_m_per_sec'] = copy.deepcopy(real_car.car_state.speed_m_per_sec)
@@ -258,8 +258,8 @@ class RNN_model(client_car_model):
         if 'position_m.x' in rnn_output.columns:
             modeled_car.car_state.position_m.x = rnn_output['position_m.x']
 
-        if 'position_m'.y in rnn_output.columns:
-            modeled_car.car_state.position_m.y = rnn_output['position_m'.y]
+        if 'position_m.y' in rnn_output.columns:
+            modeled_car.car_state.position_m.y = rnn_output['position_m.y']
 
         if 'velocity_m_per_sec.x' in rnn_output.columns:
             modeled_car.car_state.velocity_m_per_sec.x = rnn_output['velocity_m_per_sec.x']

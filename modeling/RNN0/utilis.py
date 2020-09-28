@@ -243,7 +243,7 @@ class Sequence(nn.Module):
     """
     commands_list = ['dt', 'command.autodrive_enabled', 'command.steering', 'command.throttle', 'command.brake',
                      'command.reverse']
-    state_variables_list = ['time', 'position_m.x', 'position_m'.y, 'velocity_m_per_sec.x', 'velocity_m_per_sec.y', 'speed_m_per_sec', 'accel_m_per_sec_2.x', 'accel_m_per_sec_2.y', 'steering_angle_deg',
+    state_variables_list = ['time', 'position_m.x', 'position_m.y', 'velocity_m_per_sec.x', 'velocity_m_per_sec.y', 'speed_m_per_sec', 'accel_m_per_sec_2.x', 'accel_m_per_sec_2.y', 'steering_angle_deg',
                             'body_angle_deg', 'body_angle.cos', 'body_angle.sin', 'yaw_rate_deg_per_sec', 'drift_angle_deg', 'body_angle.sin', 'body_angle.cos']
 
     def __init__(self, rnn_name, inputs_list, outputs_list):
@@ -562,12 +562,12 @@ def load_data(args, filepath=None, inputs_list=None, outputs_list=None):
             my_track = track(track_name=track_name, media_folder_path=media_folder_path)
 
             def calculate_hit_distance(row):
-                return my_track.get_hit_distance(angle=row['body_angle_deg'], x_car=row['position_m.x'], y_car=row['position_m'.y])
+                return my_track.get_hit_distance(angle=row['body_angle_deg'], x_car=row['position_m.x'], y_car=row['position_m.y'])
 
             df['hit_distance'] = df.apply(calculate_hit_distance, axis=1)
 
             def nearest_waypoint_idx(row):
-                return my_track.get_nearest_waypoint_idx(x=row['position_m.x'], y=row['position_m'.y])
+                return my_track.get_nearest_waypoint_idx(x=row['position_m.x'], y=row['position_m.y'])
 
             df['nearest_waypoint_idx'] = df.apply(nearest_waypoint_idx, axis=1)
 
@@ -589,7 +589,7 @@ def load_data(args, filepath=None, inputs_list=None, outputs_list=None):
         if not args.do_not_normalize:
 
             df['position_m.x'] /= normalization_distance
-            df['position_m'.y] /= normalization_distance
+            df['position_m.y'] /= normalization_distance
 
             df['velocity_m_per_sec.x'] /= normalization_velocity
             df['velocity_m_per_sec.y'] /= normalization_velocity
@@ -793,11 +793,11 @@ def plot_results(net,
 
     number_of_plots = 0
 
-    if ('position_m.x' in targets_pd) and ('position_m.x' in rnn_outputs) and ('position_m'.y in targets_pd) and ('position_m'.y in rnn_outputs):
+    if ('position_m.x' in targets_pd) and ('position_m.x' in rnn_outputs) and ('position_m.y' in targets_pd) and ('position_m.y' in rnn_outputs):
         x_target = targets_pd['position_m.x'].to_numpy()
-        y_target = targets_pd['position_m'.y].to_numpy()
+        y_target = targets_pd['position_m.y'].to_numpy()
         x_output = rnn_outputs['position_m.x'].to_numpy()
-        y_output = rnn_outputs['position_m'.y].to_numpy()
+        y_output = rnn_outputs['position_m.y'].to_numpy()
         number_of_plots += 1
 
     if ('body_angle_deg' in targets_pd) and ('body_angle_deg' in rnn_outputs):

@@ -113,7 +113,7 @@ NORMALIZATION_INFO = pd.DataFrame({
     'command.brake': None,
     'command.reverse': None,
     'position_m.x': normalization_distance,
-    'position_m'.y: normalization_distance,
+    'position_m.y': normalization_distance,
     'velocity_m_per_sec.x': normalization_velocity,
     'velocity_m_per_sec.y': normalization_velocity,
     'speed_m_per_sec': normalization_velocity,

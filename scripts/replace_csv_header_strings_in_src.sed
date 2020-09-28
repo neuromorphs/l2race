@@ -8,7 +8,7 @@ s/'cmd.throttle'/'command.throttle'/g
 s/'cmd.brake'/'command.brake'/g
 s/'cmd.reverse'/'command.reverse'/g
 s/'pos.x'/'position_m.x'/g
-s/'pos.y'/'position_m'.y/g
+s/'pos.y'/'position_m.y'/g
 s/'vel.x'/'velocity_m_per_sec.x'/g
 s/'vel.y'/'velocity_m_per_sec.y'/g
 s/'speed'/'speed_m_per_sec'/g

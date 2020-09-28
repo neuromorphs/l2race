@@ -17,20 +17,20 @@ TRAIN_file_name = [#'../../data/oval_easy_14_rounds.csv',
                    '../../data/track_3_8_rounds.csv.csv' , '../../data/empty_4min.csv', '../../data/empty_6min.csv']
 VAL_file_name = '../../data/oval_easy_12_rounds.csv'
 RNN_name = 'GRU-256H1-256H2'
-# inputs_list = ['dt', 'command.reverse', 'command.brake', 'command.steering', 'command.throttle', 'body_angle.cos', 'body_angle.sin', 'position_m.x', 'position_m'.y, 'velocity_m_per_sec.x', 'velocity_m_per_sec.y']
-# inputs_list = ['command.brake', 'command.steering', 'command.throttle', 'body_angle.cos', 'body_angle.sin', 'position_m.x', 'position_m'.y,
+# inputs_list = ['dt', 'command.reverse', 'command.brake', 'command.steering', 'command.throttle', 'body_angle.cos', 'body_angle.sin', 'position_m.x', 'position_m.y', 'velocity_m_per_sec.x', 'velocity_m_per_sec.y']
+# inputs_list = ['command.brake', 'command.steering', 'command.throttle', 'body_angle.cos', 'body_angle.sin', 'position_m.x', 'position_m.y',
 #                'velocity_m_per_sec.x', 'velocity_m_per_sec.y']
-inputs_list = ['command.brake', 'command.steering', 'command.throttle', 'body_angle_deg', 'position_m.x', 'position_m'.y,
+inputs_list = ['command.brake', 'command.steering', 'command.throttle', 'body_angle_deg', 'position_m.x', 'position_m.y',
                'velocity_m_per_sec.x', 'velocity_m_per_sec.y']
-# outputs_list = ['body_angle.cos', 'body_angle.sin', 'position_m.x', 'position_m'.y, 'velocity_m_per_sec.x', 'velocity_m_per_sec.y']
-# outputs_list = ['body_angle_deg', 'position_m.x', 'position_m'.y]
-# outputs_list = ['body_angle.cos', 'body_angle.sin', 'position_m.x', 'position_m'.y, 'velocity_m_per_sec.x', 'velocity_m_per_sec.y']
-outputs_list = ['body_angle_deg', 'position_m.x', 'position_m'.y, 'velocity_m_per_sec.x', 'velocity_m_per_sec.y']
-# closed_loop_list = ['body_angle.cos', 'body_angle.sin', 'position_m.x', 'position_m'.y, 'velocity_m_per_sec.x', 'velocity_m_per_sec.y']
-closed_loop_list = ['body_angle_deg', 'position_m.x', 'position_m'.y, 'velocity_m_per_sec.x', 'velocity_m_per_sec.y']
+# outputs_list = ['body_angle.cos', 'body_angle.sin', 'position_m.x', 'position_m.y', 'velocity_m_per_sec.x', 'velocity_m_per_sec.y']
+# outputs_list = ['body_angle_deg', 'position_m.x', 'position_m.y']
+# outputs_list = ['body_angle.cos', 'body_angle.sin', 'position_m.x', 'position_m.y', 'velocity_m_per_sec.x', 'velocity_m_per_sec.y']
+outputs_list = ['body_angle_deg', 'position_m.x', 'position_m.y', 'velocity_m_per_sec.x', 'velocity_m_per_sec.y']
+# closed_loop_list = ['body_angle.cos', 'body_angle.sin', 'position_m.x', 'position_m.y', 'velocity_m_per_sec.x', 'velocity_m_per_sec.y']
+closed_loop_list = ['body_angle_deg', 'position_m.x', 'position_m.y', 'velocity_m_per_sec.x', 'velocity_m_per_sec.y']
 
-# closed_loop_list = ['body_angle_deg', 'position_m.x', 'position_m'.y, 'velocity_m_per_sec.x', 'velocity_m_per_sec.y']
-# closed_loop_list = ['body_angle.cos', 'body_angle.sin', 'position_m.x', 'position_m'.y]
+# closed_loop_list = ['body_angle_deg', 'position_m.x', 'position_m.y', 'velocity_m_per_sec.x', 'velocity_m_per_sec.y']
+# closed_loop_list = ['body_angle.cos', 'body_angle.sin', 'position_m.x', 'position_m.y']
 
 def args():
     parser = argparse.ArgumentParser(description='Train a GRU network.')
@@ -84,7 +84,7 @@ def args():
     # Adjust args in place to give user more freedom in his input and check it
     commands_list = ['dt', 'command.autodrive_enabled', 'command.steering', 'command.throttle', 'command.brake',
                      'command.reverse']  # Repeat to accept names also without 'cmd.'
-    state_variables_list = ['time', 'hit_distance', 'position_m.x', 'position_m'.y, 'velocity_m_per_sec.x', 'velocity_m_per_sec.y', 'speed_m_per_sec', 'accel_m_per_sec_2.x', 'accel_m_per_sec_2.y',
+    state_variables_list = ['time', 'hit_distance', 'position_m.x', 'position_m.y', 'velocity_m_per_sec.x', 'velocity_m_per_sec.y', 'speed_m_per_sec', 'accel_m_per_sec_2.x', 'accel_m_per_sec_2.y',
                             'steering_angle_deg', 'body_angle_deg', 'body_angle.cos', 'body_angle.sin', 'yaw_rate_deg_per_sec',
                             'drift_angle_deg']
 
