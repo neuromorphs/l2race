@@ -124,7 +124,7 @@ class RNN_model(client_car_model):
         # Parameters. Maybe provide later as arguments?
         self.rnn_full_name = 'GRU-8IN-256H1-256H2-5OUT-0'
         self.path_to_rnn = './modeling/RNN0/save/'
-        self.closed_loop_list = ['body_angle', 'pos.x', 'pos.y', 'vel.x', 'vel.y']
+        self.closed_loop_list = ['body_angle_deg', 'position_m.x', 'position_m'.y, 'velocity_m_per_sec.x', 'velocity_m_per_sec.y']
         self.closed_loop_enabled = False
         self.device = get_device()
         # Load rnn instance and return lists of input, outputs and its name
@@ -134,22 +134,22 @@ class RNN_model(client_car_model):
         self.net = self.net.eval()
         self.real_info = pd.DataFrame({
             'time': None,
-            'cmd.auto': None,
-            'cmd.steering': None,
-            'cmd.throttle': None,
-            'cmd.brake': None,
-            'cmd.reverse': None,
-            'pos.x': None,
-            'pos.y': None,
-            'vel.x': None,
-            'vel.y': None,
-            'speed': None,
-            'accel.x': None,
-            'accel.y': None,
-            'steering_angle': None,
-            'body_angle': None,
-            'yaw_rate': None,
-            'drift_angle': None
+            'command.autodrive_enabled': None,
+            'command.steering': None,
+            'command.throttle': None,
+            'command.brake': None,
+            'command.reverse': None,
+            'position_m.x': None,
+            'position_m'.y: None,
+            'velocity_m_per_sec.x': None,
+            'velocity_m_per_sec.y': None,
+            'speed_m_per_sec': None,
+            'accel_m_per_sec_2.x': None,
+            'accel_m_per_sec_2.y': None,
+            'steering_angle_deg': None,
+            'body_angle_deg': None,
+            'yaw_rate_deg_per_sec': None,
+            'drift_angle_deg': None
         }, index=[0])
 
 
@@ -205,22 +205,22 @@ class RNN_model(client_car_model):
 
         self.real_info['time'] = copy.deepcopy(real_car.car_state.time)
         self.real_info['dt'] = dt
-        self.real_info['cmd.auto'] = copy.deepcopy(real_car.car_state.command.autodrive_enabled)
-        self.real_info['cmd.steering'] = copy.deepcopy(real_car.car_state.command.steering)
-        self.real_info['cmd.throttle'] = copy.deepcopy(real_car.car_state.command.throttle)
-        self.real_info['cmd.brake'] = copy.deepcopy(real_car.car_state.command.brake)
-        self.real_info['cmd.reverse'] = copy.deepcopy(real_car.car_state.command.reverse)
-        self.real_info['pos.x'] = copy.deepcopy(real_car.car_state.position_m.x)
-        self.real_info['pos.y'] = copy.deepcopy(real_car.car_state.position_m.y)
-        self.real_info['vel.x'] = copy.deepcopy(real_car.car_state.velocity_m_per_sec.x)
-        self.real_info['vel.y'] = copy.deepcopy(real_car.car_state.velocity_m_per_sec.y)
-        self.real_info['speed'] = copy.deepcopy(real_car.car_state.speed_m_per_sec)
-        self.real_info['accel.x'] = copy.deepcopy(real_car.car_state.accel_m_per_sec_2.x)
-        self.real_info['accel.y'] = copy.deepcopy(real_car.car_state.accel_m_per_sec_2.y)
-        self.real_info['steering_angle'] = copy.deepcopy(real_car.car_state.steering_angle_deg)
-        self.real_info['body_angle'] = copy.deepcopy(real_car.car_state.body_angle_deg)
-        self.real_info['yaw_rate'] = copy.deepcopy(real_car.car_state.yaw_rate_deg_per_sec)
-        self.real_info['drift_angle'] = copy.deepcopy(real_car.car_state.drift_angle_deg)
+        self.real_info['command.autodrive_enabled'] = copy.deepcopy(real_car.car_state.command.autodrive_enabled)
+        self.real_info['command.steering'] = copy.deepcopy(real_car.car_state.command.steering)
+        self.real_info['command.throttle'] = copy.deepcopy(real_car.car_state.command.throttle)
+        self.real_info['command.brake'] = copy.deepcopy(real_car.car_state.command.brake)
+        self.real_info['command.reverse'] = copy.deepcopy(real_car.car_state.command.reverse)
+        self.real_info['position_m.x'] = copy.deepcopy(real_car.car_state.position_m.x)
+        self.real_info['position_m'.y] = copy.deepcopy(real_car.car_state.position_m.y)
+        self.real_info['velocity_m_per_sec.x'] = copy.deepcopy(real_car.car_state.velocity_m_per_sec.x)
+        self.real_info['velocity_m_per_sec.y'] = copy.deepcopy(real_car.car_state.velocity_m_per_sec.y)
+        self.real_info['speed_m_per_sec'] = copy.deepcopy(real_car.car_state.speed_m_per_sec)
+        self.real_info['accel_m_per_sec_2.x'] = copy.deepcopy(real_car.car_state.accel_m_per_sec_2.x)
+        self.real_info['accel_m_per_sec_2.y'] = copy.deepcopy(real_car.car_state.accel_m_per_sec_2.y)
+        self.real_info['steering_angle_deg'] = copy.deepcopy(real_car.car_state.steering_angle_deg)
+        self.real_info['body_angle_deg'] = copy.deepcopy(real_car.car_state.body_angle_deg)
+        self.real_info['yaw_rate_deg_per_sec'] = copy.deepcopy(real_car.car_state.yaw_rate_deg_per_sec)
+        self.real_info['drift_angle_deg'] = copy.deepcopy(real_car.car_state.drift_angle_deg)
 
     def normalize_input(self, rnn_input):
         for column in rnn_input:
@@ -240,53 +240,53 @@ class RNN_model(client_car_model):
         if 'time' in rnn_output.columns:
             modeled_car.car_state.time = rnn_output['time']
 
-        if 'cmd.auto' in rnn_output.columns:
-            modeled_car.car_state.command.autodrive_enabled = rnn_output['cmd.auto']
+        if 'command.autodrive_enabled' in rnn_output.columns:
+            modeled_car.car_state.command.autodrive_enabled = rnn_output['command.autodrive_enabled']
 
-        if 'cmd.steering' in rnn_output.columns:
-            modeled_car.car_state.command.steering = rnn_output['cmd.steering']
+        if 'command.steering' in rnn_output.columns:
+            modeled_car.car_state.command.steering = rnn_output['command.steering']
 
-        if 'cmd.throttle' in rnn_output.columns:
-            modeled_car.car_state.command.throttle = rnn_output['cmd.throttle']
+        if 'command.throttle' in rnn_output.columns:
+            modeled_car.car_state.command.throttle = rnn_output['command.throttle']
 
-        if 'cmd.brake' in rnn_output.columns:
-            modeled_car.car_state.command.brake = rnn_output['cmd.brake']
+        if 'command.brake' in rnn_output.columns:
+            modeled_car.car_state.command.brake = rnn_output['command.brake']
 
-        if 'cmd.reverse' in rnn_output.columns:
-            modeled_car.car_state.command.brake = rnn_output['cmd.reverse']
+        if 'command.reverse' in rnn_output.columns:
+            modeled_car.car_state.command.brake = rnn_output['command.reverse']
 
-        if 'pos.x' in rnn_output.columns:
-            modeled_car.car_state.position_m.x = rnn_output['pos.x']
+        if 'position_m.x' in rnn_output.columns:
+            modeled_car.car_state.position_m.x = rnn_output['position_m.x']
 
-        if 'pos.y' in rnn_output.columns:
-            modeled_car.car_state.position_m.y = rnn_output['pos.y']
+        if 'position_m'.y in rnn_output.columns:
+            modeled_car.car_state.position_m.y = rnn_output['position_m'.y]
 
-        if 'vel.x' in rnn_output.columns:
-            modeled_car.car_state.velocity_m_per_sec.x = rnn_output['vel.x']
+        if 'velocity_m_per_sec.x' in rnn_output.columns:
+            modeled_car.car_state.velocity_m_per_sec.x = rnn_output['velocity_m_per_sec.x']
 
-        if 'vel.y' in rnn_output.columns:
-            modeled_car.car_state.velocity_m_per_sec.y = rnn_output['vel.y']
+        if 'velocity_m_per_sec.y' in rnn_output.columns:
+            modeled_car.car_state.velocity_m_per_sec.y = rnn_output['velocity_m_per_sec.y']
 
-        if 'accel.x' in rnn_output.columns:
-            modeled_car.car_state.accel_m_per_sec_2.x = rnn_output['accel.x']
+        if 'accel_m_per_sec_2.x' in rnn_output.columns:
+            modeled_car.car_state.accel_m_per_sec_2.x = rnn_output['accel_m_per_sec_2.x']
 
-        if 'accel.y' in rnn_output.columns:
-            modeled_car.car_state.accel_m_per_sec_2.y = rnn_output['accel.y']
+        if 'accel_m_per_sec_2.y' in rnn_output.columns:
+            modeled_car.car_state.accel_m_per_sec_2.y = rnn_output['accel_m_per_sec_2.y']
 
-        if 'speed' in rnn_output.columns:
-            modeled_car.car_state.speed_m_per_sec = rnn_output['speed']
+        if 'speed_m_per_sec' in rnn_output.columns:
+            modeled_car.car_state.speed_m_per_sec = rnn_output['speed_m_per_sec']
 
-        if 'steering_angle' in rnn_output.columns:
-            modeled_car.car_state.steering_angle_deg = rnn_output['steering_angle']
+        if 'steering_angle_deg' in rnn_output.columns:
+            modeled_car.car_state.steering_angle_deg = rnn_output['steering_angle_deg']
 
-        if 'body_angle' in rnn_output.columns:
-            modeled_car.car_state.body_angle_deg = rnn_output['body_angle']
+        if 'body_angle_deg' in rnn_output.columns:
+            modeled_car.car_state.body_angle_deg = rnn_output['body_angle_deg']
 
-        if 'yaw_rate' in rnn_output.columns:
-            modeled_car.car_state.yaw_rate_deg_per_sec = rnn_output['yaw_rate']
+        if 'yaw_rate_deg_per_sec' in rnn_output.columns:
+            modeled_car.car_state.yaw_rate_deg_per_sec = rnn_output['yaw_rate_deg_per_sec']
 
-        if 'drift_angle' in rnn_output.columns:
-            modeled_car.car_state.drift_angle_deg = rnn_output['drift_angle']
+        if 'drift_angle_deg' in rnn_output.columns:
+            modeled_car.car_state.drift_angle_deg = rnn_output['drift_angle_deg']
 
     def get_closed_loop_input(self, rnn_input):
         for closed_loop_input in self.closed_loop_list:

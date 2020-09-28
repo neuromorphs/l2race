@@ -241,10 +241,10 @@ class Sequence(nn.Module):
     """"
     Our RNN class.
     """
-    commands_list = ['dt', 'cmd.auto', 'cmd.steering', 'cmd.throttle', 'cmd.brake',
-                     'cmd.reverse']
-    state_variables_list = ['time', 'pos.x', 'pos.y', 'vel.x', 'vel.y', 'speed', 'accel.x', 'accel.y', 'steering_angle',
-                            'body_angle', 'body_angle.cos', 'body_angle.sin', 'yaw_rate', 'drift_angle', 'body_angle.sin', 'body_angle.cos']
+    commands_list = ['dt', 'command.autodrive_enabled', 'command.steering', 'command.throttle', 'command.brake',
+                     'command.reverse']
+    state_variables_list = ['time', 'position_m.x', 'position_m'.y, 'velocity_m_per_sec.x', 'velocity_m_per_sec.y', 'speed_m_per_sec', 'accel_m_per_sec_2.x', 'accel_m_per_sec_2.y', 'steering_angle_deg',
+                            'body_angle_deg', 'body_angle.cos', 'body_angle.sin', 'yaw_rate_deg_per_sec', 'drift_angle_deg', 'body_angle.sin', 'body_angle.cos']
 
     def __init__(self, rnn_name, inputs_list, outputs_list):
         super(Sequence, self).__init__()
@@ -532,16 +532,16 @@ def load_data(args, filepath=None, inputs_list=None, outputs_list=None):
         print('')
 
         # Wrap body_angle to be in range +/- 180
-        df['body_angle'] = df['body_angle'].apply(wrap_angle_deg)
-        print('Max angle is {} and min angle is {}.'.format(max(df['body_angle']), min(df['body_angle'])))
-        df['body_angle.cos'] = df['body_angle'].apply(cosdg)
-        df['body_angle.sin'] = df['body_angle'].apply(sindg)
+        df['body_angle_deg'] = df['body_angle_deg'].apply(wrap_angle_deg)
+        print('Max angle is {} and min angle is {}.'.format(max(df['body_angle_deg']), min(df['body_angle_deg'])))
+        df['body_angle.cos'] = df['body_angle_deg'].apply(cosdg)
+        df['body_angle.sin'] = df['body_angle_deg'].apply(sindg)
 
-        if df['body_angle'].equals(df.apply(SinCos2Angle_wrapper, axis=1)):
+        if df['body_angle_deg'].equals(df.apply(SinCos2Angle_wrapper, axis=1)):
             print('Conversion of angle ideal')
             print('')
         else:
-            print('Angle conversion error: {}'.format(max(abs(df['body_angle']-df.apply(SinCos2Angle_wrapper, axis=1)))))
+            print('Angle conversion error: {}'.format(max(abs(df['body_angle_deg']-df.apply(SinCos2Angle_wrapper, axis=1)))))
             print('')
 
 
@@ -562,12 +562,12 @@ def load_data(args, filepath=None, inputs_list=None, outputs_list=None):
             my_track = track(track_name=track_name, media_folder_path=media_folder_path)
 
             def calculate_hit_distance(row):
-                return my_track.get_hit_distance(angle=row['body_angle'], x_car=row['pos.x'], y_car=row['pos.y'])
+                return my_track.get_hit_distance(angle=row['body_angle_deg'], x_car=row['position_m.x'], y_car=row['position_m'.y])
 
             df['hit_distance'] = df.apply(calculate_hit_distance, axis=1)
 
             def nearest_waypoint_idx(row):
-                return my_track.get_nearest_waypoint_idx(x=row['pos.x'], y=row['pos.y'])
+                return my_track.get_nearest_waypoint_idx(x=row['position_m.x'], y=row['position_m'.y])
 
             df['nearest_waypoint_idx'] = df.apply(nearest_waypoint_idx, axis=1)
 
@@ -588,21 +588,21 @@ def load_data(args, filepath=None, inputs_list=None, outputs_list=None):
 
         if not args.do_not_normalize:
 
-            df['pos.x'] /= normalization_distance
-            df['pos.y'] /= normalization_distance
+            df['position_m.x'] /= normalization_distance
+            df['position_m'.y] /= normalization_distance
 
-            df['vel.x'] /= normalization_velocity
-            df['vel.y'] /= normalization_velocity
+            df['velocity_m_per_sec.x'] /= normalization_velocity
+            df['velocity_m_per_sec.y'] /= normalization_velocity
 
-            df['accel.x'] /= normalization_acceleration
-            df['accel.y'] /= normalization_acceleration
+            df['accel_m_per_sec_2.x'] /= normalization_acceleration
+            df['accel_m_per_sec_2.y'] /= normalization_acceleration
 
             # https://stackoverflow.com/questions/2320986/easy-way-to-keeping-angles-between-179-and-180-degrees
 
 
             # The first line is not workign for e.g. -200
-            # df['body_angle'] = (((df['body_angle'] + 180) % 360) - 180) / normalization_angle  # Wrapping AND normalizing angle
-            df['body_angle'] /= normalization_angle # normalizing angle
+            # df['body_angle_deg'] = (((df['body_angle_deg'] + 180) % 360) - 180) / normalization_angle  # Wrapping AND normalizing angle
+            df['body_angle_deg'] /= normalization_angle # normalizing angle
 
             # 1) You already wrapped it in the above line.
             # 2) For cos and sin you do not need to wrap the angle - they do it for you (periodic function)
@@ -611,8 +611,8 @@ def load_data(args, filepath=None, inputs_list=None, outputs_list=None):
             # I move the wrapping above and do it always. Here leve only normalization (which sin, cos do not need)
             # Wrapping due to:
             # https://stackoverflow.com/questions/2320986/easy-way-to-keeping-angles-between-179-and-180-degrees
-            # df['body_angle.sin'] = np.sin(((((df['body_angle'] + 180) % 360) - 180)*normalization_angle + 180)*np.pi/180)
-            # df['body_angle.cos'] = np.cos(((((df['body_angle'] + 180) % 360) - 180)*normalization_angle + 180)*np.pi/180)
+            # df['body_angle.sin'] = np.sin(((((df['body_angle_deg'] + 180) % 360) - 180)*normalization_angle + 180)*np.pi/180)
+            # df['body_angle.cos'] = np.cos(((((df['body_angle_deg'] + 180) % 360) - 180)*normalization_angle + 180)*np.pi/180)
 
 
 
@@ -769,10 +769,10 @@ def plot_results(net,
 
 
     # If RNN was given sin and cos of body angle calculate back the body angle
-    if ('body_angle.cos' in rnn_outputs) and ('body_angle.sin' in rnn_outputs) and ('body_angle' not in rnn_outputs):
-        rnn_outputs['body_angle'] = rnn_outputs.apply(SinCos2Angle_wrapper, axis=1)
-    if ('body_angle.cos' in targets_pd) and ('body_angle.sin' in targets_pd) and ('body_angle' not in targets_pd):
-        targets_pd['body_angle'] = targets_pd.apply(SinCos2Angle_wrapper, axis=1)
+    if ('body_angle.cos' in rnn_outputs) and ('body_angle.sin' in rnn_outputs) and ('body_angle_deg' not in rnn_outputs):
+        rnn_outputs['body_angle_deg'] = rnn_outputs.apply(SinCos2Angle_wrapper, axis=1)
+    if ('body_angle.cos' in targets_pd) and ('body_angle.sin' in targets_pd) and ('body_angle_deg' not in targets_pd):
+        targets_pd['body_angle_deg'] = targets_pd.apply(SinCos2Angle_wrapper, axis=1)
 
     # Get the time or # samples axes
     experiment_length  = seq_len
@@ -793,23 +793,23 @@ def plot_results(net,
 
     number_of_plots = 0
 
-    if ('pos.x' in targets_pd) and ('pos.x' in rnn_outputs) and ('pos.y' in targets_pd) and ('pos.y' in rnn_outputs):
-        x_target = targets_pd['pos.x'].to_numpy()
-        y_target = targets_pd['pos.y'].to_numpy()
-        x_output = rnn_outputs['pos.x'].to_numpy()
-        y_output = rnn_outputs['pos.y'].to_numpy()
+    if ('position_m.x' in targets_pd) and ('position_m.x' in rnn_outputs) and ('position_m'.y in targets_pd) and ('position_m'.y in rnn_outputs):
+        x_target = targets_pd['position_m.x'].to_numpy()
+        y_target = targets_pd['position_m'.y].to_numpy()
+        x_output = rnn_outputs['position_m.x'].to_numpy()
+        y_output = rnn_outputs['position_m'.y].to_numpy()
         number_of_plots += 1
 
-    if ('body_angle' in targets_pd) and ('body_angle' in rnn_outputs):
-        body_angle_target = targets_pd['body_angle'].to_numpy()
-        body_angle_output = rnn_outputs['body_angle'].to_numpy()
+    if ('body_angle_deg' in targets_pd) and ('body_angle_deg' in rnn_outputs):
+        body_angle_target = targets_pd['body_angle_deg'].to_numpy()
+        body_angle_output = rnn_outputs['body_angle_deg'].to_numpy()
         number_of_plots += 1
 
-    if ('vel.x' in targets_pd) and ('vel.x' in rnn_outputs) and ('vel.y' in targets_pd) and ('vel.y' in rnn_outputs):
-        vel_x_target = targets_pd['vel.x'].to_numpy()
-        vel_y_target = targets_pd['vel.y'].to_numpy()
-        vel_x_output = rnn_outputs['vel.x'].to_numpy()
-        vel_y_output = rnn_outputs['vel.y'].to_numpy()
+    if ('velocity_m_per_sec.x' in targets_pd) and ('velocity_m_per_sec.x' in rnn_outputs) and ('velocity_m_per_sec.y' in targets_pd) and ('velocity_m_per_sec.y' in rnn_outputs):
+        vel_x_target = targets_pd['velocity_m_per_sec.x'].to_numpy()
+        vel_y_target = targets_pd['velocity_m_per_sec.y'].to_numpy()
+        vel_x_output = rnn_outputs['velocity_m_per_sec.x'].to_numpy()
+        vel_y_output = rnn_outputs['velocity_m_per_sec.y'].to_numpy()
         speed_target = np.sqrt((vel_x_target**2)+(vel_y_target**2))
         speed_output = np.sqrt((vel_x_output ** 2) + (vel_y_output ** 2))
         number_of_plots += 1

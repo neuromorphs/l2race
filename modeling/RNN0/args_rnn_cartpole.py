@@ -17,20 +17,20 @@ TRAIN_file_name = [#'../../data/oval_easy_14_rounds.csv',
                    '../../data/track_3_8_rounds.csv.csv' , '../../data/empty_4min.csv', '../../data/empty_6min.csv']
 VAL_file_name = '../../data/oval_easy_12_rounds.csv'
 RNN_name = 'GRU-256H1-256H2'
-# inputs_list = ['dt', 'cmd.reverse', 'cmd.brake', 'cmd.steering', 'cmd.throttle', 'body_angle.cos', 'body_angle.sin', 'pos.x', 'pos.y', 'vel.x', 'vel.y']
-# inputs_list = ['cmd.brake', 'cmd.steering', 'cmd.throttle', 'body_angle.cos', 'body_angle.sin', 'pos.x', 'pos.y',
-#                'vel.x', 'vel.y']
-inputs_list = ['cmd.brake', 'cmd.steering', 'cmd.throttle', 'body_angle', 'pos.x', 'pos.y',
-               'vel.x', 'vel.y']
-# outputs_list = ['body_angle.cos', 'body_angle.sin', 'pos.x', 'pos.y', 'vel.x', 'vel.y']
-# outputs_list = ['body_angle', 'pos.x', 'pos.y']
-# outputs_list = ['body_angle.cos', 'body_angle.sin', 'pos.x', 'pos.y', 'vel.x', 'vel.y']
-outputs_list = ['body_angle', 'pos.x', 'pos.y', 'vel.x', 'vel.y']
-# closed_loop_list = ['body_angle.cos', 'body_angle.sin', 'pos.x', 'pos.y', 'vel.x', 'vel.y']
-closed_loop_list = ['body_angle', 'pos.x', 'pos.y', 'vel.x', 'vel.y']
+# inputs_list = ['dt', 'command.reverse', 'command.brake', 'command.steering', 'command.throttle', 'body_angle.cos', 'body_angle.sin', 'position_m.x', 'position_m'.y, 'velocity_m_per_sec.x', 'velocity_m_per_sec.y']
+# inputs_list = ['command.brake', 'command.steering', 'command.throttle', 'body_angle.cos', 'body_angle.sin', 'position_m.x', 'position_m'.y,
+#                'velocity_m_per_sec.x', 'velocity_m_per_sec.y']
+inputs_list = ['command.brake', 'command.steering', 'command.throttle', 'body_angle_deg', 'position_m.x', 'position_m'.y,
+               'velocity_m_per_sec.x', 'velocity_m_per_sec.y']
+# outputs_list = ['body_angle.cos', 'body_angle.sin', 'position_m.x', 'position_m'.y, 'velocity_m_per_sec.x', 'velocity_m_per_sec.y']
+# outputs_list = ['body_angle_deg', 'position_m.x', 'position_m'.y]
+# outputs_list = ['body_angle.cos', 'body_angle.sin', 'position_m.x', 'position_m'.y, 'velocity_m_per_sec.x', 'velocity_m_per_sec.y']
+outputs_list = ['body_angle_deg', 'position_m.x', 'position_m'.y, 'velocity_m_per_sec.x', 'velocity_m_per_sec.y']
+# closed_loop_list = ['body_angle.cos', 'body_angle.sin', 'position_m.x', 'position_m'.y, 'velocity_m_per_sec.x', 'velocity_m_per_sec.y']
+closed_loop_list = ['body_angle_deg', 'position_m.x', 'position_m'.y, 'velocity_m_per_sec.x', 'velocity_m_per_sec.y']
 
-# closed_loop_list = ['body_angle', 'pos.x', 'pos.y', 'vel.x', 'vel.y']
-# closed_loop_list = ['body_angle.cos', 'body_angle.sin', 'pos.x', 'pos.y']
+# closed_loop_list = ['body_angle_deg', 'position_m.x', 'position_m'.y, 'velocity_m_per_sec.x', 'velocity_m_per_sec.y']
+# closed_loop_list = ['body_angle.cos', 'body_angle.sin', 'position_m.x', 'position_m'.y]
 
 def args():
     parser = argparse.ArgumentParser(description='Train a GRU network.')
@@ -82,25 +82,25 @@ def args():
     my_args = parser.parse_args()
 
     # Adjust args in place to give user more freedom in his input and check it
-    commands_list = ['dt', 'cmd.auto', 'cmd.steering', 'cmd.throttle', 'cmd.brake',
-                     'cmd.reverse']  # Repeat to accept names also without 'cmd.'
-    state_variables_list = ['time', 'hit_distance', 'pos.x', 'pos.y', 'vel.x', 'vel.y', 'speed', 'accel.x', 'accel.y',
-                            'steering_angle', 'body_angle', 'body_angle.cos', 'body_angle.sin', 'yaw_rate',
-                            'drift_angle']
+    commands_list = ['dt', 'command.autodrive_enabled', 'command.steering', 'command.throttle', 'command.brake',
+                     'command.reverse']  # Repeat to accept names also without 'cmd.'
+    state_variables_list = ['time', 'hit_distance', 'position_m.x', 'position_m'.y, 'velocity_m_per_sec.x', 'velocity_m_per_sec.y', 'speed_m_per_sec', 'accel_m_per_sec_2.x', 'accel_m_per_sec_2.y',
+                            'steering_angle_deg', 'body_angle_deg', 'body_angle.cos', 'body_angle.sin', 'yaw_rate_deg_per_sec',
+                            'drift_angle_deg']
 
     if my_args.inputs_list is not None:
         # If user provided command names without cmd. add it.
         for index, rnn_input in enumerate(my_args.inputs_list):
             if rnn_input == 'throttle':
-                my_args.inputs_list[index] = 'cmd.throttle'
+                my_args.inputs_list[index] = 'command.throttle'
             if rnn_input == 'auto':
-                my_args.inputs_list[index] = 'cmd.auto'
+                my_args.inputs_list[index] = 'command.autodrive_enabled'
             if rnn_input == 'steering':
-                my_args.inputs_list[index] = 'cmd.steering'
+                my_args.inputs_list[index] = 'command.steering'
             if rnn_input == 'brake':
-                my_args.inputs_list[index] = 'cmd.brake'
+                my_args.inputs_list[index] = 'command.brake'
             if rnn_input == 'reverse':
-                my_args.inputs_list[index] = 'cmd.reverse'
+                my_args.inputs_list[index] = 'command.reverse'
 
         # Make sure that inputs are ordered:
         # First state variables then commands, otherwise alphabetically

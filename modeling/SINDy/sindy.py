@@ -112,13 +112,13 @@ class SINDy(ps.SINDy):
                                   'steering_angle_deg', 'body_angle_deg',
                                   'yaw_rate_deg_per_sec', 'drift_angle_deg']
 
-        if 'pos.x' in features or 'pos.y' in features:
+        if 'position_m.x' in features or 'position_m'.y in features:
             self.feature_attributes.append('position_m')
-        if 'vel.x' in features or 'vel.y' in features:
+        if 'velocity_m_per_sec.x' in features or 'velocity_m_per_sec.y' in features:
             self.feature_attributes.append('velocity_m_per_sec')
-        if 'speed' in features:
+        if 'speed_m_per_sec' in features:
             self.feature_attributes.append('speed_m_per_sec')
-        if 'accel.x' in features or 'accel.y' in features:
+        if 'accel_m_per_sec_2.x' in features or 'accel_m_per_sec_2.y' in features:
             self.feature_attributes.append('accel_m_per_sec_2')
 
         self.feature_attributes += [x for x in all_feature_attributes
@@ -350,12 +350,12 @@ if __name__ == '__main__':
 
     # respect the feature order from .csv files
     # in case of pos, vel, accel, both coordinates need to be used
-    FEATURES = ['pos.x', 'pos.y',
-                'vel.x', 'vel.y',
-                'body_angle',
-                'drift_angle']
+    FEATURES = ['position_m.x', 'position_m'.y,
+                'velocity_m_per_sec.x', 'velocity_m_per_sec.y',
+                'body_angle_deg',
+                'drift_angle_deg']
 
-    COMMANDS = ['cmd.throttle', 'cmd.steering', 'cmd.brake']
+    COMMANDS = ['command.throttle', 'command.steering', 'command.brake']
 
     # TODO check use with precalculated derivatives
     PRECALCULATED_DERIVATIVES = []
