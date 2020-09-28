@@ -14,7 +14,9 @@ from timeit import default_timer as timer
 # Functions for finding hit position
 from scipy.special import tandg, cotdg, cosdg, sindg
 
-logger = logging.getLogger(__name__)
+from src.l2race_utils import my_logger
+
+logger = my_logger(__name__)
 
 
 def list_tracks() -> List[str]:
@@ -225,6 +227,7 @@ class track:
         :param media_folder_path: optional media folder path
         """
         self.name = track_name
+        logger.info('loading track image and info files with base name {}'.format(media_folder_path + track_name))
         self.track_image = pygame.image.load(media_folder_path + track_name + '.png')
         self.track_map = np.load(media_folder_path + track_name + '_map.npy', allow_pickle='TRUE')
         self.TrackInfo = np.load(media_folder_path + track_name + '_info.npy', allow_pickle='TRUE').item()

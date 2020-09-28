@@ -29,8 +29,8 @@ AUTODRIVE_CLASS = 'pure_pursuit_controller_v2'
 # your model class that takes car state and control and predicts the next state given a future time.
 # overridden by command line --model
 CAR_MODEL_MODULE= 'src.models.models' # the module (i.e. folder.file without .py)
-# CAR_MODEL_CLASS = 'linear_extrapolation_model' # the class within the file
-CAR_MODEL_CLASS= 'RNN_model'
+CAR_MODEL_CLASS = 'linear_extrapolation_model' # the class within the file
+# CAR_MODEL_CLASS= 'RNN_model'
 
 #display
 FPS=20 # frames per second for simulation and animation
