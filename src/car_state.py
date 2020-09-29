@@ -78,7 +78,6 @@ class car_state:
         # define all fields to be writtent to CSV file.
         # If field is Vector 2 it will be expanded to x,y parts.
         # If field is bool it will be written as 0,1 for False,True
-
         self.csv_fields=[
             'time',
             'command.steering',
@@ -186,8 +185,8 @@ class car_state:
 
 def get_record_csvrow(self):
         """
-
-        :return: row of CSV file
+        Uses self.csv_fields to generate string line to write to CSV file.
+        :return: row of CSV file to write to file
         """
         l=[]
         for m in self.csv_fields:
