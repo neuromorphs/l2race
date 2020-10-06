@@ -65,39 +65,39 @@ TRACKS_FOLDER='./media/tracks/' # location of tracks relative to root of l2race
 # track_name + 'Info.npy'
 
 #######################################################
-#server and model settings. Client cannot affect these model server settings
+# server and model settings. Client cannot affect these model server settings
 #
 # DO NOT CHANGE THESE VALUES
 #########################
 # DO NOT CHANGE UNLESS they are also changed on model server
 # Define screen area, track is scaled to fill this area, note 4:3 aspect ratio
 # Track information must also be generated at this size so client cannot change the values easily.
-SCREEN_WIDTH_PIXELS=1024 #  pixels
-SCREEN_HEIGHT_PIXELS= 768 # pixels
+SCREEN_WIDTH_PIXELS = 1024  # pixels
+SCREEN_HEIGHT_PIXELS = 768  # pixels
 # meters per screen pixel, e.g. 4m car would be 40 pixels, so about 4% of width
 # increase M_PER_PIXEL to make cars smaller relative to track
-M_PER_PIXEL=0.10 # 0.2 makes the cars really small on track. 0.1 makes them fill about 1/3 of track width.
+M_PER_PIXEL = 0.10  # 0.2 makes the cars really small on track. 0.1 makes them fill about 1/3 of track width.
 
-SERVER_PORT = 50000 # client starts game on this port on the SERVER_HOST
-CLIENT_PORT_RANGE='50010-50020' # range of ports used for client that server uses for game
+SERVER_PORT = 50000  # client starts game on this port on the SERVER_HOST
+CLIENT_PORT_RANGE = '50010-50020'  # range of ports used for client that server uses for game
     # client needs to open/forward this port range for receiving state from server and sending commands to server
     # The ENABLE_UPNP flag turns on automatic forwarding but it does not work with all routers.
-KILL_ZOMBIE_TRACK_TIMEOUT_S=10 # if track process gets no input for this long, it terminates itself
-FRICTION_FACTOR = .5 # overall friction parameter multiplier for some models
+KILL_ZOMBIE_TRACK_TIMEOUT_S = 10  # if track process gets no input for this long, it terminates itself
+FRICTION_FACTOR = .5  # overall friction parameter multiplier for some models
 SAND_SLOWDOWN = 0.975  # If in sand, at every update the resulting velocity is multiplied by the slowdown factor
 REVERSE_TO_FORWARD_GEAR = 0.5  # You get less acceleration on reverse gear than while moving forwards.
-MODEL_UPDATE_RATE_HZ=100 # rate that server attempts to update all the car models for each track process (models run serially in each track process)
-MAX_CARS_PER_TRACK=6 # only this many cars can run on each track
-MAX_SPECTATORS_PER_TRACK=10 # only this many spectators can connect to each track
-KS_TO_ST_SPEED_M_PER_SEC=2.0 # transistion speed from KS to ST model types
+MODEL_UPDATE_RATE_HZ = 100  # rate that server attempts to update all the car models for each track process (models run serially in each track process)
+MAX_CARS_PER_TRACK = 6  # only this many cars can run on each track
+MAX_SPECTATORS_PER_TRACK = 10  # only this many spectators can connect to each track
+KS_TO_ST_SPEED_M_PER_SEC = 2.0  # transistion speed from KS to ST model types
 
 
 ### Constants for RNN0 model:
 import pandas as pd
 import numpy as np
-from src.track import pixels2meters
-normalization_distance = pixels2meters(np.sqrt((SCREEN_HEIGHT_PIXELS ** 2) + (SCREEN_WIDTH_PIXELS ** 2)))
-normalization_velocity = 50.0  #  from Mark 24
+
+normalization_distance = M_PER_PIXEL*(np.sqrt((SCREEN_HEIGHT_PIXELS ** 2) + (SCREEN_WIDTH_PIXELS ** 2)))
+normalization_velocity = 50.0  # from Mark 24
 normalization_acceleration = 5.0  # 2.823157895
 normalization_angle = 180.0
 normalization_dt = 1.0e-1
