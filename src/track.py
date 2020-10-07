@@ -224,14 +224,22 @@ class track:
         self.name = track_name
         logger.info('loading track image and info files with base name {}'.format(media_folder_path + track_name))
         self.track_image = pygame.image.load(media_folder_path + track_name + '.png')
-        self.track_map = np.load(media_folder_path + track_name + '_map.npy', allow_pickle='TRUE')
-        self.TrackInfo = np.load(media_folder_path + track_name + '_info.npy', allow_pickle='TRUE').item()
+fix        self.track_map = np.load(media_folder_path + track_name + '_map.npy', allow_pickle=True)
+        self.TrackInfo = np.load(media_folder_path + track_name + '_info.npy', allow_pickle=True).item() # TODO document why .item() needed
+        # TrackInfo dict has following
+        # waypoint_x
+        # waypoint_Y
+        # DistNextCheckpointEast
+        # AngleNextCheckpointEast
+        # AngleNextCheckpointRelative TODO what is the difference betweeen checkpoint and waypoint?
+        # AngleNextSegmentEast
+
         self.waypoints_x = self.TrackInfo['waypoint_x']  # Waypoint x coordinates in pixels
         self.waypoints_y = self.TrackInfo['waypoint_y']  # Waypoint y coordinates in pixels
         self.num_waypoints = len(self.waypoints_x)
 
-        self.angle_next_segment_east = self.TrackInfo['AngleNextSegmentEast']
-        self.angle_next_waypoint = self.TrackInfo['AngleNextCheckpointEast']
+        self.angle_next_segment_east = self.TrackInfo['AngleNextSegmentEast'] # TODO angle in degrees of the next segment relative to east which is 0 degrees ??
+        self.angle_next_waypoint = self.TrackInfo['AngleNextCheckpointEast'] # TODO ???? what is this?
 
         if track_name == 'oval_easy':
             self.waypoints_search_radius = 160
@@ -240,8 +248,10 @@ class track:
             self.waypoints_search_radius = 80
             dy = 70
 
+        # starting_line_rect defines the start line of the track. It is a vertical bar perpindicular to the the first waypoint of the track.
+        # TODO define the starting line by a separate line in the track_info npy file
         self.starting_line_rect = pygame.Rect(self.waypoints_x[0], self.waypoints_y[0] - dy, 100, 2 * dy)
-        # This is a pygame rectangle to automatically check if you passed the starting line
+        # anti_cheat_rect is a pygame rectangle to automatically check if you passed the starting line
         # take for it +/-dy = 52 in map units
         self.anti_cheat_rect = pygame.Rect(self.waypoints_x[self.num_waypoints // 2],
                                            self.waypoints_y[self.num_waypoints // 2] - 60, 120, 120)

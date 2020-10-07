@@ -183,7 +183,7 @@ class car_state:
             except KeyError:
                 pass
 
-def get_record_csvrow(self):
+    def get_record_csvrow(self):
         """
         Uses self.csv_fields to generate string line to write to CSV file.
         :return: row of CSV file to write to file

@@ -248,3 +248,8 @@ Sample runs follow.
 
 ## To make a new track
 TODO marcin
+
+
+## Using the track_info and track_map
+TODO marcin/antonio
+
