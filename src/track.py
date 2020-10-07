@@ -1,15 +1,10 @@
-import logging
 from typing import List, Tuple, Optional
 
 import pygame
-import logging
-# import svglib
-# from svglib.svglib import svg2rlg
-import cmath
 import numpy as np
-from svgpathtools import svg2paths
-from src.globals import SCREEN_WIDTH_PIXELS, SCREEN_HEIGHT_PIXELS, M_PER_PIXEL, TRACKS_FOLDER
-from timeit import default_timer as timer
+
+from src.globals import M_PER_PIXEL, TRACKS_FOLDER
+
 
 # Functions for finding hit position
 from scipy.special import tandg, cotdg, cosdg, sindg

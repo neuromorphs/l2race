@@ -12,8 +12,9 @@ import pandas as pd
 import pysindy as ps
 import copy
 # from functools import wraps
-# from sklearn.linear_model import MultiTaskElasticNetCV, ElasticNet
-# from sklearn.linear_model import OrthogonalMatchingPursuit
+from sklearn import preprocessing
+#from sklearn.linear_model import MultiTaskElasticNetCV, ElasticNet
+#from sklearn.linear_model import OrthogonalMatchingPursuit
 
 from pygame.math import Vector2
 from random import randrange
@@ -53,7 +54,7 @@ class Data:
         if True, data is stored as lists of np.arrays
     """
 
-    def __init__(self, data_dir):
+    def __init__(self, data_dir, normalize=False, start=0, skip_n=-1):
         """
         Parameters
         ----------
@@ -68,16 +69,18 @@ class Data:
             raise Exception("Directory is empty or non-existent!")
         else:
             self.multiple_trajectories = True
-
             self.t = []
             self.x = []
             self.x_dot = []
             self.u = []
             for f in file_list:
                 data = pd.read_csv(f, comment='#')
-                data = data.drop_duplicates('time')  # TODO why is this needed
 
-                # TODO preprocess data ?
+                # data preprocessing
+                # TODO why is this needed? jitter? precision?
+                data = data.drop_duplicates('time')
+                if skip_n > 0:
+                    data = data.iloc[start::skip_n]
 
                 t_single = data['time']
                 u_single = data[COMMANDS]
@@ -85,9 +88,13 @@ class Data:
                 x_dot_single = data[PRECALCULATED_DERIVATIVES]
 
                 self.t.append(t_single.values)
-                self.x.append(x_single.values)
+                if normalize:
+                    self.x.append(preprocessing.normalize(x_single.values, norm='max'))
+                    self.u.append(preprocessing.normalize(u_single.values, norm='max'))
+                else:
+                    self.x.append(x_single.values)
+                    self.u.append(u_single.values)
                 self.x_dot.append(x_dot_single.values)
-                self.u.append(u_single.values)
 
 
 class SINDy(ps.SINDy):
@@ -101,28 +108,6 @@ class SINDy(ps.SINDy):
                          features+commands, t_default, discrete_time, n_jobs)
         self.features = features
         self.commands = commands
-
-        # maps .csv file command names to car_command class attributes
-        self.command_attributes = [x.split('.')[1] for x in commands]
-
-        # maps .csv file state names to car_state class attributes
-        self.feature_attributes = []
-        all_feature_attributes = ['position_m', 'velocity_m_per_sec',
-                                  'speed_m_per_sec', 'accel_m_per_sec_2',
-                                  'steering_angle_deg', 'body_angle_deg',
-                                  'yaw_rate_deg_per_sec', 'drift_angle_deg']
-
-        if 'position_m.x' in features or 'position_m.y' in features:
-            self.feature_attributes.append('position_m')
-        if 'velocity_m_per_sec.x' in features or 'velocity_m_per_sec.y' in features:
-            self.feature_attributes.append('velocity_m_per_sec')
-        if 'speed_m_per_sec' in features:
-            self.feature_attributes.append('speed_m_per_sec')
-        if 'accel_m_per_sec_2.x' in features or 'accel_m_per_sec_2.y' in features:
-            self.feature_attributes.append('accel_m_per_sec_2')
-
-        self.feature_attributes += [x for x in all_feature_attributes
-                                    if '_'.join(x.split('_')[:2]) in features]
 
     def fit(self, data, calculate_derivatives=True):
         """
@@ -147,7 +132,7 @@ class SINDy(ps.SINDy):
         if calculate_derivatives:
             super().fit(x=data.x, u=data.u, t=data.t,
                         multiple_trajectories=data.multiple_trajectories,
-                        unbias=True)
+                        unbias=True)  # TODO what does unbias exactly do?
         else:
             super().fit(x=data.x, x_dot=data.x_dot, u=data.u, t=data.t,
                         multiple_trajectories=data.multiple_trajectories,
@@ -237,13 +222,13 @@ class SINDy(ps.SINDy):
         """
 
         # get values of all used commands
-        cmds = [getattr(curr_command, x) for x in self.command_attributes]
+        cmds = [getattr(curr_command, x) for x in self.commands]
 
         def u(t):  # u has to be callable in order to work with pysindy
             return np.array(cmds)
 
         # get values of all used states
-        states = [getattr(curr_state, x) for x in self.feature_attributes]
+        states = [getattr(curr_state, x) for x in self.features]
         # stitch them into a starting state
         s0 = np.concatenate([s if hasattr(s, '__iter__')
                              else [s] for s in states])
@@ -256,7 +241,7 @@ class SINDy(ps.SINDy):
         # solve case when feature of just one coordinate is used ?
         # (e.g., vel.y, but not vel.x) ; probably not needed
         i = 0
-        for f in self.feature_attributes:
+        for f in self.features:
             if f in ['position_m', 'velocity_m_per_sec', 'accel_m_per_sec_2']:
                 setattr(new_state, f, Vector2(sim[1, i], sim[1, i+1]))
                 i += 2
@@ -332,7 +317,7 @@ def simulate_step_by_step(model, test_data):
         #                      hmin=1e-6, hmax=1e-3)
 
         s0 = sim[1, :]
-        res = np.append(res, [sim[1, :]], axis=0)
+        res = np.append(res, [s0], axis=0)
 
     return test_data, res
 
@@ -351,9 +336,15 @@ if __name__ == '__main__':
     # respect the feature order from .csv files
     # in case of pos, vel, accel, both coordinates need to be used
     FEATURES = ['position_m.x', 'position_m.y',
-                'velocity_m_per_sec.x', 'velocity_m_per_sec.y',
-                'body_angle_deg',
-                'drift_angle_deg']
+                # 'velocity_m_per_sec.x', 'velocity_m_per_sec.y',
+                'speed_m_per_sec',
+                # 'accel_m_per_sec_2.x', 'accel_m_per_sec_2.y',
+                'steering_angle_deg',
+                # 'body_angle_deg',
+                'yaw_rate_deg_per_sec',
+                'drift_angle_deg',
+                'body_angle_sin', 'body_angle_cos'
+                ]
 
     COMMANDS = ['command.throttle', 'command.steering', 'command.brake']
 
@@ -363,34 +354,27 @@ if __name__ == '__main__':
     # custom library construction
     # TODO solve numerical issues with division
     library_functions = [
-        # lambda x: np.sin(x),
-        # lambda x: np.cos(x),
-        # lambda x, y: np.sin(x+y),
-        # lambda x, y: np.cos(x+y),
-        # lambda x, y: x*np.sin(y),
-        # lambda x, y: x*np.cos(y),
-
-        # lambda x, y: x * np.exp(y+1e-21),
-        # lambda x: 1./(x+1e-21),
-        # lambda x, y: x/(y+1e-21),
-        # lambda x, y, z: x*y/(z+1e-21),
-        lambda x, y, z: x*np.sin(y+z),
-        lambda x, y, z: x*np.cos(y+z)
+        lambda x: x,
+        lambda x, y: x*y,
+        lambda x, y: x**2 * y,
+        lambda x: 1./x,  # (x+1e-21),
+        lambda x, y: x/y,  # (y+1e-21),
+        lambda x, y, z: x*y/z,  # (z+1e-21),
+        lambda x, y, z: x*np.sin(y+z),  # TODO try math.sin
+        lambda x, y, z: x*np.cos(y+z)  # TODO try math.cos
+        # lambda x, y, z: (1-abs(2 * x/y)) * z  # friciton steering constraint
+                                                # maybe not needed ?
     ]
     library_function_names = [
-        # lambda x: 'sin(' + x + ')',
-        # lambda x: 'cos(' + x + ')',
-        # lambda x, y: 'sin(' + x + '+' + y + ')',
-        # lambda x, y: 'cos(' + x + '+' + y + ')',
-        # lambda x, y: x + '*' + 'sin(' + y + ')',
-        # lambda x, y: x + '*' + 'cos(' + y + ')',
-
-        # lambda x, y: x + '* exp(' + y + ')',
-        # lambda x: '1/' + x,
-        # lambda x, y: x + '/' + y,
-        # lambda x, y, z: '(' + x + '*' + y + ')/' + z,
+        lambda x: x,
+        lambda x, y: x + '*' + y,
+        lambda x, y: x + '^2 *' + y,
+        lambda x: '1/' + x,
+        lambda x, y: x + '/' + y,
+        lambda x, y, z: '(' + x + '*' + y + ')/' + z,
         lambda x, y, z: x + '*' + 'sin(' + y + '+' + z + ')',
         lambda x, y, z: x + '*' + 'cos(' + y + '+' + z + ')'
+        # lambda x, y, z: 'friction_steering_constraint(' + x + ',' + y + ',' + z + ')'
     ]
 
     custom_library = ps.CustomLibrary(
@@ -404,29 +388,29 @@ if __name__ == '__main__':
         features=FEATURES,
         commands=COMMANDS,
 
-        feature_library=ps.PolynomialLibrary(degree=3),
-        # feature_library=ps.PolynomialLibrary(degree=3, interaction_only=True)
-        # + custom_library,
-        # feature_library=custom_library,
+        # feature_library=ps.PolynomialLibrary(degree=3),
+        # feature_library=ps.FourierLibrary(n_frequencies=3),
+        # feature_library=ps.PolynomialLibrary(degree=3) + custom_library,
+        feature_library=custom_library,
 
         # TODO cross-validate for threshold parameter
-        optimizer=ps.SR3(threshold=0.36, thresholder='cad', max_iter=100000),
+        optimizer=ps.SR3(threshold=0.012, thresholder='l1', max_iter=100000),
         # optimizer=ElasticNet(l1_ratio=0.9, fit_intercept=False,
         #                      max_iter=10000, selection='random'),
         # optimizer=MultiTaskElasticNetCV(l1_ratio=0.9, fit_intercept=False,
-        #                                 max_iter=10000, selection='random'),
-        # optimizer=ps.STLSQ(),
+        #                                max_iter=1000, selection='random', verbose=2),
+        # optimizer=ps.STLSQ(threshold=0.001, alpha=0.03, max_iter=10000),
         # optimizer=OrthogonalMatchingPursuit(n_nonzero_coefs=8,
-        #                                     fit_intercept=False),
+        #                                    fit_intercept=False),
 
         differentiation_method=ps.FiniteDifference(order=1)
         )
 
-    train_data = Data(train_dir)
+    train_data = Data(train_dir, normalize=False, start=100, skip_n=100)
     model.fit(train_data)
     model.print()
 
-    test_data = Data(test_dir)
+    test_data = Data(test_dir, normalize=False)
     test_data, sim = simulate_step_by_step(model, test_data)
 
     model.plot(test_data, sim)
