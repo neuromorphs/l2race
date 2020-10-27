@@ -330,7 +330,7 @@ if __name__ == '__main__':
 
     library_function_names = [
         lambda x: x,
-        lambda x, y: '(|0.5*y-x| > radians(.1)) * sign(0.5 * ' + y + ' - ' + x + ')',
+        lambda x, y: '(|0.5*y-x| > radians(1)) * sign(0.5 * ' + y + ' - ' + x + ')',
         lambda x, y: x + '*' + 'tan(' + y + ')'
     ]
 
