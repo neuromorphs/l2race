@@ -184,30 +184,30 @@ class car_state:
                 pass
 
     def get_record_csvrow(self):
-        """
-        Uses self.csv_fields to generate string line to write to CSV file.
-        :return: row of CSV file to write to file
-        """
-        l=[]
-        for m in self.csv_fields:
-            if '.' in m: # e.g. command.steering
-                parts=m.partition('.')
-                o=getattr(self,parts[0])
-                v=getattr(o,parts[2])
-            else:
-                v=getattr(self,m)
-            if isinstance(v,bool):
-                v=1 if v else 0
-                l.append(v)
-            elif isinstance(v,Vector2):
-                l.append(v.x)
-                l.append(v.y)
-            else:
-                l.append(v)
-        s=''
-        for v in l[:-1]:
-            s=s+('{},'.format(v))
-        s=s+('{:f}'.format(l[-1]))
-        return s
+            """
+
+            :return: row of CSV file
+            """
+            l=[]
+            for m in self.csv_fields:
+                if '.' in m: # e.g. command.steering
+                    parts=m.partition('.')
+                    o=getattr(self,parts[0])
+                    v=getattr(o,parts[2])
+                else:
+                    v=getattr(self,m)
+                if isinstance(v,bool):
+                    v=1 if v else 0
+                    l.append(v)
+                elif isinstance(v,Vector2):
+                    l.append(v.x)
+                    l.append(v.y)
+                else:
+                    l.append(v)
+            s=''
+            for v in l[:-1]:
+                s=s+('{},'.format(v))
+            s=s+('{:f}'.format(l[-1]))
+            return s
 
 

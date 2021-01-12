@@ -79,16 +79,27 @@ class linear_extrapolation_model(client_car_model):
 
         # logger.info('\nreal car state:  {}\nghost car state: {}'.format(real_car.car_state,modeled_car.car_state))
 
-class SINDy_model(client_car_model):
+class SINDy_KS_model(client_car_model):
     """
-    SINDy model
+    Kinematic single-track model learned by SINDy
+    Hard coded model is read from modeling/SINDy/KS_model.csv after training
+
+    TODO: implement without hard coding learned model
     """
 
     def __init__(self, car: car = None) -> None:
         super().__init__(car)
-        self.model = load_model('modeling/SINDy/SINDy_model.pkl')
 
-    def update_state(self, update_enabled:bool, t: float, car_command: car_command, real_car:car, modeled_car: car) -> None:
+    def model_acceleration(self, throttle, brake):
+        return 2.757 * throttle - 9.071 * brake
+
+    def model_steering_rate(self, steering_angle_deg, cmd_steering):
+        return np.rad2deg(-12.385 * np.deg2rad(steering_angle_deg) + 6.255 * cmd_steering)
+
+    def model_yaw_rate(self, speed_m_per_sec, steering_angle_deg):
+        return np.rad2deg(0.384 * speed_m_per_sec * np.tan(np.deg2rad(steering_angle_deg)))
+
+    def update_state(self, update_enabled:bool, time: float, car_command: car_command, real_car:car, modeled_car: car) -> None:
         """
         Take input time, car_state, and car_command and update the car_state.
 
@@ -98,18 +109,22 @@ class SINDy_model(client_car_model):
         :param real_car: real car with state we are modeling.
         :param modeled_car: ghost modeled car whose car_state to update.
         """
-        dt = t-self.time
-        self.time = t
+        dt = time - self.time
+        self.time = time
         if update_enabled:
             if dt < 0:
                 logger.warning('nonmonotonic timestep of {:.3f}s, setting dt=0'.format(dt))
                 return
 
-            new_state = self.model.simulate_step(modeled_car.car_state, real_car.car_state.command, t, dt)
-            modeled_car.car_state = new_state
+            modeled_car.car_state.position_m.x += modeled_car.car_state.speed_m_per_sec*np.cos(np.deg2rad(modeled_car.car_state.body_angle_deg)) * dt
+            modeled_car.car_state.position_m.y += modeled_car.car_state.speed_m_per_sec*np.sin(np.deg2rad(modeled_car.car_state.body_angle_deg)) * dt
+
+            modeled_car.car_state.speed_m_per_sec += self.model_acceleration(car_command.throttle, car_command.brake) * dt
+            modeled_car.car_state.steering_angle_deg += self.model_steering_rate(modeled_car.car_state.steering_angle_deg, car_command.steering) * dt
+            modeled_car.car_state.body_angle_deg += self.model_yaw_rate(modeled_car.car_state.speed_m_per_sec, modeled_car.car_state.steering_angle_deg) * dt
         else:
             modeled_car.car_state = copy.copy(real_car.car_state)
-            modeled_car.car_state.command=copy.copy(real_car.car_state.command)
+            modeled_car.car_state.command = copy.copy(real_car.car_state.command)
 
 
 
