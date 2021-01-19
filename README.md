@@ -50,6 +50,12 @@ Install the requiremepnts:
 ```shell script
 pip install -r requirements.txt
 ``` 
+#### commonroads Vehicle models
+Clone https://gitlab.lrz.de/tum-cps/commonroad-vehicle-models somewhere, and then add to pycharm as content-root.
+Code refers to commonroads as vehicle-models.XXX, e.g.
+````lang-python
+from vehiclemodels.parameters_vehicle1 import parameters_vehicle1  
+````
 #### pygame
 The necessary pygame 2.0 seems to install into windows and linux and macOS directly with pip now.
 

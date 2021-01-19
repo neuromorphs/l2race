@@ -224,7 +224,7 @@ class track:
         self.name = track_name
         logger.info('loading track image and info files with base name {}'.format(media_folder_path + track_name))
         self.track_image = pygame.image.load(media_folder_path + track_name + '.png')
-fix        self.track_map = np.load(media_folder_path + track_name + '_map.npy', allow_pickle=True)
+        self.track_map = np.load(media_folder_path + track_name + '_map.npy', allow_pickle=True)
         self.TrackInfo = np.load(media_folder_path + track_name + '_info.npy', allow_pickle=True).item() # TODO document why .item() needed
         # TrackInfo dict has following
         # waypoint_x

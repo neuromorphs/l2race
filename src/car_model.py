@@ -20,20 +20,22 @@ logger = my_logger(__name__)
 # sys.path.append('../commonroad-vehicle-models/Python')
 # either copy/clone https://gitlab.lrz.de/tum-cps/commonroad-vehicle-models/-/tree/master/Python to commonroad
 # or make symlink to folder named commonroad within l2rac
-from commonroad.parameters_vehicle1 import parameters_vehicle1  # Ford Escort
-from commonroad.parameters_vehicle2 import parameters_vehicle2  # BMW 320i
-from commonroad.parameters_vehicle3 import parameters_vehicle3  # VW Vanagon
-from .parameters_drifter import parameters_drifter
-from commonroad.init_KS import init_KS
-from commonroad.init_ST import init_ST
-from commonroad.init_MB import init_MB
-from commonroad.vehicleDynamics_KS import vehicleDynamics_KS  # kinematic single track, no slip
-from commonroad.vehicleDynamics_ST import vehicleDynamics_ST  # single track bicycle with slip
-from commonroad.vehicleDynamics_MB import vehicleDynamics_MB  # fancy multibody model
+from vehiclemodels.parameters_vehicle1 import parameters_vehicle1  # Ford Escort
+from vehiclemodels.parameters_vehicle2 import parameters_vehicle2  # BMW 320i
+from vehiclemodels.parameters_vehicle3 import parameters_vehicle3  # VW Vanagon
+from vehiclemodels.init_ks import init_ks
+from vehiclemodels.init_st import init_st
+from vehiclemodels.init_mb import init_mb
+from vehiclemodels.init_std import init_std
+from vehiclemodels.vehicle_dynamics_ks import vehicle_dynamics_ks  # kinematic single track, no slip
+from vehiclemodels.vehicle_dynamics_st import vehicle_dynamics_st  # single track bicycle with slip
+from vehiclemodels.vehicle_dynamics_mb import vehicle_dynamics_mb  # fancy multibody model
+# drifter
+from vehiclemodels.vehicle_dynamics_std import vehicle_dynamics_std  # fancy multibody model
 
 
 LOGGING_INTERVAL_CYCLES = 0  # 0 to disable # 1000 # log output only this often
-MODEL = vehicleDynamics_ST  # vehicleDynamics_KS vehicleDynamics_ST vehicleDynamics_MB
+MODEL = vehicle_dynamics_std  # vehicle_dynamics_ks vehicle_dynamics_ST vehicle_dynamics_MB
 SOLVER = 'RK45'  # DOP853 LSODA BDF RK45 RK23 # faster, no overhead but no checking
 PARAMETERS = parameters_vehicle2
 RTOL = 1e-2
@@ -83,16 +85,19 @@ class car_model:
         self.s_rounds = ''  # String to keep information about completed rounds
 
         # change MODEL_TYPE to select vehicle model type (vehicle dynamics - how car_state is calculated from car parameters)
-        self.model = MODEL  # 'KS' 'ST' 'MB' # model type KS: kinematic single track, ST: single track (with slip), MB: fancy multibody
-        if self.model == vehicleDynamics_KS:
-            self.model_init = init_KS
-            self.model_func = self.func_KS
-        elif self.model == vehicleDynamics_ST:
-            self.model_init = init_ST
-            self.model_func = self.func_ST
-        elif self.model == vehicleDynamics_MB:
-            self.model_init = init_MB
-            self.model_func = self.func_MB
+        self.model = MODEL  # 'KS' 'ST' 'MB' 'STD' # model type KS: kinematic single track, ST: single track (with slip), MB: fancy multibody, STD: drifter model added 2020
+        if self.model == vehicle_dynamics_ks:
+            self.model_init = init_ks
+            self.model_func = self.func_ks
+        elif self.model == vehicle_dynamics_st:
+            self.model_init = init_st
+            self.model_func = self.func_st
+        elif self.model == vehicle_dynamics_mb:
+            self.model_init = init_mb
+            self.model_func = self.func_mb
+        elif self.model == vehicle_dynamics_std:
+            self.model_init = init_std
+            self.model_func = self.func_std
 
         # select car with next line - determins static parameters of the car: physical dimensions, strength of engine and breaks, etc.
         self.parameters = PARAMETERS()
@@ -122,10 +127,10 @@ class car_model:
         dotPsi0 = 0
         beta0 = 0
         initialState = [sx0, sy0, delta0, vel0, Psi0, dotPsi0, beta0]  # initial state for simulation
-        if self.model == vehicleDynamics_MB:
-            self.model_state = self.model_init(initialState, self.parameters)  # initial state for MB needs params too
-        else:
-            self.model_state = self.model_init(initialState)  # initial state
+        # if self.model == vehicle_dynamics_mb:
+        self.model_state = self.model_init(initialState, self.parameters)  # initial state for MB needs params too
+        # else:
+        #     self.model_state = self.model_init(initialState)  # initial state
         self.cycle_count = 0
         self.time = 0  # "car's clock" - till what time the the simulation was performed
         self.atol = ATOL
@@ -364,10 +369,10 @@ class car_model:
         self.car_state.speed_m_per_sec = self.model_state[ISPEED]
         self.car_state.steering_angle_deg = degrees(self.model_state[ISTEERANGLE])
         self.car_state.body_angle_deg = degrees(self.model_state[IYAW])
-        if self.model == vehicleDynamics_ST:
+        if self.model == vehicle_dynamics_st:
             self.car_state.yaw_rate_deg_per_sec = degrees(self.model_state[IYAWRATE])
             self.car_state.drift_angle_deg = degrees(self.model_state[ISLIPANGLE])
-        elif self.model == vehicleDynamics_MB:
+        elif self.model == vehicle_dynamics_st or self.model==vehicle_dynamics_std:
             self.car_state.yaw_rate_deg_per_sec = degrees(self.model_state[IYAWRATE])
 
         self.car_state.velocity_m_per_sec.x = self.car_state.speed_m_per_sec * cos(
@@ -398,17 +403,22 @@ class car_model:
             if self.model_state[ISPEED] > 0:
                 self.model_state[ISPEED] = 0
 
-    def func_KS(self, t, x, u, p):
-        f = vehicleDynamics_KS(x, u, p)
+    def func_ks(self, t, x, u, p):
+        f = vehicle_dynamics_ks(x, u, p)
         self.n_eval_total += 1
         return f
 
-    def func_ST(self, t, x, u, p):
-        f = vehicleDynamics_ST(x, u, p)
+    def func_st(self, t, x, u, p):
+        f = vehicle_dynamics_st(x, u, p)
         self.n_eval_total += 1
         return f
 
-    def func_MB(self, t, x, u, p):
-        f = vehicleDynamics_MB(x, u, p)
+    def func_mb(self, t, x, u, p):
+        f = vehicle_dynamics_mb(x, u, p)
+        self.n_eval_total += 1
+        return f
+
+    def func_std(self, t, x, u, p):
+        f = vehicle_dynamics_std(x, u, p)
         self.n_eval_total += 1
         return f
