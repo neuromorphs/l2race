@@ -19,6 +19,7 @@ VERSION='2.0'
 class car_state:
     """
     Complete state of car. Updated by hidden model based on control input.
+    Participants have access only to this state, which does not include many of the state variables for some models.
 
     """
 
@@ -61,6 +62,8 @@ class car_state:
         self.body_angle_deg = 0.0 # degrees, increases CW (on screen!) with zero pointing to right/east
         self.yaw_rate_deg_per_sec = 0.0 # degrees/sec, increases CW on screen
         self.drift_angle_deg=0.0 # drift angle, (beta) relative to heading direction. Zero for no drift. +-90 for drifting entirely sideways. + is drift to left,- to right.
+        self.fw_ang_speed_hz=0.0 # front wheel rotation rate in Hz  - only for drifter std and mb
+        self.rw_ang_speed_hz=0.0 # rear wheel rotation rate in Hz  - only for drifter std and mb
 
         self.static_info=self.static_info(name=name,length_m=length_m,width_m=width_m,client_ip=client_ip)
 
@@ -117,7 +120,7 @@ class car_state:
         return self.static_info.client_ip[0] if self.static_info.client_ip else None
 
     def __str__(self):
-        s='t={:1f}\n{}\npos=({:4.1f},{:4.1f})m vel=({:5.1f},{:5.1f})m/s, speed={:6.2f}m/s accel={:6.2f}m/s^2\nsteering_angle={:4.1f}deg body_angle={:4.1f}deg\nyaw_rate={:4.1f}deg/s drift_angle={:4.1f}\nmsg: {}' \
+        s='t={:1f}\n{}\npos=({:4.1f},{:4.1f})m vel=({:5.1f},{:5.1f})m/s, speed={:6.2f}m/s accel={:6.2f}m/s^2\nsteering_angle={:4.1f}deg body_angle={:4.1f}deg\nyaw_rate={:4.1f}deg/s drift_angle={:4.1f}\nFW {:.1f}Hz RW {:.1f}Hz\nmsg: {}' \
             .format(self.time,
                     str(self.command),
                     self.position_m.x,
@@ -130,6 +133,8 @@ class car_state:
                     self.body_angle_deg,
                     self.yaw_rate_deg_per_sec,
                     self.drift_angle_deg,
+                    self.fw_ang_speed_hz,
+                    self.rw_ang_speed_hz,
                     self.server_msg)
         return s
 

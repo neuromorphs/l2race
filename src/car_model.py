@@ -42,15 +42,20 @@ RTOL = 1e-2
 ATOL = 1e-4
 
 # indexes into model state
-# states
-# x0 = x-position in a global coordinate system
-# x1 = y-position in a global coordinate system
-# x2 = steering angle of front wheels
-# x3 = velocity in x-direction
-# x4 = yaw angle
-# ST model adds two more
-# x5 = yaw rate
-# x6 = slip angle at vehicle center
+# states, 1 based from commonroads from matlab origins
+# x1 = x-position in a global coordinate system
+# x2 = y-position in a global coordinate system
+# x3 = steering angle of front wheels
+# x4 = velocity at vehicle center
+# x5 = yaw angle
+# x6 = yaw rate
+# x7 = slip angle at vehicle center
+# x8 = front wheel angular speed
+# x9 = rear wheel angular speed
+
+# u1 = steering angle velocity of front wheels
+# u2 = longitudinal acceleration
+
 IXPOS = 0
 IYPOS = 1
 ISTEERANGLE = 2
@@ -58,7 +63,8 @@ ISPEED = 3
 IYAW = 4
 IYAWRATE = 5
 ISLIPANGLE = 6
-
+IFWSPEED=7
+IRWSPEED=8
 
 class car_model:
     """
@@ -69,6 +75,14 @@ class car_model:
                  car_name: str = None,
                  client_ip: Tuple[str, int] = None,
                  allow_off_track: bool = False):
+        """ Constructs new car model
+
+        :param track: the track to run on
+        :param car_name: the name of this car
+        :param client_ip: our IP address
+        :param allow_off_track: whether to allow car to go offtrack
+
+        """
 
         self.n_eval_total = 0  # Number of simulation steps for this car performed since the program was started/reseted
         self.track = track # Track of which car is driving
@@ -222,7 +236,7 @@ class car_model:
             self.car_state.server_msg += '\n' + s
 
 
-        # make additional constrains for moving foreward and on reverse gear
+        # make additional constraints for moving foreward and on reverse gear
         self.constrain_speed(command)
 
         # Constrain position of a car to map
@@ -287,7 +301,7 @@ class car_model:
 
     def external_to_model_input(self, command) -> Tuple[float,float]:
         """
-        Computes commanded longitudinal acceleration and steereing velocity from throttle steering inputs.
+        Computes commanded longitudinal acceleration and steering velocity from throttle and steering inputs.
 
         :param command: the car_command
         :return: the (acceleration, steering velocity) tuple
@@ -369,18 +383,27 @@ class car_model:
         self.car_state.speed_m_per_sec = self.model_state[ISPEED]
         self.car_state.steering_angle_deg = degrees(self.model_state[ISTEERANGLE])
         self.car_state.body_angle_deg = degrees(self.model_state[IYAW])
-        if self.model == vehicle_dynamics_st:
+        if self.model != vehicle_dynamics_ks:
             self.car_state.yaw_rate_deg_per_sec = degrees(self.model_state[IYAWRATE])
             self.car_state.drift_angle_deg = degrees(self.model_state[ISLIPANGLE])
-        elif self.model == vehicle_dynamics_st or self.model==vehicle_dynamics_std:
-            self.car_state.yaw_rate_deg_per_sec = degrees(self.model_state[IYAWRATE])
+            if self.model==vehicle_dynamics_std:
+                self.car_state.fw_ang_speed_hz=self.model_state[IFWSPEED] # TODO fix units to hz
+                self.car_state.rw_ang_speed_hz=self.model_state[IRWSPEED] # TODO fix units to hz
+            elif self.model==vehicle_dynamics_mb:
+        #x24 = left front wheel angular speed
+        #x25 = right front wheel angular speed
+        #x26 = left rear wheel angular speed
+        #x27 = right rear wheel angular speed
+                self.car_state.fw_ang_speed_hz=(self.model_state[23]+self.model_state[24]) # TODO fix units to hz
+                self.car_state.rw_ang_speed_hz=(self.model_state[35]+self.model_state[26]) # TODO fix units to hz
+
 
         self.car_state.velocity_m_per_sec.x = self.car_state.speed_m_per_sec * cos(
             radians(self.car_state.body_angle_deg))
         self.car_state.velocity_m_per_sec.y = self.car_state.speed_m_per_sec * sin(
             radians(self.car_state.body_angle_deg))
         self.car_state.accel_m_per_sec_2.x = accel
-        self.car_state.accel_m_per_sec_2.y = 0  # todo, for now and with KS/ST model
+        self.car_state.accel_m_per_sec_2.y = 0  # todo, for now and with KS/ST model, update for drifter and mb
 
     # Constrain position of the car to map
     def constrain_to_map(self):
