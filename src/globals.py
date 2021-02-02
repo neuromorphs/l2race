@@ -83,8 +83,8 @@ CLIENT_PORT_RANGE = '50010-50020'  # range of ports used for client that server 
     # client needs to open/forward this port range for receiving state from server and sending commands to server
     # The ENABLE_UPNP flag turns on automatic forwarding but it does not work with all routers.
 KILL_ZOMBIE_TRACK_TIMEOUT_S = 10  # if track process gets no input for this long, it terminates itself
-FRICTION_FACTOR = .5  # overall friction parameter multiplier for some models
-SAND_SLOWDOWN = 0.975  # If in sand, at every update the resulting velocity is multiplied by the slowdown factor
+FRICTION_FACTOR = .5  # overall friction parameter multiplier for some models, not used for now
+SAND_SLOWDOWN = 0.985  # If in sand, at every update the resulting velocity is multiplied by the slowdown factor
 REVERSE_TO_FORWARD_GEAR = 0.5  # You get less acceleration on reverse gear than while moving forwards.
 MODEL_UPDATE_RATE_HZ = 20  # rate that server attempts to update all the car models for each track process (models run serially in each track process)
 MAX_CARS_PER_TRACK = 6  # only this many cars can run on each track
