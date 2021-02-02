@@ -31,9 +31,9 @@ conda env create -f environment.yml
 If this does not work for some reason (some libraries are still not available from conda repos), then you can also use pip to install the requirements into your conda environment.
 Make a new environment (see https://docs.conda.io/projects/conda/en/latest/user-guide/tasks/manage-environments.html#). 
 
-First, install miniconda or conda, then make an empty python 3.7 environment:
+First, install miniconda or conda, then make an empty python environment:
 ```shell script
-conda create --name l2race python=3.7
+conda create --name l2race python=3.8
 ```
 Activate it:
 ```shell script

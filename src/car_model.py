@@ -36,7 +36,7 @@ from vehiclemodels.vehicle_dynamics_std import vehicle_dynamics_std  # fancy mul
 
 LOGGING_INTERVAL_CYCLES = 0  # 0 to disable # 1000 # log output only this often
 MODEL = vehicle_dynamics_std  # vehicle_dynamics_ks vehicle_dynamics_ST vehicle_dynamics_MB
-SOLVER = 'RK23'  # DOP853 LSODA BDF RK45 RK23 # faster, no overhead but no checking
+SOLVER = 'euler' # 'RK23'  # DOP853 LSODA BDF RK45 RK23 # faster, no overhead but no checking
 PARAMETERS = parameters_vehicle2
 RTOL = 1e-2
 ATOL = 1e-4
@@ -151,7 +151,7 @@ class car_model:
         self.atol = self.atol * np.ones(30)
         self.rtol = RTOL
         self.u = [0, 0]
-        self.solver = 'euler'
+        self.solver = SOLVER
         self.first_step = True
 
         # Set if a car is allowed to leave track or not
@@ -243,12 +243,8 @@ class car_model:
         if calculations_time > 0.0001:
             n_eval_stop = self.n_eval_total
             n_eval_diff = n_eval_stop - n_eval_start
-            s = '{} took {} evals in {:.1f}ms for timestep {:.1f}ms to advance {:.1f}ms {}'.format(self.model.__name__,
-                                                                                                   n_eval_diff,
-                                                                                                   calculations_time * 1000,
-                                                                                                   dt_sec * 1000,
-                                                                                                   t_simulated * 1000,
-                                                                                                   ('(too_slow)' if too_slow else ''))
+            too_slow=('(too_slow)' if too_slow else '')
+            s=f'{self.model.__name__} with solver {self.solver} took {n_eval_diff} evals in {(calculations_time * 1000):.1f}ms for timestep  {dt_sec * 1000:.1f}ms to advance  {(t_simulated * 1000):.1f}ms  {too_slow }'
             self.car_state.server_msg += '\n' + s
 
 
