@@ -101,6 +101,8 @@ class car_state:
             'drift_angle_deg',
             'body_angle_sin',
             'body_angle_cos',
+            'fw_ang_speed_hz',
+            'rw_ang_speed_hz',
         ]
 
     """

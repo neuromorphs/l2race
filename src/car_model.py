@@ -36,7 +36,7 @@ from vehiclemodels.vehicle_dynamics_std import vehicle_dynamics_std  # fancy mul
 
 LOGGING_INTERVAL_CYCLES = 0  # 0 to disable # 1000 # log output only this often
 MODEL = vehicle_dynamics_std  # vehicle_dynamics_ks vehicle_dynamics_ST vehicle_dynamics_MB
-SOLVER = 'RK45'  # DOP853 LSODA BDF RK45 RK23 # faster, no overhead but no checking
+SOLVER = 'RK23'  # DOP853 LSODA BDF RK45 RK23 # faster, no overhead but no checking
 PARAMETERS = parameters_vehicle2
 RTOL = 1e-2
 ATOL = 1e-4
@@ -142,7 +142,7 @@ class car_model:
         beta0 = 0
         initialState = [sx0, sy0, delta0, vel0, Psi0, dotPsi0, beta0]  # initial state for simulation
         # if self.model == vehicle_dynamics_mb:
-        self.model_state = self.model_init(initialState, self.parameters)  # initial state for MB needs params too
+        self.model_state = np.array(self.model_init(initialState, self.parameters))  # initial state for MB needs params too
         # else:
         #     self.model_state = self.model_init(initialState)  # initial state
         self.cycle_count = 0
@@ -151,7 +151,7 @@ class car_model:
         self.atol = self.atol * np.ones(30)
         self.rtol = RTOL
         self.u = [0, 0]
-        self.solver = None
+        self.solver = 'euler'
         self.first_step = True
 
         # Set if a car is allowed to leave track or not
@@ -194,28 +194,44 @@ class car_model:
             f = self.model_func(t, y, u_func(), self.parameters)
             return f
 
-        # Save number of calles of the above function
+        # Save number of calls of the above function
         n_eval_start = self.n_eval_total
 
         # Integrate equations
-        self.solver = solve_ivp(fun=model_func,
-                                t_span=[self.time, self.time + dt_sec],
-                                method=SOLVER,
-                                y0=self.model_state,
-                                atol=ATOL,
-                                rtol=RTOL)
+        if self.solver=='euler':
+            t=self.time
+            while t<self.time+dt_sec:
+                dt=1e-3 if self.time+dt_sec>1e-3 else self.time+dt_sec-t
+                grad=model_func(t,self.model_state)
+                self.model_state+=dt*np.array(grad)
+                t+=dt
+            t_simulated_end=t
+
+        else:
+            self.solver = solve_ivp(fun=model_func,
+                                    t_span=[self.time, self.time + dt_sec],
+                                    method=SOLVER,
+                                    y0=self.model_state,
+                                    atol=ATOL,
+                                    rtol=RTOL)
+            t_simulated_end = self.solver.t[-1]  # True time on the car's clock at the end of the model update
+            # Save the results of model update to model_state variable
+            self.model_state = self.solver.y[:, -1]
+
+        # check if soln went haywire, i..e. any element of state is NaN
+        has_nan=np.isnan(np.sum(self.model_state))
+        if has_nan:
+            logger.warning(f'model state has NaN: {self.model_state}')
+            quit(1)
 
         # This flag changes to True if it was not possible to perform real-time update of car model
         too_slow = timer() > calculations_time_start + 0.8 * dt_sec
 
-        t_simulated_end = self.solver.t[-1]  # True time on the car's clock at the end of the model update
 
 
         # Calculate the difference on the "car's clock" during this model update
         t_simulated = t_simulated_end - self.time
 
-        # Save the results of model update to model_state variable
-        self.model_state = self.solver.y[:, -1]
 
         calculations_time_end = timer()  # stop counting time required to update the model
 
@@ -404,6 +420,8 @@ class car_model:
             radians(self.car_state.body_angle_deg))
         self.car_state.accel_m_per_sec_2.x = accel
         self.car_state.accel_m_per_sec_2.y = 0  # todo, for now and with KS/ST model, update for drifter and mb
+        self.car_state.body_angle_sin=np.sin(radians(self.car_state.body_angle_deg))
+        self.car_state.body_angle_cos=np.cos(radians(self.car_state.body_angle_deg))
 
     # Constrain position of the car to map
     def constrain_to_map(self):
