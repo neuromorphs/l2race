@@ -76,7 +76,7 @@ SCREEN_WIDTH_PIXELS = 1024  # pixels
 SCREEN_HEIGHT_PIXELS = 768  # pixels
 # meters per screen pixel, e.g. 4m car would be 40 pixels, so about 4% of width
 # increase M_PER_PIXEL to make cars smaller relative to track
-M_PER_PIXEL = 0.10  # 0.2 makes the cars really small on track. 0.1 makes them fill about 1/3 of track width.
+M_PER_PIXEL = 0.10  # Overall scale parameter: 0.2 makes the cars really small on track. 0.1 makes them fill about 1/3 of track width.
 
 SERVER_PORT = 50000  # client starts game on this port on the SERVER_HOST
 CLIENT_PORT_RANGE = '50010-50020'  # range of ports used for client that server uses for game
