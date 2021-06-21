@@ -18,8 +18,10 @@ logger = my_logger(__name__)
 
 # import sys
 # sys.path.append('../commonroad-vehicle-models/Python')
-# either copy/clone https://gitlab.lrz.de/tum-cps/commonroad-vehicle-models/-/tree/master/Python to commonroad
-# or make symlink to folder named commonroad within l2rac
+# do one of following
+# 1: copy/clone https://gitlab.lrz.de/tum-cps/commonroad-vehicle-models/-/tree/master/Python
+# 2: in pycharm, add the commonrad-vehicle-models/PYTHON folder (not its subfolder vehiclemodels) as content root
+# 3: make symlink to folder named vehiclemodels within l2race
 from vehiclemodels.parameters_vehicle1 import parameters_vehicle1  # Ford Escort
 from vehiclemodels.parameters_vehicle2 import parameters_vehicle2  # BMW 320i
 from vehiclemodels.parameters_vehicle3 import parameters_vehicle3  # VW Vanagon
@@ -31,15 +33,10 @@ from vehiclemodels.vehicle_dynamics_ks import vehicle_dynamics_ks  # kinematic s
 from vehiclemodels.vehicle_dynamics_st import vehicle_dynamics_st  # single track bicycle with slip
 from vehiclemodels.vehicle_dynamics_mb import vehicle_dynamics_mb  # fancy multibody model
 # drifter
-from vehiclemodels.vehicle_dynamics_std import vehicle_dynamics_std  # fancy multibody model
+from vehiclemodels.vehicle_dynamics_std import vehicle_dynamics_std  # new drifter model from Gerald Wunsching
 
 
 LOGGING_INTERVAL_CYCLES = 0  # 0 to disable # 1000 # log output only this often
-MODEL = vehicle_dynamics_std  # vehicle_dynamics_ks vehicle_dynamics_ST vehicle_dynamics_MB
-SOLVER = 'euler' # 'RK23'  # DOP853 LSODA BDF RK45 RK23 # faster, no overhead but no checking
-PARAMETERS = parameters_vehicle2
-RTOL = 1e-2
-ATOL = 1e-4
 
 # indexes into model state
 # states, 1 based from commonroads from matlab origins
@@ -114,7 +111,7 @@ class car_model:
             self.model_func = self.func_std
 
         # select car with next line - determins static parameters of the car: physical dimensions, strength of engine and breaks, etc.
-        self.parameters = PARAMETERS()
+        self.parameters = PARAMETERS
         # Set parameters of this particular car
         self.car_state.static_info.width_m = self.parameters.w
         self.car_state.static_info.length_m = self.parameters.l
@@ -131,6 +128,8 @@ class car_model:
         elif PARAMETERS == parameters_vehicle3:  # VW vanagon
             self.accel_max = self.zeroTo60mpsTimeToAccelG(17.9) * G
             self.brake_max = .8 * G
+        elif PARAMETERS == parameters_vehicle4:  # trailer, not supported
+            raise RuntimeError('parameters_vehicle4 is a trailer and is not supported currently')
 
         # Set parameters and initial values of the model/solver of the car dynamics equations
         sx0 = self.car_state.position_m.x
@@ -201,7 +200,7 @@ class car_model:
         if self.solver=='euler':
             t=self.time
             while t<self.time+dt_sec:
-                dt=1e-3 if self.time+dt_sec>1e-3 else self.time+dt_sec-t
+                dt=EULER_TIMESTEP_S if self.time+dt_sec>EULER_TIMESTEP_S else self.time+dt_sec-t
                 grad=model_func(t,self.model_state)
                 self.model_state+=dt*np.array(grad)
                 t+=dt
@@ -399,15 +398,17 @@ class car_model:
             self.car_state.yaw_rate_deg_per_sec = degrees(self.model_state[IYAWRATE])
             self.car_state.drift_angle_deg = degrees(self.model_state[ISLIPANGLE])
             if self.model==vehicle_dynamics_std:
-                self.car_state.fw_ang_speed_hz=self.model_state[IFWSPEED] # TODO fix units to hz
-                self.car_state.rw_ang_speed_hz=self.model_state[IRWSPEED] # TODO fix units to hz
+                cycle_per_rad=(1/2*np.pi)
+                self.car_state.fw_ang_speed_hz=cycle_per_rad*self.model_state[IFWSPEED] # TODO fix units to hz
+                self.car_state.rw_ang_speed_hz=cycle_per_rad*self.model_state[IRWSPEED] # TODO fix units to hz
             elif self.model==vehicle_dynamics_mb:
         #x24 = left front wheel angular speed
         #x25 = right front wheel angular speed
         #x26 = left rear wheel angular speed
         #x27 = right rear wheel angular speed
-                self.car_state.fw_ang_speed_hz=(self.model_state[23]+self.model_state[24]) # TODO fix units to hz
-                self.car_state.rw_ang_speed_hz=(self.model_state[35]+self.model_state[26]) # TODO fix units to hz
+                cycle_per_rad=(1/2*np.pi)
+                self.car_state.fw_ang_speed_hz=cycle_per_rad*(self.model_state[23]+self.model_state[24]) # TODO fix units to hz
+                self.car_state.rw_ang_speed_hz=(cycle_per_rad*self.model_state[35]+self.model_state[26]) # TODO fix units to hz
 
 
         self.car_state.velocity_m_per_sec.x = self.car_state.speed_m_per_sec * cos(

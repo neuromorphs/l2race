@@ -307,6 +307,7 @@ class client:
 
                 logger.info('initial car state is {}'.format(self.car.car_state))
 
+
     def run(self) -> None:
         """
         Either runs the game live or replays recording(s), depending on self.replay_file_list
