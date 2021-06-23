@@ -42,6 +42,7 @@ class my_joystick:
     XBOX_WIRED = 'Controller (Xbox One For Windows)' #Although in the name the word 'Wireless' appears, the controller is wired
     XBOX_ELITE = 'Xbox One Elite Controller' # XBox One when plugged into USB in Windows
     PS4_DUALSHOCK4 = 'Sony Interactive Entertainment Wireless Controller' # Only wired connection tested
+    PS4_WIRELESS_CONTROLLER = 'Sony Computer Entertainment Wireless Controller' # Only wired connection on macOS tested
 
     def __init__(self, joystick_number=JOYSTICK_NUMBER):
         """
@@ -93,6 +94,7 @@ class my_joystick:
         if not self.name == my_joystick.XBOX_ONE_BLUETOOTH_JOYSTICK \
                 and not self.name == my_joystick.XBOX_ELITE \
                 and not self.name == my_joystick.XBOX_WIRED \
+                and not self.name == my_joystick.PS4_WIRELESS_CONTROLLER \
                 and not self.name == my_joystick.PS4_DUALSHOCK4:
             logger.warning('Name: {}'.format(self.name))
             logger.warning('Unknown joystick type {} found.'
@@ -207,6 +209,21 @@ class my_joystick:
             Steering = 0
             Throttle = 5
             Brake = 2
+            
+        elif self.name == my_joystick.PS4_WIRELESS_CONTROLLER:
+            # Buttons X O Square Triangle
+            X = 1  # ghost (client_model)
+            O = 2  # reverse
+            Square = 0  # restart game
+            Triangle = 3  # autodrive
+            # Quit and Restart Client buttons
+            Quit = 8
+            Restart_Client = 9
+            # Analog Buttons and Axes
+            Steering = 2
+            Throttle = 4
+            Brake = 3
+
             
             
         if 'Xbox' in self.name:
