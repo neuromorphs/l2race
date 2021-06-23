@@ -35,8 +35,10 @@ UPNP_LEASE_TIME = 1200  # the lease time for these ports in seconds
 # overridden by command line --autodrive
 # AUTODRIVE_MODULE='src.controllers.pure_pursuit_controller'
 # AUTODRIVE_CLASS = 'pure_pursuit_controller'
-AUTODRIVE_MODULE='src.controllers.pure_pursuit_controller_v2'
-AUTODRIVE_CLASS = 'pure_pursuit_controller_v2'
+# AUTODRIVE_MODULE='src.controllers.pure_pursuit_controller_v2'
+# AUTODRIVE_CLASS = 'pure_pursuit_controller_v2'
+AUTODRIVE_MODULE='src.controllers.neural_mpc_controller'
+AUTODRIVE_CLASS = 'neural_mpc_controller'
 
 # your model class that takes car state and control and predicts the next state given a future time.
 # overridden by command line --model
@@ -102,7 +104,7 @@ SCREEN_WIDTH_PIXELS = 1024  # pixels
 SCREEN_HEIGHT_PIXELS = 768  # pixels
 # meters per screen pixel, e.g. 4m car would be 40 pixels, so about 4% of width
 # increase M_PER_PIXEL to make cars smaller relative to track
-M_PER_PIXEL = 0.20  # Overall scale parameter: 0.2 makes the cars really small on track. 0.1 makes them fill about 1/3 of track width.
+M_PER_PIXEL = 0.10  # Overall scale parameter: 0.2 makes the cars really small on track. 0.1 makes them fill about 1/3 of track width.
 
 # car model and solver
 MODEL = vehicle_dynamics_st # vehicle_dynamics_ks vehicle_dynamics_ST vehicle_dynamics_MB

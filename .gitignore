@@ -3,3 +3,8 @@
 __pycache__
 *.__pycache__
 .vscode
+
+#Controller Data
+src/controllers/neural_mpc_controller_util/nn_prediction/models/*
+src/controllers/neural_mpc_controller_util/nn_prediction/training_data/*
+training_data.csv
