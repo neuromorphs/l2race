@@ -16,12 +16,11 @@ from .car_command import car_command
 
 logger = my_logger(__name__)
 
-# import sys
-# sys.path.append('../commonroad-vehicle-models/Python')
-# do one of following
-# 1: copy/clone https://gitlab.lrz.de/tum-cps/commonroad-vehicle-models/-/tree/master/Python
-# 2: in pycharm, add the commonrad-vehicle-models/PYTHON folder (not its subfolder vehiclemodels) as content root
-# 3: make symlink to folder named vehiclemodels within l2race
+
+# We use the car models from TUM  https://gitlab.lrz.de/tum-cps/commonroad-vehicle-models/-/tree/master/Python
+# get the latest version of the common road models by pulling the sub module: "git submodule update --init --recursive" (recommended)
+# The submodule is in the folder commonroad-vehicle-models.
+# If you need to make changes, you can also fork the gitlab repository and add your own version as submodule
 from vehiclemodels.parameters_vehicle1 import parameters_vehicle1  # Ford Escort
 from vehiclemodels.parameters_vehicle2 import parameters_vehicle2  # BMW 320i
 from vehiclemodels.parameters_vehicle3 import parameters_vehicle3  # VW Vanagon
@@ -140,10 +139,10 @@ class car_model:
         dotPsi0 = 0
         beta0 = 0
         initialState = [sx0, sy0, delta0, vel0, Psi0, dotPsi0, beta0]  # initial state for simulation
-        # if self.model == vehicle_dynamics_mb:
-        self.model_state = np.array(self.model_init(initialState, self.parameters))  # initial state for MB needs params too
-        # else:
-        #     self.model_state = self.model_init(initialState)  # initial state
+        if self.model == vehicle_dynamics_mb or self.model == vehicle_dynamics_std:
+            self.model_state = np.array(self.model_init(initialState, self.parameters))  # initial state for MB and STD needs params too
+        else:
+            self.model_state = self.model_init(initialState)  # initial state
         self.cycle_count = 0
         self.time = 0  # "car's clock" - till what time the the simulation was performed
         self.atol = ATOL

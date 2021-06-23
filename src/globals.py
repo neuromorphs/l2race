@@ -105,7 +105,7 @@ SCREEN_HEIGHT_PIXELS = 768  # pixels
 M_PER_PIXEL = 0.20  # Overall scale parameter: 0.2 makes the cars really small on track. 0.1 makes them fill about 1/3 of track width.
 
 # car model and solver
-MODEL = vehicle_dynamics_std # vehicle_dynamics_ks vehicle_dynamics_ST vehicle_dynamics_MB
+MODEL = vehicle_dynamics_st # vehicle_dynamics_ks vehicle_dynamics_ST vehicle_dynamics_MB
 SOLVER = 'euler' # 'RK23'  # DOP853 LSODA BDF RK45 RK23 # faster, no overhead but no checking
 PARAMETERS = parameters_vehicle2()
 EULER_TIMESTEP_S=1e-3 # fixed timestep for Euler solver (except for last one)

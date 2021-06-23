@@ -26,7 +26,7 @@ setup(
     ext_modules = cythonize([
         "commonroad/vehicleDynamics_MB.pyx",
         "commonroad/vehicleDynamics_ST.pyx",
-        "commonroad/tireModel.pyx",
+        "commonroad/tireModel.pyx", 
         # "commonroad/longitudinalParameters.py",
         "commonroad/accelerationConstraints.pyx",
         "commonroad/steeringConstraints.pyx",
