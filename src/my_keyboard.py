@@ -1,23 +1,34 @@
 # Driver control input from keyboard
+from threading import Thread
 from typing import Tuple
 import pygame
 
 from src.l2race_utils import my_logger
+from src.globals import *
+
+from tkinter import *
 logger = my_logger(__name__)
 
 from src.car_command import car_command
 from src.user_input import user_input
 
-def printhelp():
-    print('----------------------------\nKeyboard commands:\n'
-          'drive with LEFT/UP/RIGHT/DOWN or AWDS keys\n'
-          'hold SPACE pressed to reverse with drive keys\n'
-          'y runs automatic control (if implemented)\n'
-          'm runs user model (if implemented)\n'
-          'r resets car\n'
-          'R restarts client from scratch (if server went down)\n'
-          'ESC quits\n'
-          'h|? shows this help\n-----------------------------\n')
+def show_help():
+    print(HELP)
+
+    # TODO show help in popup window, not so easy in python...
+    thread=Thread(target=show_tk_help)
+    thread.start()
+
+def show_tk_help():
+    root = Tk()
+    root.withdraw()
+    var = StringVar()
+    label = Message( root, textvariable=var, relief=RAISED)
+    var.set(HELP)
+    label.pack()
+    root.mainloop()
+
+
 class my_keyboard:
 
     def __init__(self):
@@ -44,6 +55,7 @@ class my_keyboard:
         self.user_input.restart_car=False
         self.user_input.restart_client=False
         self.user_input.run_client_model=False
+        self.user_input.record_data=False
 
         self.any_key_pressed=any(pressed)
 
@@ -106,6 +118,9 @@ class my_keyboard:
                 self.restart_pressed=False
 
         if pressed[pygame.K_QUESTION] or pressed[pygame.K_h]:
-            printhelp()
+            show_help()
 
         return self.car_command, self.user_input
+
+
+

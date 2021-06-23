@@ -73,7 +73,8 @@ for name in names:
     y = y[::2]
 
     # This lines are track specific
-    # They set the starting point and smoothly combine the end with the beginning
+    # They set the starting point index and smoothly combine the end with the beginning
+    # TODO document how this index is found by the track maker
 
     if name == 'Sebring':
         idx_start = 118  # Search for a straight part of the track to smoothly connect start and end

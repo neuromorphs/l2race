@@ -48,7 +48,7 @@ class data_recorder:
 
         try:
             self.file=open(self.filename,'w')
-            print(self.car.car_state.get_record_headers(self.car), file=self.file)
+            print(self.car.car_state.get_csv_file_header(self.car), file=self.file)
             atexit.register(self.close_recording)
             self.num_records=0
             self.first_record_written=False

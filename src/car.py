@@ -105,6 +105,18 @@ class car:
         str_pos2=str_orig+str_vec
         pygame.draw.line(screen, [50,250,250],str_pos1/M_PER_PIXEL, str_pos2/M_PER_PIXEL,2)
 
+        # draw speed vector taking into account drift angle
+        # speed_angle_rad = radians(self.car_state.body_angle_deg + self.car_state.drift_angle_deg)
+        # speed_vec = (self.car_state.speed_m_per_sec*cos(speed_angle_rad), self.car_state.speed_m_per_sec*sin(speed_angle_rad))
+        # pygame.draw.line(screen, [255,165,0], self.car_state.position_m/M_PER_PIXEL, (self.car_state.position_m+speed_vec)/M_PER_PIXEL,2)       
+
+        # draw lateral component of speed vector
+        drift_angle_rad = radians(self.car_state.drift_angle_deg)
+        lateral_speed = self.car_state.speed_m_per_sec * sin(drift_angle_rad)
+        lateral_speed_angle_rad = radians(self.car_state.body_angle_deg + 90)
+        lateral_speed_vec = (lateral_speed*cos(lateral_speed_angle_rad), lateral_speed*sin(lateral_speed_angle_rad))
+        pygame.draw.line(screen, [255,165,0], self.car_state.position_m/M_PER_PIXEL, (self.car_state.position_m + lateral_speed_vec)/M_PER_PIXEL,2)       
+
         # other cars are drawn by client now using its list of spectate_cars
     #     self.draw_other_cars(screen)
     #

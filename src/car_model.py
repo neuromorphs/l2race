@@ -16,39 +16,42 @@ from .car_command import car_command
 
 logger = my_logger(__name__)
 
-# import sys
-# sys.path.append('../commonroad-vehicle-models/Python')
-# either copy/clone https://gitlab.lrz.de/tum-cps/commonroad-vehicle-models/-/tree/master/Python to commonroad
-# or make symlink to folder named commonroad within l2rac
-from commonroad.parameters_vehicle1 import parameters_vehicle1  # Ford Escort
-from commonroad.parameters_vehicle2 import parameters_vehicle2  # BMW 320i
-from commonroad.parameters_vehicle3 import parameters_vehicle3  # VW Vanagon
-from .parameters_drifter import parameters_drifter
-from commonroad.init_KS import init_KS
-from commonroad.init_ST import init_ST
-from commonroad.init_MB import init_MB
-from commonroad.vehicleDynamics_KS import vehicleDynamics_KS  # kinematic single track, no slip
-from commonroad.vehicleDynamics_ST import vehicleDynamics_ST  # single track bicycle with slip
-from commonroad.vehicleDynamics_MB import vehicleDynamics_MB  # fancy multibody model
+
+# We use the car models from TUM  https://gitlab.lrz.de/tum-cps/commonroad-vehicle-models/-/tree/master/Python
+# get the latest version of the common road models by pulling the sub module: "git submodule update --init --recursive" (recommended)
+# The submodule is in the folder commonroad-vehicle-models.
+# If you need to make changes, you can also fork the gitlab repository and add your own version as submodule
+from vehiclemodels.parameters_vehicle1 import parameters_vehicle1  # Ford Escort
+from vehiclemodels.parameters_vehicle2 import parameters_vehicle2  # BMW 320i
+from vehiclemodels.parameters_vehicle3 import parameters_vehicle3  # VW Vanagon
+from vehiclemodels.init_ks import init_ks
+from vehiclemodels.init_st import init_st
+from vehiclemodels.init_mb import init_mb
+from vehiclemodels.init_std import init_std
+from vehiclemodels.vehicle_dynamics_ks import vehicle_dynamics_ks  # kinematic single track, no slip
+from vehiclemodels.vehicle_dynamics_st import vehicle_dynamics_st  # single track bicycle with slip
+from vehiclemodels.vehicle_dynamics_mb import vehicle_dynamics_mb  # fancy multibody model
+# drifter
+from vehiclemodels.vehicle_dynamics_std import vehicle_dynamics_std  # new drifter model from Gerald Wunsching
 
 
 LOGGING_INTERVAL_CYCLES = 0  # 0 to disable # 1000 # log output only this often
-MODEL = vehicleDynamics_ST  # vehicleDynamics_KS vehicleDynamics_ST vehicleDynamics_MB
-SOLVER = 'RK45'  # DOP853 LSODA BDF RK45 RK23 # faster, no overhead but no checking
-PARAMETERS = parameters_vehicle2
-RTOL = 1e-2
-ATOL = 1e-4
 
 # indexes into model state
-# states
-# x0 = x-position in a global coordinate system
-# x1 = y-position in a global coordinate system
-# x2 = steering angle of front wheels
-# x3 = velocity in x-direction
-# x4 = yaw angle
-# ST model adds two more
-# x5 = yaw rate
-# x6 = slip angle at vehicle center
+# states, 1 based from commonroads from matlab origins
+# x1 = x-position in a global coordinate system
+# x2 = y-position in a global coordinate system
+# x3 = steering angle of front wheels
+# x4 = velocity at vehicle center
+# x5 = yaw angle
+# x6 = yaw rate
+# x7 = slip angle at vehicle center
+# x8 = front wheel angular speed
+# x9 = rear wheel angular speed
+
+# u1 = steering angle velocity of front wheels
+# u2 = longitudinal acceleration
+
 IXPOS = 0
 IYPOS = 1
 ISTEERANGLE = 2
@@ -56,7 +59,8 @@ ISPEED = 3
 IYAW = 4
 IYAWRATE = 5
 ISLIPANGLE = 6
-
+IFWSPEED=7
+IRWSPEED=8
 
 class car_model:
     """
@@ -67,6 +71,14 @@ class car_model:
                  car_name: str = None,
                  client_ip: Tuple[str, int] = None,
                  allow_off_track: bool = False):
+        """ Constructs new car model
+
+        :param track: the track to run on
+        :param car_name: the name of this car
+        :param client_ip: our IP address
+        :param allow_off_track: whether to allow car to go offtrack
+
+        """
 
         self.n_eval_total = 0  # Number of simulation steps for this car performed since the program was started/reseted
         self.track = track # Track of which car is driving
@@ -83,19 +95,22 @@ class car_model:
         self.s_rounds = ''  # String to keep information about completed rounds
 
         # change MODEL_TYPE to select vehicle model type (vehicle dynamics - how car_state is calculated from car parameters)
-        self.model = MODEL  # 'KS' 'ST' 'MB' # model type KS: kinematic single track, ST: single track (with slip), MB: fancy multibody
-        if self.model == vehicleDynamics_KS:
-            self.model_init = init_KS
-            self.model_func = self.func_KS
-        elif self.model == vehicleDynamics_ST:
-            self.model_init = init_ST
-            self.model_func = self.func_ST
-        elif self.model == vehicleDynamics_MB:
-            self.model_init = init_MB
-            self.model_func = self.func_MB
+        self.model = MODEL  # 'KS' 'ST' 'MB' 'STD' # model type KS: kinematic single track, ST: single track (with slip), MB: fancy multibody, STD: drifter model added 2020
+        if self.model == vehicle_dynamics_ks:
+            self.model_init = init_ks
+            self.model_func = self.func_ks
+        elif self.model == vehicle_dynamics_st:
+            self.model_init = init_st
+            self.model_func = self.func_st
+        elif self.model == vehicle_dynamics_mb:
+            self.model_init = init_mb
+            self.model_func = self.func_mb
+        elif self.model == vehicle_dynamics_std:
+            self.model_init = init_std
+            self.model_func = self.func_std
 
         # select car with next line - determins static parameters of the car: physical dimensions, strength of engine and breaks, etc.
-        self.parameters = PARAMETERS()
+        self.parameters = PARAMETERS
         # Set parameters of this particular car
         self.car_state.static_info.width_m = self.parameters.w
         self.car_state.static_info.length_m = self.parameters.l
@@ -112,6 +127,8 @@ class car_model:
         elif PARAMETERS == parameters_vehicle3:  # VW vanagon
             self.accel_max = self.zeroTo60mpsTimeToAccelG(17.9) * G
             self.brake_max = .8 * G
+        elif PARAMETERS == parameters_vehicle4:  # trailer, not supported
+            raise RuntimeError('parameters_vehicle4 is a trailer and is not supported currently')
 
         # Set parameters and initial values of the model/solver of the car dynamics equations
         sx0 = self.car_state.position_m.x
@@ -122,8 +139,8 @@ class car_model:
         dotPsi0 = 0
         beta0 = 0
         initialState = [sx0, sy0, delta0, vel0, Psi0, dotPsi0, beta0]  # initial state for simulation
-        if self.model == vehicleDynamics_MB:
-            self.model_state = self.model_init(initialState, self.parameters)  # initial state for MB needs params too
+        if self.model == vehicle_dynamics_mb or self.model == vehicle_dynamics_std:
+            self.model_state = np.array(self.model_init(initialState, self.parameters))  # initial state for MB and STD needs params too
         else:
             self.model_state = self.model_init(initialState)  # initial state
         self.cycle_count = 0
@@ -132,7 +149,7 @@ class car_model:
         self.atol = self.atol * np.ones(30)
         self.rtol = RTOL
         self.u = [0, 0]
-        self.solver = None
+        self.solver = SOLVER
         self.first_step = True
 
         # Set if a car is allowed to leave track or not
@@ -175,28 +192,44 @@ class car_model:
             f = self.model_func(t, y, u_func(), self.parameters)
             return f
 
-        # Save number of calles of the above function
+        # Save number of calls of the above function
         n_eval_start = self.n_eval_total
 
         # Integrate equations
-        self.solver = solve_ivp(fun=model_func,
-                                t_span=[self.time, self.time + dt_sec],
-                                method=SOLVER,
-                                y0=self.model_state,
-                                atol=ATOL,
-                                rtol=RTOL)
+        if self.solver=='euler':
+            t=self.time
+            while t<self.time+dt_sec:
+                dt=EULER_TIMESTEP_S if self.time+dt_sec>EULER_TIMESTEP_S else self.time+dt_sec-t
+                grad=model_func(t,self.model_state)
+                self.model_state+=dt*np.array(grad)
+                t+=dt
+            t_simulated_end=t
+
+        else:
+            self.solver = solve_ivp(fun=model_func,
+                                    t_span=[self.time, self.time + dt_sec],
+                                    method=SOLVER,
+                                    y0=self.model_state,
+                                    atol=ATOL,
+                                    rtol=RTOL)
+            t_simulated_end = self.solver.t[-1]  # True time on the car's clock at the end of the model update
+            # Save the results of model update to model_state variable
+            self.model_state = self.solver.y[:, -1]
+
+        # check if soln went haywire, i..e. any element of state is NaN
+        has_nan=np.isnan(np.sum(self.model_state))
+        if has_nan:
+            logger.warning(f'model state has NaN: {self.model_state}')
+            quit(1)
 
         # This flag changes to True if it was not possible to perform real-time update of car model
         too_slow = timer() > calculations_time_start + 0.8 * dt_sec
 
-        t_simulated_end = self.solver.t[-1]  # True time on the car's clock at the end of the model update
 
 
         # Calculate the difference on the "car's clock" during this model update
         t_simulated = t_simulated_end - self.time
 
-        # Save the results of model update to model_state variable
-        self.model_state = self.solver.y[:, -1]
 
         calculations_time_end = timer()  # stop counting time required to update the model
 
@@ -208,16 +241,12 @@ class car_model:
         if calculations_time > 0.0001:
             n_eval_stop = self.n_eval_total
             n_eval_diff = n_eval_stop - n_eval_start
-            s = '{} took {} evals in {:.1f}ms for timestep {:.1f}ms to advance {:.1f}ms {}'.format(self.model.__name__,
-                                                                                                   n_eval_diff,
-                                                                                                   calculations_time * 1000,
-                                                                                                   dt_sec * 1000,
-                                                                                                   t_simulated * 1000,
-                                                                                                   ('(too_slow)' if too_slow else ''))
+            too_slow=('(too_slow)' if too_slow else '')
+            s=f'{self.model.__name__} with solver {self.solver} took {n_eval_diff} evals in {(calculations_time * 1000):.1f}ms for timestep  {dt_sec * 1000:.1f}ms to advance  {(t_simulated * 1000):.1f}ms  {too_slow }'
             self.car_state.server_msg += '\n' + s
 
 
-        # make additional constrains for moving foreward and on reverse gear
+        # make additional constraints for moving foreward and on reverse gear
         self.constrain_speed(command)
 
         # Constrain position of a car to map
@@ -282,7 +311,7 @@ class car_model:
 
     def external_to_model_input(self, command) -> Tuple[float,float]:
         """
-        Computes commanded longitudinal acceleration and steereing velocity from throttle steering inputs.
+        Computes commanded longitudinal acceleration and steering velocity from throttle and steering inputs.
 
         :param command: the car_command
         :return: the (acceleration, steering velocity) tuple
@@ -364,18 +393,31 @@ class car_model:
         self.car_state.speed_m_per_sec = self.model_state[ISPEED]
         self.car_state.steering_angle_deg = degrees(self.model_state[ISTEERANGLE])
         self.car_state.body_angle_deg = degrees(self.model_state[IYAW])
-        if self.model == vehicleDynamics_ST:
+        if self.model != vehicle_dynamics_ks:
             self.car_state.yaw_rate_deg_per_sec = degrees(self.model_state[IYAWRATE])
             self.car_state.drift_angle_deg = degrees(self.model_state[ISLIPANGLE])
-        elif self.model == vehicleDynamics_MB:
-            self.car_state.yaw_rate_deg_per_sec = degrees(self.model_state[IYAWRATE])
+            if self.model==vehicle_dynamics_std:
+                cycle_per_rad=(1/2*np.pi)
+                self.car_state.fw_ang_speed_hz=cycle_per_rad*self.model_state[IFWSPEED] # TODO fix units to hz
+                self.car_state.rw_ang_speed_hz=cycle_per_rad*self.model_state[IRWSPEED] # TODO fix units to hz
+            elif self.model==vehicle_dynamics_mb:
+        #x24 = left front wheel angular speed
+        #x25 = right front wheel angular speed
+        #x26 = left rear wheel angular speed
+        #x27 = right rear wheel angular speed
+                cycle_per_rad=(1/2*np.pi)
+                self.car_state.fw_ang_speed_hz=cycle_per_rad*(self.model_state[23]+self.model_state[24]) # TODO fix units to hz
+                self.car_state.rw_ang_speed_hz=(cycle_per_rad*self.model_state[35]+self.model_state[26]) # TODO fix units to hz
+
 
         self.car_state.velocity_m_per_sec.x = self.car_state.speed_m_per_sec * cos(
             radians(self.car_state.body_angle_deg))
         self.car_state.velocity_m_per_sec.y = self.car_state.speed_m_per_sec * sin(
             radians(self.car_state.body_angle_deg))
         self.car_state.accel_m_per_sec_2.x = accel
-        self.car_state.accel_m_per_sec_2.y = 0  # todo, for now and with KS/ST model
+        self.car_state.accel_m_per_sec_2.y = 0  # todo, for now and with KS/ST model, update for drifter and mb
+        self.car_state.body_angle_sin=np.sin(radians(self.car_state.body_angle_deg))
+        self.car_state.body_angle_cos=np.cos(radians(self.car_state.body_angle_deg))
 
     # Constrain position of the car to map
     def constrain_to_map(self):
@@ -398,17 +440,22 @@ class car_model:
             if self.model_state[ISPEED] > 0:
                 self.model_state[ISPEED] = 0
 
-    def func_KS(self, t, x, u, p):
-        f = vehicleDynamics_KS(x, u, p)
+    def func_ks(self, t, x, u, p):
+        f = vehicle_dynamics_ks(x, u, p)
         self.n_eval_total += 1
         return f
 
-    def func_ST(self, t, x, u, p):
-        f = vehicleDynamics_ST(x, u, p)
+    def func_st(self, t, x, u, p):
+        f = vehicle_dynamics_st(x, u, p)
         self.n_eval_total += 1
         return f
 
-    def func_MB(self, t, x, u, p):
-        f = vehicleDynamics_MB(x, u, p)
+    def func_mb(self, t, x, u, p):
+        f = vehicle_dynamics_mb(x, u, p)
+        self.n_eval_total += 1
+        return f
+
+    def func_std(self, t, x, u, p):
+        f = vehicle_dynamics_std(x, u, p)
         self.n_eval_total += 1
         return f

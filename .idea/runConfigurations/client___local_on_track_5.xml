@@ -1,5 +1,5 @@
 <component name="ProjectRunConfigurationManager">
-  <configuration default="false" name="spectate on telluridevm.iniforum.ch" type="PythonConfigurationType" factoryName="Python" singleton="false">
+  <configuration default="false" name="client - local on track_5" type="PythonConfigurationType" factoryName="Python" singleton="true">
     <module name="l2race" />
     <option name="INTERPRETER_OPTIONS" value="" />
     <option name="PARENT_ENVS" value="true" />
@@ -13,7 +13,7 @@
     <option name="ADD_SOURCE_ROOTS" value="true" />
     <EXTENSION ID="PythonCoverageRunConfigurationExtension" runner="coverage.py" />
     <option name="SCRIPT_NAME" value="$PROJECT_DIR$/main.py" />
-    <option name="PARAMETERS" value="--fps=20 --host=telluridevm.iniforum.ch --spectate --track=track_2" />
+    <option name="PARAMETERS" value="--host=localhost --track=track_5 --fps=10 --record" />
     <option name="SHOW_COMMAND_LINE" value="false" />
     <option name="EMULATE_TERMINAL" value="false" />
     <option name="MODULE_MODE" value="false" />

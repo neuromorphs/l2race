@@ -13,17 +13,21 @@ from torch.utils import data
 from IPython.display import Image
 
 import matplotlib.pyplot as plt
+from datetime import datetime
 
 import pandas as pd
 import os
+import time
+import copy
 
 import random as rnd
 import collections
 
 import sys
 sys.path.append('../../')
-from src.track import find_hit_position, meters2pixels, pixels2meters, track
 from src.globals import *
+from src.track import find_hit_position, meters2pixels, pixels2meters, track
+
 
 
 def get_device():
@@ -54,6 +58,7 @@ def print_parameter_count(net):
     pytorch_trainable_params = sum(p.numel() for p in net.parameters() if p.requires_grad)
     print('::: # network all parameters: ' + str(pytorch_total_params))
     print('::: # network trainable parameters: ' + str(pytorch_trainable_params))
+    print('')
 
 
 def load_pretrained_rnn(net, pt_path, device):
@@ -65,6 +70,7 @@ def load_pretrained_rnn(net, pt_path, device):
     """
     pre_trained_model = torch.load(pt_path, map_location=device)
     print("Loading Model: ", pt_path)
+    print('')
 
     pre_trained_model = list(pre_trained_model.items())
     new_state_dict = collections.OrderedDict()
@@ -77,13 +83,15 @@ def load_pretrained_rnn(net, pt_path, device):
         new_state_dict[key] = weights
         print("Pre-trained Layer: %s - Loaded into new layer: %s" % (layer_name, key))
         count += 1
+    print('')
     net.load_state_dict(new_state_dict)
 
 
 # Initialize weights and biases - should be only applied if no pretrained net loaded
 def initialize_weights_and_biases(net):
+    print('Initialize weights and biases')
     for name, param in net.named_parameters():
-        print(name)
+        print('Initialize {}'.format(name))
         if 'gru' in name:
             if 'weight' in name:
                 nn.init.orthogonal_(param)
@@ -93,6 +101,7 @@ def initialize_weights_and_biases(net):
                 # nn.init.xavier_uniform_(param)
         if 'bias' in name:  # all biases
             nn.init.constant_(param, 0)
+    print('')
 
 
 def create_rnn_instance(rnn_name=None, inputs_list=None, outputs_list=None, load_rnn=None, path_save=None, device=None):
@@ -104,6 +113,7 @@ def create_rnn_instance(rnn_name=None, inputs_list=None, outputs_list=None, load
 
         filename = load_rnn
         print('Loading a pretrained RNN with the full name: {}'.format(filename))
+        print('')
         txt_filename = filename + '.txt'
         pt_filename = filename + '.pt'
         txt_path = path_save + txt_filename
@@ -127,6 +137,7 @@ def create_rnn_instance(rnn_name=None, inputs_list=None, outputs_list=None, load
 
         print('Inputs to the loaded RNN: {}'.format(', '.join(map(str, inputs_list))))
         print('Outputs from the loaded RNN: {}'.format(', '.join(map(str, outputs_list))))
+        print('')
 
         # Construct the requested RNN
         net = Sequence(rnn_name=rnn_name, inputs_list=inputs_list, outputs_list=outputs_list)
@@ -135,33 +146,41 @@ def create_rnn_instance(rnn_name=None, inputs_list=None, outputs_list=None, load
         load_pretrained_rnn(net, pt_path, device)
 
     elif load_rnn == 'last':
-        try:
-            import glob
-            list_of_files = glob.glob(path_save + '/*.txt')
-            txt_path = max(list_of_files, key=os.path.getctime)
-        except FileNotFoundError:
-            raise ValueError('No information about any pretrained network found at {}'.format(path_save))
+        files_found = False
+        while(not files_found):
+            try:
+                import glob
+                list_of_files = glob.glob(path_save + '/*.txt')
+                txt_path = max(list_of_files, key=os.path.getctime)
+            except FileNotFoundError:
+                raise ValueError('No information about any pretrained network found at {}'.format(path_save))
 
-        f = open(txt_path, 'r')
-        lines = f.readlines()
-        rnn_name = lines[1].rstrip("\n")
-        pre_rnn_full_name = lines[4].rstrip("\n")
-        inputs_list = lines[7].rstrip("\n").split(sep=', ')
-        outputs_list = lines[10].rstrip("\n").split(sep=', ')
-        f.close()
+            f = open(txt_path, 'r')
+            lines = f.readlines()
+            rnn_name = lines[1].rstrip("\n")
+            pre_rnn_full_name = lines[4].rstrip("\n")
+            inputs_list = lines[7].rstrip("\n").split(sep=', ')
+            outputs_list = lines[10].rstrip("\n").split(sep=', ')
+            f.close()
+
+            pt_path = path_save + pre_rnn_full_name + '.pt'
+            if not os.path.isfile(pt_path):
+                    print('The .pt file is missing (information about weights and biases) at the location {}'.format(
+                        pt_path))
+                    print('I delete the corresponding .txt file and try to search again')
+                    print('')
+                    os.remove(txt_path)
+            else:
+                files_found = True
+
 
         print('Full name of the loaded RNN is {}'.format(pre_rnn_full_name))
         print('Inputs to the loaded RNN: {}'.format(', '.join(map(str, inputs_list))))
         print('Outputs from the loaded RNN: {}'.format(', '.join(map(str, outputs_list))))
+        print('')
 
         # Construct the requested RNN
         net = Sequence(rnn_name=rnn_name, inputs_list=inputs_list, outputs_list=outputs_list)
-
-        pt_path = path_save + pre_rnn_full_name + '.pt'
-        if not os.path.isfile(pt_path):
-            raise ValueError(
-                'The corresponding .pt file is missing (information about weights and biases) at the location {}'.format(
-                    pt_path))
 
         # Load the parameters
         load_pretrained_rnn(net, pt_path, device)
@@ -169,6 +188,7 @@ def create_rnn_instance(rnn_name=None, inputs_list=None, outputs_list=None, load
 
     else:  # args.load_rnn is None
         print('No pretrained network specified. I will train a network from scratch.')
+        print('')
         # Construct the requested RNN
         net = Sequence(rnn_name=rnn_name, inputs_list=inputs_list, outputs_list=outputs_list)
         initialize_weights_and_biases(net)
@@ -198,17 +218,33 @@ def create_log_file(rnn_name, inputs_list, outputs_list, path_save):
         net_index += 1
 
     print('Full name given to the currently trained network is {}.'.format(rnn_full_name))
+    print('')
     return rnn_full_name
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 class Sequence(nn.Module):
     """"
     Our RNN class.
     """
-    commands_list = ['dt', 'cmd.auto', 'cmd.steering', 'cmd.throttle', 'cmd.brake',
-                     'cmd.reverse']  # Repeat to accept names also without 'cmd.'
-    state_variables_list = ['time', 'pos.x', 'pos.y', 'vel.x', 'vel.y', 'speed', 'accel.x', 'accel.y', 'steering_angle',
-                            'body_angle', 'yaw_rate', 'drift_angle']
+    commands_list = ['dt', 'command.autodrive_enabled', 'command.steering', 'command.throttle', 'command.brake',
+                     'command.reverse']
+    state_variables_list = ['time', 'position_m.x', 'position_m.y', 'velocity_m_per_sec.x', 'velocity_m_per_sec.y', 'speed_m_per_sec', 'accel_m_per_sec_2.x', 'accel_m_per_sec_2.y', 'steering_angle_deg',
+                            'body_angle_deg', 'body_angle.cos', 'body_angle.sin', 'yaw_rate_deg_per_sec', 'drift_angle_deg', 'body_angle.sin', 'body_angle.cos']
 
     def __init__(self, rnn_name, inputs_list, outputs_list):
         super(Sequence, self).__init__()
@@ -301,50 +337,14 @@ class Sequence(nn.Module):
         print('Input commands: {}'.format(', '.join(map(str, self.command_inputs))))
         print('The outputs are (in this order): {}'.format(', '.join(map(str, outputs_list))))
 
-    def forward(self, predict_len: int, rnn_input_commands, terminate=False, real_time=False):
-        """
-        Predicts future CartPole states IN "CLOSED LOOP"
-        (at every time step prediction for the next time step is done based on CartPole state
-        resulting from the previous prediction; only control input is provided from the ground truth at every step)
-        """
 
-        # For number of time steps given in predict_len predict the state of the CartPole
-        # At every time step RNN get as its input the ground truth value of control input
-        # BUT instead of the ground truth value of CartPole state
-        # it gets the result of the prediction for the last time step
-        for iteration in range(predict_len):
+            #
+            # # Concatenate the previous prediction and current control input to the input to RNN for a new time step
+            # if real_time:
+            #     input_t = torch.cat((self.output, rnn_input_commands.squeeze(0)), 1)
+            # else:
+            #     input_t = torch.cat((self.output, rnn_input_commands[self.sample_counter, :]), 1)
 
-            # Concatenate the previous prediction and current control input to the input to RNN for a new time step
-            if real_time:
-                input_t = torch.cat((self.output, rnn_input_commands.squeeze(0)), 1)
-            else:
-                input_t = torch.cat((self.output, rnn_input_commands[self.sample_counter, :]), 1)
-
-            # Propagate input through RNN layers
-
-            if self.rnn_type == 'LSTM':
-                self.h[0], self.c[0] = self.layers[0](input_t, (self.h[0], self.c[0]))
-                for i in range(len(self.h_size) - 1):
-                    self.h[i + 1], self.c[i + 1] = self.layers[i + 1](self.h[i], (self.h[i + 1], self.c[i + 1]))
-            else:
-                self.h[0] = self.layers[0](input_t, self.h[0])
-                for i in range(len(self.h_size) - 1):
-                    self.h[i + 1] = self.layers[i + 1](self.h[i], self.h[i + 1])
-
-            self.output = self.layers[-1](self.h[-1])
-
-            # Append the output to the outputs history list
-            self.outputs += [self.output]
-            # Count number of samples
-            self.sample_counter = self.sample_counter + 1
-
-        # if terminate=True transform outputs history list to a Pytorch tensor and return it
-        # Otherwise store the outputs internally as a list in the RNN instance
-        if terminate:
-            self.outputs = torch.stack(self.outputs, 1)
-            return self.outputs
-        else:
-            return self.output
 
     def reset(self):
         """
@@ -356,29 +356,23 @@ class Sequence(nn.Module):
         self.output = None
         self.outputs = []
 
-    def initialize_sequence(self, rnn_input, warm_up_len=256, stack_output=True, all_input=False):
+    def forward(self, rnn_input):
 
         """
         Predicts future CartPole states IN "OPEN LOOP"
         (at every time step prediction for the next time step is done based on the true CartPole state)
         """
 
-        # If in training mode we will only run this function during the first several (warm_up_len) data samples
-        # Otherwise we run it for the whole input
-        if not all_input:
-            starting_input = rnn_input[:warm_up_len, :, :]
-        else:
-            starting_input = rnn_input
 
         # Initialize hidden layers - this change at every call as the batch size may vary
         for i in range(len(self.h_size)):
-            self.h[i] = torch.zeros(starting_input.size(1), self.h_size[i], dtype=torch.float).to(self.device)
-            self.c[i] = torch.zeros(starting_input.size(1), self.h_size[i], dtype=torch.float).to(self.device)
+            self.h[i] = torch.zeros(rnn_input.size(1), self.h_size[i], dtype=torch.float).to(self.device)
+            self.c[i] = torch.zeros(rnn_input.size(1), self.h_size[i], dtype=torch.float).to(self.device)
 
         # The for loop takes the consecutive time steps from input plugs them into RNN and save the outputs into a list
         # THE NETWORK GETS ALWAYS THE GROUND TRUTH, THE REAL STATE OF THE CARTPOLE, AS ITS INPUT
         # IT PREDICTS THE STATE OF THE CARTPOLE ONE TIME STEP AHEAD BASED ON TRUE STATE NOW
-        for iteration, input_t in enumerate(starting_input.chunk(starting_input.size(0), dim=0)):
+        for iteration, input_t in enumerate(rnn_input.chunk(rnn_input.size(0), dim=0)):
 
             # Propagate input through RNN layers
             if self.rnn_type == 'LSTM':
@@ -397,11 +391,12 @@ class Sequence(nn.Module):
         # In the train mode we want to continue appending the outputs by calling forward function
         # The outputs will be saved internally in the network instance as a list
         # Otherwise we want to transform outputs list to a tensor and return it
-        if stack_output:
-            outputs_return = torch.stack(self.outputs, 1)
-            return outputs_return
-        else:
-            return self.output
+        return self.output
+
+    def return_outputs_history(self):
+        return torch.stack(self.outputs, 1)
+
+
 
 
 def norm(x):
@@ -412,83 +407,80 @@ def norm(x):
 
 
 class Dataset(data.Dataset):
-    def __init__(self, df, labels, args):
+    def __init__(self, df, labels, args, seq_len=None):
         'Initialization'
         self.data = df
         self.labels = labels
         self.args = args
 
-        # Hyperparameters
-        self.seq_len = args.seq_len  # Sequence length
+        self.seq_len = None
+        self.df_lengths = []
+        self.df_lengths_cs = []
+        self.number_of_samples = 0
+
+        self.reset_seq_len(seq_len=seq_len)
+
+
+    def reset_seq_len(self, seq_len=None):
+        """
+        This method should be used if the user wants to change the seq_len without creating new Dataset
+        Please remember that one can reset it again to come back to old configuration
+        :param seq_len: Gives new user defined seq_len. Call empty to come back to default.
+        """
+        if seq_len is None:
+            self.seq_len = self.args.seq_len  # Sequence length
+        else:
+            self.seq_len = seq_len
+
+        self.df_lengths = []
+        self.df_lengths_cs = []
+        if type(self.data) == list:
+            for data_set in self.data:
+                self.df_lengths.append(data_set.shape[0] - self.seq_len)
+                if not self.df_lengths_cs:
+                    self.df_lengths_cs.append(self.df_lengths[0])
+                else:
+                    self.df_lengths_cs.append(self.df_lengths_cs[-1]+self.df_lengths[-1])
+            self.number_of_samples = self.df_lengths_cs[-1]
+
+        else:
+            self.number_of_samples = self.data.shape[0] - self.seq_len
+
+
 
     def __len__(self):
         'Total number of samples'
-
-        # speed optimized, you only have to get sequencies
-        return self.data.shape[0] - self.seq_len
+        return self.number_of_samples
 
     def __getitem__(self, idx):
-        return self.data[idx:idx + self.seq_len, :], self.labels[idx:idx + self.seq_len]
+        if type(self.data) == list:
+            idx_data_set = next(i for i, v in enumerate(self.df_lengths_cs) if v > idx)
+            if idx_data_set == 0:
+                pass
+            else:
+                idx -= self.df_lengths_cs[idx_data_set-1]
+            return self.data[idx_data_set][idx:idx + self.seq_len, :], self.labels[idx_data_set][idx:idx + self.seq_len]
+        else:
+            return self.data[idx:idx + self.seq_len, :], self.labels[idx:idx + self.seq_len]
 
+from math import fmod
+def wrap_angle_deg(angle):
+    angle = fmod(angle, 360) # % yields positive for negative angle
+    angle = fmod((angle + 360), 360)
+    if angle > 180:
+        angle -= 360
+    return angle
 
-def normalize(dat, mean, std):
-    rep = int(dat.shape[-1] / mean.shape[
-        0])  # there is 1 mean for each input sensor value, repeat it for each element in sequence in data
-    mean = np.tile(mean, rep)
-    std = np.tile(std, rep)
-    dat = (dat - mean) / std
-    return dat
+def SinCos2Angle(sine, cosine):
+    angle = np.rad2deg(np.arctan2(sine, cosine))
+    return angle
 
+def SinCos2Angle_wrapper(row):
+    angle = SinCos2Angle(row['body_angle.sin'], row['body_angle.cos'])
+    return angle
 
-def unnormalize(dat, mean, std):
-    rep = int(dat.shape[-1] / mean.shape[0])  # results in cw_len to properly tile for applying to dat.
-    # there is 1 mean for each input sensor value, repeat it for each element in sequence in data
-    mean = np.tile(mean, rep)
-    std = np.tile(std, rep)
-    dat = dat * std + mean
-    return dat
-
-
-def save_normalization(save_path, tr_mean, tr_std, lab_mean, lab_std):
-    fn_base = os.path.splitext(save_path)[0]
-    print("\nSaving normalization parameters to " + str(fn_base) + '-XX.pt')
-    norm = {
-        'tr_mean': tr_mean,
-        'tr_std': tr_std,
-        'lab_mean': lab_mean,
-        'lab_std': lab_std,
-    }
-    torch.save(norm, str(fn_base + '-norm.pt'))
-
-
-def load_normalization(save_path):
-    fn_base = os.path.splitext(save_path)[0]
-    print("\nLoading normalization parameters from ", str(fn_base))
-    norm = torch.load(fn_base + '-norm.pt')
-    return norm['tr_mean'], norm['tr_std'], norm['lab_mean'], norm['lab_std']
-
-
-def computeNormalization(dat: np.array):
-    '''
-    Computes the special normalization of our data
-    Args:
-        dat: numpy array of data arranged as [sample, sensor/control vaue]
-
-    Returns:
-        mean and std, each one is a vector of values
-    '''
-    # Collect desired prediction
-    # All terms are weighted equally by the loss function (either L1 or L2),
-    # so we need to make sure that we don't have values here that are too different in range
-    # Since the derivatives are computed on normalized data, but divided by the delta time in ms,
-    # we need to normalize the derivatives too. (We include the delta time to make more physical units of time
-    # so that the values don't change with different sample rate.)
-    m = np.mean(dat, 0)
-    s = np.std(dat, 0)
-    return m, s
-
-
-def load_data(filepath, inputs_list, outputs_list, args):
+from scipy.special import sindg, cosdg
+def load_data(args, filepath=None, inputs_list=None, outputs_list=None):
     '''
     Loads dataset from CSV file
     Args:
@@ -513,251 +505,391 @@ def load_data(filepath, inputs_list, outputs_list, args):
          all sensors for sample0, all sensors for sample1, .....all sensors for sampleN, where N is the prediction length
     '''
 
-    # Hyperparameters
+    if filepath is None:
+        filepath = args.val_file_name
 
-    # Load dataframe
-    print('loading data from ' + str(filepath))
-    df = pd.read_csv(filepath, comment='#')
+    if inputs_list is None:
+        inputs_list = args.inputs_list
 
-    print('processing data to generate sequences')
+    if outputs_list is None:
+        outputs_list = args.outputs_list
 
-    df['body_angle'] = df['body_angle'] % 360
+    if type(filepath) == list:
+        filepaths = filepath
+    else:
+        filepaths = [filepath]
 
-    # Calculate time difference between time steps and at it to data frame
-    time = df['time'].to_numpy()
-    deltaTime = np.diff(time)
-    deltaTime = np.insert(deltaTime, 0, 0)
-    df['dt'] = deltaTime
+    all_features = []
+    all_targets = []
 
-    if args.extend_df:
-        # Calculate distance to the track edge in front of the car and add it to the data frame
-        # Get used car name
-        import re
-        s = str(pd.read_csv(filepath, skiprows=5, nrows=1))
-        track_name = re.search('"(.*)"', s).group(1)
-        media_folder_path = '../../media/tracks/'
-        my_track = track(track_name=track_name, media_folder_path=media_folder_path)
+    for one_filepath in filepaths:
+        # Load dataframe
+        print('loading data from ' + str(one_filepath))
+        print('')
+        df = pd.read_csv(one_filepath, comment='#')
 
-        def calculate_hit_distance(row):
-            return my_track.get_hit_distance(angle=row['body_angle'], x_car=row['pos.x'], y_car=row['pos.y'])
+        print('processing data to generate sequences')
+        print('')
 
-        df['hit_distance'] = df.apply(calculate_hit_distance, axis=1)
+        # Wrap body_angle to be in range +/- 180
+        df['body_angle_deg'] = df['body_angle_deg'].apply(wrap_angle_deg)
+        print('Max angle is {} and min angle is {}.'.format(max(df['body_angle_deg']), min(df['body_angle_deg'])))
+        df['body_angle.cos'] = df['body_angle_deg'].apply(cosdg)
+        df['body_angle.sin'] = df['body_angle_deg'].apply(sindg)
 
-        def nearest_waypoint_idx(row):
-            return my_track.get_nearest_waypoint_idx(x=row['pos.x'], y=row['pos.y'])
+        if df['body_angle_deg'].equals(df.apply(SinCos2Angle_wrapper, axis=1)):
+            print('Conversion of angle ideal')
+            print('')
+        else:
+            print('Angle conversion error: {}'.format(max(abs(df['body_angle_deg']-df.apply(SinCos2Angle_wrapper, axis=1)))))
+            print('')
 
-        df['nearest_waypoint_idx'] = df.apply(nearest_waypoint_idx, axis=1)
 
-        max_idx = max(df['nearest_waypoint_idx'])
+        # Calculate time difference between time steps and at it to data frame
+        time = df['time'].to_numpy()
+        deltaTime = np.diff(time)
+        deltaTime = np.insert(deltaTime, 0, 0)
+        df['dt'] = deltaTime
 
-        def get_nth_next_waypoint_x(row, n: int):
-            return pixels2meters(my_track.waypoints_x[int(row['nearest_waypoint_idx'] + n) % max_idx])
-
-        def get_nth_next_waypoint_y(row, n: int):
-            return pixels2meters(my_track.waypoints_y[int(row['nearest_waypoint_idx'] + n) % max_idx])
-
-        df['first_next_waypoint.x'] = df.apply(get_nth_next_waypoint_x, axis=1, args=(1,))
-        df['first_next_waypoint.y'] = df.apply(get_nth_next_waypoint_y, axis=1, args=(1,))
-        df['fifth_next_waypoint.x'] = df.apply(get_nth_next_waypoint_x, axis=1, args=(5,))
-        df['fifth_next_waypoint.y'] = df.apply(get_nth_next_waypoint_y, axis=1, args=(5,))
-        df['twentieth_next_waypoint.x'] = df.apply(get_nth_next_waypoint_x, axis=1, args=(20,))
-        df['twentieth_next_waypoint.y'] = df.apply(get_nth_next_waypoint_y, axis=1, args=(20,))
-
-    if not args.do_not_normalize:
-        normalization_distance = pixels2meters(np.sqrt((SCREEN_HEIGHT_PIXELS**2) + (SCREEN_WIDTH_PIXELS**2)))
-        normalization_velocity = 50.0  # Before from Mark 24
-        normalization_acceleration = 5.0  # 2.823157895
-        normalization_angle = 180.0
-
-        df['pos.x'] /= normalization_distance
-        df['pos.y'] /= normalization_distance
-
-        df['vel.x'] /= normalization_velocity
-        df['vel.y'] /= normalization_velocity
-
-        df['accel.x'] /= normalization_acceleration
-        df['accel.y'] /= normalization_acceleration
-
-        df['body_angle'] = (df['body_angle'] % 180)/normalization_angle # Wrapping AND normalizing angle
 
         if args.extend_df:
-            df['hit_distance'] /= normalization_distance
-            df['first_next_waypoint.x'] /= normalization_distance
-            df['first_next_waypoint.y'] /= normalization_distance
-            df['fifth_next_waypoint.x'] /= normalization_distance
-            df['fifth_next_waypoint.y'] /= normalization_distance
-            df['twentieth_next_waypoint.x'] /= normalization_distance
-            df['twentieth_next_waypoint.y'] /= normalization_distance
-        
-        
-    # Get Raw Data
-    # x = df[args.features_list]
-    # u = df[args.commands_list]
-    # y = df[args.targets_list]
-    inputs = df[inputs_list]
-    outputs = df[outputs_list]
-    features = np.array(inputs)[:-1]
-    targets = np.array(outputs)[1:]
+            # Calculate distance to the track edge in front of the car and add it to the data frame
+            # Get used car name
+            import re
+            s = str(pd.read_csv(one_filepath, skiprows=5, nrows=1))
+            track_name = re.search('"(.*)"', s).group(1)
+            media_folder_path = '../../media/tracks/'
+            my_track = track(track_name=track_name, media_folder_path=media_folder_path)
 
-    
-    
+            def calculate_hit_distance(row):
+                return my_track.get_hit_distance(angle=row['body_angle_deg'], x_car=row['position_m.x'], y_car=row['position_m.y'])
 
-        
-    # # @Nikhil It seems there is slightly different slicing convention for pandas DataFrame - here it was crashing
-    # # I don't know how to do it correctly so I convert it to numpy. You are welcome to change it.
-    # states = np.array(x)[:-1]
-    # control = np.array(u)[:-1]
-    # targets = np.array(y)[1:]
-    #
-    #
-    # features = np.hstack((np.array(states), np.array(control)))
-    # # features = torch.from_numpy(features).float()
-    #
-    # targets = np.array(targets)
-    # # targets = torch.from_numpy(targets).float()
-    # TODO : Compare the dimensions of features, and targets(By Nikhil) with that of raw_features, raw_targets(By Marcin)
-    #       and transpose accordingly if required
-    # Good job Nikhil! I like your approach!
+            df['hit_distance'] = df.apply(calculate_hit_distance, axis=1)
 
-    # # The normalization of data - I am not sure how necessary it is
-    # # If you uncomment this lines please make sure that you unnormalize data before plugging them into ghost car
-    # # compute normalization of data now
-    # mean_features, std_features = computeNormalization(features)
-    # mean_targets, std_targets = computeNormalization(targets)
-    #
-    # if save_normalization_parameters:  # We only save normalization for train set - all the other sets we normalize withr respect to this set
-    #     save_normalization(savepath, mean_features, std_features, mean_targets, std_targets)
-    #     mean_train_features, std_train_features, mean_train_targets, std_train_targets = \
-    #         mean_features, std_features, mean_targets, std_targets
-    # else:
-    #     mean_train_features, std_train_features, mean_train_targets, std_train_targets \
-    #         = load_normalization(savepath)
-    #
-    # features = normalize(features, mean_train_features, std_train_features)
-    # targets = normalize(targets, mean_train_targets, std_train_targets)
+            def nearest_waypoint_idx(row):
+                return my_track.get_nearest_waypoint_idx(x=row['position_m.x'], y=row['position_m.y'])
 
-    # Version with normlaization
-    # return features, targets, mean_features, std_features, mean_targets, std_targets
-    return features, targets
+            df['nearest_waypoint_idx'] = df.apply(nearest_waypoint_idx, axis=1)
 
-# def plot_results(net, args, val_savepathfile):
-#     """
-#     This function accepts RNN instance, arguments and CartPole instance.
-#     It runs one random experiment with CartPole,
-#     inputs the data into RNN and check how well RNN predicts CartPole state one time step ahead of time
-#     """
-#     # Reset the internal state of RNN cells, clear the output memory, etc.
-#     net.reset()
-#
-#     # Generates ab CartPole  experiment and save its data
-#     dev_features, dev_targets, _, _, _, _ = \
-#         load_data(val_file, args, savepath)
-#
-#     dev_set = Dataset(dev_features, dev_targets, args)
-#
-#     # Format the experiment data
-#     # test_set[0] means that we take one random experiment, first on the list
-#     # The data will be however anyway generated on the fly and is in general not reproducible
-#     # TODO: Make data reproducable: set seed or find another solution
-#     features, targets = test_set[0]
-#
-#     # Add empty dimension to fit the requirements of RNN input shape
-#     # (in fact we add dimension for batches - for testing we use only one batch)
-#     features = features.unsqueeze(0)
-#
-#     # Convert Pytorch tensors to numpy matrices to inspect them - just for debugging purpose.
-#     # Variable explorers of IDEs are often not compatible with Pytorch format
-#     # features_np = features.detach().numpy()
-#     # targets_np = targets.detach().numpy()
-#
-#     # Further modifying the input and output form to fit RNN requirements
-#     # If GPU available we send features to GPU
-#     if torch.cuda.is_available():
-#         features = features.float().cuda().transpose(0, 1)
-#         targets = targets.float()
-#     else:
-#         features = features.float().transpose(0, 1)
-#         targets = targets.float()
-#
-#     # From features we extract control input and save it as a separate vector on the cpu
-#     u_effs = features[:, :, -1].cpu()
-#     # We shift it by one time step and double the last entry to keep the size unchanged
-#     u_effs = u_effs[1:]
-#     u_effs = np.append(u_effs, u_effs[-1])
-#
-#     # Set the RNN in evaluation mode
-#     net = net.eval()
-#     # During several first time steps we let hidden layers adapt to the input data
-#     # train=False says that all the input should be used for initialization
-#     # -> we predict always only one time step ahead of time based on ground truth data
-#     predictions = net.initialize_sequence(features, train=False)
-#
-#     # reformat the output of RNN to a form suitable for plotting the results
-#     # y_pred are prediction from RNN
-#     y_pred = predictions.squeeze().cpu().detach().numpy()
-#     # y_target are expected prediction from RNN, ground truth
-#     y_target = targets.squeeze().cpu().detach().numpy()
-#
-#     # Get the time axes
-#     t = np.arange(0, y_target.shape[0]) * args.dt
-#
-#     # Get position over time
-#     xp = y_pred[args.warm_up_len:, 0]
-#     xt = y_target[:, 0]
-#
-#     # Get velocity over time
-#     vp = y_pred[args.warm_up_len:, 1]
-#     vt = y_target[:, 1]
-#
-#     # get angle theta of the Pole
-#     tp = y_pred[args.warm_up_len:, 2] * 180.0 / np.pi  # t like theta
-#     tt = y_target[:, 2] * 180.0 / np.pi
-#
-#     # Get angular velocity omega of the Pole
-#     op = y_pred[args.warm_up_len:, 3] * 180.0 / np.pi  # o like omega
-#     ot = y_target[:, 3] * 180.0 / np.pi
-#
-#     # Create a figure instance
-#     fig, axs = plt.subplots(5, 1, figsize=(18, 14), sharex=True)  # share x axis so zoom zooms all plots
-#
-#     # %matplotlib inline
-#     # Plot position
-#     axs[0].set_ylabel("Position (m)", fontsize=18)
-#     axs[0].plot(t, xt, 'k:', markersize=12, label='Ground Truth')
-#     axs[0].plot(t[args.warm_up_len:], xp, 'b', markersize=12, label='Predicted position')
-#     axs[0].tick_params(axis='both', which='major', labelsize=16)
-#
-#     # Plot velocity
-#     axs[1].set_ylabel("Velocity (m/s)", fontsize=18)
-#     axs[1].plot(t, vt, 'k:', markersize=12, label='Ground Truth')
-#     axs[1].plot(t[args.warm_up_len:], vp, 'g', markersize=12, label='Predicted velocity')
-#     axs[1].tick_params(axis='both', which='major', labelsize=16)
-#
-#     # Plot angle
-#     axs[2].set_ylabel("Angle (deg)", fontsize=18)
-#     axs[2].plot(t, tt, 'k:', markersize=12, label='Ground Truth')
-#     axs[2].plot(t[args.warm_up_len:], tp, 'c', markersize=12, label='Predicted angle')
-#     axs[2].tick_params(axis='both', which='major', labelsize=16)
-#
-#     # Plot angular velocity
-#     axs[3].set_ylabel("Angular velocity (deg/s)", fontsize=18)
-#     axs[3].plot(t, ot, 'k:', markersize=12, label='Ground Truth')
-#     axs[3].plot(t[args.warm_up_len:], op, 'm', markersize=12, label='Predicted velocity')
-#     axs[3].tick_params(axis='both', which='major', labelsize=16)
-#
-#     # Plot motor input command
-#     axs[4].set_ylabel("motor (N)", fontsize=18)
-#     axs[4].plot(t, u_effs, 'r', markersize=12, label='motor')
-#     axs[4].tick_params(axis='both', which='major', labelsize=16)
-#
-#     # # Plot target position
-#     # axs[5].set_ylabel("position target", fontsize=18)
-#     # axs[5].plot(self.MyCart.dict_history['time'], self.MyCart.dict_history['PositionTarget'], 'k')
-#     # axs[5].tick_params(axis='both', which='major', labelsize=16)
-#
-#     axs[4].set_xlabel('Time (s)', fontsize=18)
-#
-#     plt.show()
-#     # Save figure to png
-#     fig.savefig('my_figure.png')
-#     Image('my_figure.png')
+            max_idx = max(df['nearest_waypoint_idx'])
+
+            def get_nth_next_waypoint_x(row, n: int):
+                return pixels2meters(my_track.waypoints_x[int(row['nearest_waypoint_idx'] + n) % max_idx])
+
+            def get_nth_next_waypoint_y(row, n: int):
+                return pixels2meters(my_track.waypoints_y[int(row['nearest_waypoint_idx'] + n) % max_idx])
+
+            df['first_next_waypoint.x'] = df.apply(get_nth_next_waypoint_x, axis=1, args=(1,))
+            df['first_next_waypoint.y'] = df.apply(get_nth_next_waypoint_y, axis=1, args=(1,))
+            df['fifth_next_waypoint.x'] = df.apply(get_nth_next_waypoint_x, axis=1, args=(5,))
+            df['fifth_next_waypoint.y'] = df.apply(get_nth_next_waypoint_y, axis=1, args=(5,))
+            df['twentieth_next_waypoint.x'] = df.apply(get_nth_next_waypoint_x, axis=1, args=(20,))
+            df['twentieth_next_waypoint.y'] = df.apply(get_nth_next_waypoint_y, axis=1, args=(20,))
+
+        if not args.do_not_normalize:
+
+            df['position_m.x'] /= normalization_distance
+            df['position_m.y'] /= normalization_distance
+
+            df['velocity_m_per_sec.x'] /= normalization_velocity
+            df['velocity_m_per_sec.y'] /= normalization_velocity
+
+            df['accel_m_per_sec_2.x'] /= normalization_acceleration
+            df['accel_m_per_sec_2.y'] /= normalization_acceleration
+
+            # https://stackoverflow.com/questions/2320986/easy-way-to-keeping-angles-between-179-and-180-degrees
+
+
+            # The first line is not workign for e.g. -200
+            # df['body_angle_deg'] = (((df['body_angle_deg'] + 180) % 360) - 180) / normalization_angle  # Wrapping AND normalizing angle
+            df['body_angle_deg'] /= normalization_angle # normalizing angle
+
+            # 1) You already wrapped it in the above line.
+            # 2) For cos and sin you do not need to wrap the angle - they do it for you (periodic function)
+            # 3) You surely shouldn't normalize angle you put into sine and cos
+            # 4) Keep going. ;-)
+            # I move the wrapping above and do it always. Here leve only normalization (which sin, cos do not need)
+            # Wrapping due to:
+            # https://stackoverflow.com/questions/2320986/easy-way-to-keeping-angles-between-179-and-180-degrees
+            # df['body_angle.sin'] = np.sin(((((df['body_angle_deg'] + 180) % 360) - 180)*normalization_angle + 180)*np.pi/180)
+            # df['body_angle.cos'] = np.cos(((((df['body_angle_deg'] + 180) % 360) - 180)*normalization_angle + 180)*np.pi/180)
+
+
+
+            if args.extend_df:
+                df['hit_distance'] /= normalization_distance
+                df['first_next_waypoint.x'] /= normalization_distance
+                df['first_next_waypoint.y'] /= normalization_distance
+                df['fifth_next_waypoint.x'] /= normalization_distance
+                df['fifth_next_waypoint.y'] /= normalization_distance
+                df['twentieth_next_waypoint.x'] /= normalization_distance
+                df['twentieth_next_waypoint.y'] /= normalization_distance
+
+
+        # Get Raw Data
+        inputs = copy.deepcopy(df)
+        outputs = copy.deepcopy(df)
+
+        inputs.drop(inputs.tail(1).index, inplace=True) # Drop last row
+        outputs.drop(outputs.head(1).index, inplace=True)
+        inputs.reset_index(inplace=True) # Reset index
+        outputs.reset_index(inplace=True)
+
+        if args.cheat_dt and ('dt' in inputs_list):
+            inputs['dt'] = outputs['dt']
+            print('dt cheating enabled!')
+            print('')
+
+        inputs = inputs[inputs_list]
+        outputs = outputs[outputs_list]
+
+
+        features = np.array(inputs)
+        targets = np.array(outputs)
+        all_features.append(features)
+        all_targets.append(targets)
+
+    if type(filepath) == list:
+        return all_features, all_targets
+    else:
+        return features, targets
+
+
+def plot_results(net,
+                 args,
+                 dataset=None,
+                 filepath=None,
+                 inputs_list=None,
+                 outputs_list=None,
+                 closed_loop_list=None,
+                 seq_len=None,
+                 warm_up_len=None,
+                 closed_loop_enabled=False,
+                 comment='',
+                 rnn_full_name=None,
+                 save=False,
+                 close_loop_idx=150):
+    """
+    This function accepts RNN instance, arguments and CartPole instance.
+    It runs one random experiment with CartPole,
+    inputs the data into RNN and check how well RNN predicts CartPole state one time step ahead of time
+    """
+
+    if filepath is None:
+        filepath = args.val_file_name
+        if type(filepath) == list:
+            filepath = filepath[0]
+
+    if warm_up_len is None:
+        warm_up_len = args.warm_up_len
+
+    if seq_len is None:
+        seq_len = args.seq_len
+
+    if inputs_list is None:
+        inputs_list = args.inputs_list
+        if inputs_list is None:
+            raise ValueError('RNN inputs not provided!')
+
+    if outputs_list is None:
+        outputs_list = args.outputs_list
+        if outputs_list is None:
+            raise ValueError('RNN outputs not provided!')
+
+    if closed_loop_enabled and (closed_loop_list is None):
+        closed_loop_list = args.close_loop_for
+        if closed_loop_list is None:
+            raise ValueError('RNN closed-loop-inputs not provided!')
+
+    normalization_info = NORMALIZATION_INFO
+
+    # Here in contrary to ghoast car implementation I have
+    # rnn_input[name] /= normalization_info.iloc[0][column]
+    # and not
+    # rnn_input.iloc[0][column] /= normalization_info.iloc[0][column]
+    # It is because rnn_input is just row (type = Series) and not the whole DataFrame (type = DataFrame)
+
+    def denormalize_output(output_series):
+        for name in output_series.index:
+            if normalization_info.iloc[0][name] is not None:
+                output_series[name] *= normalization_info.iloc[0][name]
+        return output_series
+
+
+    # Reset the internal state of RNN cells, clear the output memory, etc.
+    net.reset()
+    net.eval()
+    device = get_device()
+
+    if dataset is None:
+        dev_features, dev_targets = load_data(args, filepath, inputs_list=inputs_list, outputs_list=outputs_list)
+        dev_set = Dataset(dev_features, dev_targets, args, seq_len=seq_len)
+    else:
+        dev_set = copy.deepcopy(dataset)
+        dev_set.reset_seq_len(seq_len=seq_len)
+
+    # Format the experiment data
+    features, targets = dev_set[0]
+
+    features_pd = pd.DataFrame(data=features, columns=inputs_list)
+    targets_pd = pd.DataFrame(data=targets, columns=outputs_list).apply(denormalize_output, axis=1)
+    rnn_outputs = pd.DataFrame(columns=outputs_list)
+    rnn_output = None
+
+    warm_up_idx = 0
+    rnn_input_0 = copy.deepcopy(features_pd.iloc[0])
+    # Does not bring anything. Why? 0-state shouldn't have zero internal state due to biases...
+    while warm_up_idx < warm_up_len:
+        rnn_input = rnn_input_0
+        rnn_input = np.squeeze(rnn_input.to_numpy())
+        rnn_input = torch.from_numpy(rnn_input).float().unsqueeze(0).unsqueeze(0).to(device)
+        net(rnn_input=rnn_input)
+        warm_up_idx += 1
+    net.outputs = []
+    net.sample_counter = 0
+
+    close_the_loop = False
+    idx_cl = 0
+
+    for index, row in features_pd.iterrows():
+        rnn_input = copy.deepcopy(row)
+        if idx_cl == close_loop_idx:
+            close_the_loop = True
+        if closed_loop_enabled and close_the_loop and (rnn_output is not None):
+            rnn_input[closed_loop_list] = normalized_rnn_output[closed_loop_list]
+        rnn_input = np.squeeze(rnn_input.to_numpy())
+        rnn_input = torch.from_numpy(rnn_input).float().unsqueeze(0).unsqueeze(0).to(device)
+        normalized_rnn_output = net(rnn_input=rnn_input)
+        normalized_rnn_output = list(np.squeeze(normalized_rnn_output.detach().cpu().numpy()))
+        normalized_rnn_output = pd.Series(data=normalized_rnn_output, index=outputs_list)
+        rnn_output = copy.deepcopy(normalized_rnn_output)
+        denormalize_output(rnn_output)
+        rnn_outputs = rnn_outputs.append(rnn_output, ignore_index=True)
+        idx_cl += 1
+
+
+    # If RNN was given sin and cos of body angle calculate back the body angle
+    if ('body_angle.cos' in rnn_outputs) and ('body_angle.sin' in rnn_outputs) and ('body_angle_deg' not in rnn_outputs):
+        rnn_outputs['body_angle_deg'] = rnn_outputs.apply(SinCos2Angle_wrapper, axis=1)
+    if ('body_angle.cos' in targets_pd) and ('body_angle.sin' in targets_pd) and ('body_angle_deg' not in targets_pd):
+        targets_pd['body_angle_deg'] = targets_pd.apply(SinCos2Angle_wrapper, axis=1)
+
+    # Get the time or # samples axes
+    experiment_length  = seq_len
+
+    if 'time' in features_pd.columns:
+        t = features_pd['time'].to_numpy()
+        time_axis = t
+        time_axis_string = 'Time [s]'
+    elif 'dt' in features_pd.columns:
+        dt = features_pd['dt'].to_numpy()
+        t = np.cumsum(dt)
+        time_axis = t
+        time_axis_string = 'Time [s]'
+    else:
+        samples = np.arange(0, experiment_length)
+        time_axis = samples
+        time_axis_string = 'Sample number'
+
+    number_of_plots = 0
+
+    if ('position_m.x' in targets_pd) and ('position_m.x' in rnn_outputs) and ('position_m.y' in targets_pd) and ('position_m.y' in rnn_outputs):
+        x_target = targets_pd['position_m.x'].to_numpy()
+        y_target = targets_pd['position_m.y'].to_numpy()
+        x_output = rnn_outputs['position_m.x'].to_numpy()
+        y_output = rnn_outputs['position_m.y'].to_numpy()
+        number_of_plots += 1
+
+    if ('body_angle_deg' in targets_pd) and ('body_angle_deg' in rnn_outputs):
+        body_angle_target = targets_pd['body_angle_deg'].to_numpy()
+        body_angle_output = rnn_outputs['body_angle_deg'].to_numpy()
+        number_of_plots += 1
+
+    if ('velocity_m_per_sec.x' in targets_pd) and ('velocity_m_per_sec.x' in rnn_outputs) and ('velocity_m_per_sec.y' in targets_pd) and ('velocity_m_per_sec.y' in rnn_outputs):
+        vel_x_target = targets_pd['velocity_m_per_sec.x'].to_numpy()
+        vel_y_target = targets_pd['velocity_m_per_sec.y'].to_numpy()
+        vel_x_output = rnn_outputs['velocity_m_per_sec.x'].to_numpy()
+        vel_y_output = rnn_outputs['velocity_m_per_sec.y'].to_numpy()
+        speed_target = np.sqrt((vel_x_target**2)+(vel_y_target**2))
+        speed_output = np.sqrt((vel_x_output ** 2) + (vel_y_output ** 2))
+        number_of_plots += 1
+
+    # Create a figure instance
+    fig, axs = plt.subplots(number_of_plots, 1, figsize=(18, 10)) #, sharex=True)  # share x axis so zoom zooms all plots
+    plt.subplots_adjust(hspace=0.4)
+    start_idx = 0
+    axs[0].set_title(comment, fontsize=20)
+
+    axs[0].set_ylabel("Position y (m)", fontsize=18)
+    axs[0].plot(x_target, pixels2meters(SCREEN_HEIGHT_PIXELS)-y_target, 'k:', markersize=12, label='Ground Truth')
+    axs[0].plot(x_output, pixels2meters(SCREEN_HEIGHT_PIXELS)-y_output, 'b', markersize=12, label='Predicted position')
+
+    axs[0].plot(x_target[start_idx], pixels2meters(SCREEN_HEIGHT_PIXELS)-y_target[start_idx], 'g.', markersize=16, label='Start')
+    axs[0].plot(x_output[start_idx], pixels2meters(SCREEN_HEIGHT_PIXELS)-y_output[start_idx], 'g.', markersize=16)
+    axs[0].plot(x_target[-1], pixels2meters(SCREEN_HEIGHT_PIXELS)-y_target[-1], 'r.', markersize=16, label='End')
+    axs[0].plot(x_output[-1], pixels2meters(SCREEN_HEIGHT_PIXELS)-y_output[-1], 'r.', markersize=16)
+    if closed_loop_enabled:
+        axs[0].plot(x_target[close_loop_idx], pixels2meters(SCREEN_HEIGHT_PIXELS)-y_target[close_loop_idx], '.', color='darkorange', markersize=16, label='connect output->input')
+        axs[0].plot(x_output[close_loop_idx], pixels2meters(SCREEN_HEIGHT_PIXELS)-y_output[close_loop_idx], '.', color='darkorange', markersize=16)
+
+    axs[0].tick_params(axis='both', which='major', labelsize=16)
+
+    axs[0].set_xlabel('Position x (m)', fontsize=18)
+    axs[0].legend()
+
+
+
+    axs[1].set_ylabel("Body angle (deg)", fontsize=18)
+    axs[1].plot(time_axis, body_angle_target, 'k:', markersize=12, label='Ground Truth')
+    axs[1].plot(time_axis, body_angle_output, 'b', markersize=12, label='Predicted speed')
+
+    axs[1].plot(time_axis[start_idx], body_angle_target[start_idx], 'g.', markersize=16, label='Start')
+    axs[1].plot(time_axis[start_idx], body_angle_output[start_idx], 'g.', markersize=16)
+    axs[1].plot(time_axis[-1], body_angle_target[-1], 'r.', markersize=16, label='End')
+    axs[1].plot(time_axis[-1], body_angle_output[-1], 'r.', markersize=16)
+    if closed_loop_enabled:
+        axs[1].plot(time_axis[close_loop_idx], body_angle_target[close_loop_idx], '.', color='darkorange', markersize=16, label='Connect output->input')
+        axs[1].plot(time_axis[close_loop_idx], body_angle_output[close_loop_idx], '.', color='darkorange', markersize=16)
+
+    axs[1].tick_params(axis='both', which='major', labelsize=16)
+
+    axs[1].set_xlabel(time_axis_string, fontsize=18)
+
+    axs[1].legend()
+
+
+    axs[2].set_ylabel("Speed (m/s)", fontsize=18)
+    axs[2].plot(time_axis, speed_target, 'k:', markersize=12, label='Ground Truth')
+    axs[2].plot(time_axis, speed_output, 'b', markersize=12, label='Predicted speed')
+
+    axs[2].plot(time_axis[start_idx], speed_target[start_idx], 'g.', markersize=16, label='Start')
+    axs[2].plot(time_axis[start_idx], speed_output[start_idx], 'g.', markersize=16)
+    axs[2].plot(time_axis[-1], speed_target[-1], 'r.', markersize=16, label='End')
+    axs[2].plot(time_axis[-1], speed_output[-1], 'r.', markersize=16)
+    if closed_loop_enabled:
+        axs[2].plot(time_axis[close_loop_idx], speed_target[close_loop_idx], '.', color='darkorange', markersize=16, label='Connect output->input')
+        axs[2].plot(time_axis[close_loop_idx], speed_output[close_loop_idx], '.', color='darkorange', markersize=16)
+
+    axs[2].tick_params(axis='both', which='major', labelsize=16)
+
+    axs[2].set_xlabel(time_axis_string, fontsize=18)
+    axs[2].legend()
+
+    plt.ioff()
+    # plt.show()
+    plt.pause(1)
+
+    # Make name settable and with time-date stemp
+    # Save figure to png
+    if save:
+        # Make folders if not yet exist
+        try:
+            os.makedirs('save_plots')
+        except FileExistsError:
+            pass
+        dateTimeObj = datetime.now()
+        timestampStr = dateTimeObj.strftime("%d%b%Y_%H%M%S")
+        if rnn_full_name is not None:
+            fig.savefig('./save_plots/'+rnn_full_name+'.png')
+        else:
+            fig.savefig('./save_plots/'+timestampStr + '.png')

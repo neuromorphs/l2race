@@ -8,7 +8,7 @@ from typing import Tuple
 import pygame # conda install -c cogsci pygame; maybe because it only is supplied for earlier python, might need conda install -c evindunn pygame ; sudo apt-get install libsdl-ttf2.0-0
 
 from src.my_joystick import my_joystick,printhelp as joystick_help
-from src.my_keyboard import my_keyboard, printhelp as keyboard_help
+from src.my_keyboard import my_keyboard, show_help as keyboard_help
 
 # from src.l2race_utils import my_logger
 # logger = my_logger(__name__)

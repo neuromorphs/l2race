@@ -31,9 +31,9 @@ conda env create -f environment.yml
 If this does not work for some reason (some libraries are still not available from conda repos), then you can also use pip to install the requirements into your conda environment.
 Make a new environment (see https://docs.conda.io/projects/conda/en/latest/user-guide/tasks/manage-environments.html#). 
 
-First, install miniconda or conda, then make an empty python 3.7 environment:
+First, install miniconda or conda, then make an empty python environment:
 ```shell script
-conda create --name l2race python=3.7
+conda create --name l2race python=3.8
 ```
 Activate it:
 ```shell script
@@ -50,6 +50,13 @@ Install the requiremepnts:
 ```shell script
 pip install -r requirements.txt
 ``` 
+#### commonroads Vehicle models
+Clone https://gitlab.lrz.de/tum-cps/commonroad-vehicle-models somewhere, and then add to pycharm as content-root.
+Code refers to commonroads as vehicle-models.XXX, e.g.
+
+````lang-python
+from vehiclemodels.parameters_vehicle1 import parameters_vehicle1  
+````
 #### pygame
 The necessary pygame 2.0 seems to install into windows and linux and macOS directly with pip now.
 
@@ -75,19 +82,17 @@ Once in pycharm, if you have already setup the l2race conda environment, then py
 
 # Running l2race
 
-l2race uses client-server. 
-
+l2race uses a client-server architecture.
 The client draws the racetrack and car and accepts input from keyboard or xbox joystick controller or your software agent.
-
 The server computes the car dynamics model in response to your command input and returns the car state to the client.
 
 From root of l2race, start the server and client from separate terminals (or from pycharm; see below).
 
-### start client
+### Start client (typical remote use case)
 
 The command 
 ```tags
-python -m main --host=telluridevm.iniforum.ch
+python -m main --host=telluridevm.iniforum.ch TODO fix server
 ```
 will start the client (your view of track with your car) running on the server we setup for the workshop called _telluridevm.iniforum.ch_. It is a powerful 16-core machine with plenty of CPU for running the complex car models.
 
@@ -139,17 +144,41 @@ You can try to install with "pip install Gooey"
 
 Don't worry about missing Gooey; install it if you want to have a GUI pop up to launch the  server.
 
+### Server options
 
-## client options
 ````shell script
-"C:\Program Files\JetBrains\PyCharm 2020.1.4\bin\runnerw64.exe" C:\Users\tobid\anaconda3\envs\l2race\python.exe "F:/tobi/Dropbox (Personal)/GitHub/neuromorphs/l2race/main.py" -h
-pygame 2.0.0.dev10 (SDL 2.0.12, python 3.7.7)
+C:\Users\tobid\anaconda3\envs\l2race\python.exe "F:/tobi/Dropbox (Personal)/GitHub/neuromorphs/l2race/server.py" -h
+pygame 2.0.1 (SDL 2.0.14, Python 3.8.6)
 Hello from the pygame community. https://www.pygame.org/contribute.html
-2020-08-09 19:19:49,236 - commonroad.vehicleDynamics_MB - WARNING - check_cython: F:\tobi\Dropbox (Personal)\GitHub\neuromorphs\l2race\commonroad\vehicleDynamics_MB.py is still just a slowly interpreted script. (vehicleDynamics_MB.py:21)
+usage: server.py [-h] [--allow_off_track] [--log LOG] [--port PORT]
+
+l2race client: run this if you are a racer.
+
+optional arguments:
+  -h, --help         show this help message and exit
+
+Server arguments::
+  --allow_off_track  ignore when car goes off track (for testing car dynamics
+                     more easily) (default: False)
+  --log LOG          Set logging level. From most to least verbose, choices
+                     are "DEBUG", "INFO", "WARNING". (default: INFO)
+  --port PORT        Server port address for initiating connections from
+                     clients. (default: 50000)
+
+Run with no arguments to open dialog for server IP
+````
+
+## Client options
+````shell script
+C:\Users\tobid\anaconda3\envs\l2race\python.exe "F:/tobi/Dropbox (Personal)/GitHub/neuromorphs/l2race/main.py" -h
+pygame 2.0.1 (SDL 2.0.14, Python 3.8.6)
+Hello from the pygame community. https://www.pygame.org/contribute.html
 usage: main.py [-h] [--host HOST] [--port PORT] [--timeout_s TIMEOUT_S]
-               [--fps FPS] [--joystick JOYSTICK] [--record]
-               [--track_name TRACK_NAME] [--car_name CAR_NAME] [--spectate]
-               [--log LOG]
+               [--fps FPS] [--joystick JOYSTICK] [--record [RECORD]]
+               [--replay [REPLAY]] [--autodrive AUTODRIVE AUTODRIVE]
+               [--carmodel CARMODEL CARMODEL] [--lidar [LIDAR]]
+               [--track_name {empty,oval,oval_easy,Sebri,track_1,track_2,track_3,track_4,track_5,track_6}]
+               [--car_name CAR_NAME] [--spectate] [--log LOG]
 
 l2race client: run this if you are a racer.
 
@@ -158,7 +187,7 @@ optional arguments:
   --log LOG             Set logging level. From most to least verbose, choices
                         are "DEBUG", "INFO", "WARNING". (default: INFO)
 
-Server options::
+Model server connection options::
   --host HOST           IP address or DNS name of model server. (default:
                         localhost)
   --port PORT           Server port address for initiating connections.
@@ -169,28 +198,51 @@ Server options::
 
 Interface arguments::
   --fps FPS             Frame rate on client side (server always sets time to
-                        real time). (default: 30)
+                        real time). (default: 20)
   --joystick JOYSTICK   Desired joystick number, starting with 0. (default: 0)
 
-Output options::
-  --record              record data to date-stamped filename, e.g. --record
-                        will write datestamped files named 'l2race-XXX.csv' in
-                        folder 'data, where XXX is a date/timestamp'.
-                        (default: False)
+Output/Replay options::
+  --record [RECORD]     Record data to date-stamped filename with optional
+                        <note>, e.g. --record will write datestamped files
+                        named 'l2race-<track_name>-<car_name>-<note>-TTT.csv'
+                        in folder 'data, where note is optional note and TTT
+                        is a date/timestamp'. (default: None)
+  --replay [REPLAY]     Replay one or more CSV recordings. If 'last' or no
+                        file is supplied, play the most recent recording in
+                        the 'data' folder. (default: None)
+
+Control/Modeling arguments::
+  --autodrive AUTODRIVE AUTODRIVE
+                        The autodrive module and class to be run when
+                        autodrive is enabled on controller. Pass it the module
+                        (i.e. folder.file without .py) and the class within
+                        the file. (default:
+                        ['src.controllers.pure_pursuit_controller_v2',
+                        'pure_pursuit_controller_v2'])
+  --carmodel CARMODEL CARMODEL
+                        Your client car module and class and class to be run
+                        as ghost car when model evaluation is enabled on
+                        controller. Pass it the module (i.e. folder.file
+                        without .py) and the class within the file. (default:
+                        ['src.models.models', 'linear_extrapolation_model'])
+
+Sensor arguments::
+  --lidar [LIDAR]       Draw the point at which car would hit the track edge
+                        if moving on a straight line. The numerical value
+                        gives precision in pixels with which this point is
+                        found. (default: None)
 
 Track car/spectate options::
-  --track_name TRACK_NAME
+  --track_name {empty,oval,oval_easy,Sebri,track_1,track_2,track_3,track_4,track_5,track_6}
                         Name of track. Available tracks are in the
-                        'media/tracks' folder. Available tracks are ['oval',
-                        'oval_easy', 'Sebri', 'track_1', 'track_2', 'track_3',
-                        'track_4', 'track_5', 'track_6'] (default: oval_easy)
+                        './media/tracks/' folder, defined by
+                        src.globals.TRACKS_FOLDER. (default: oval_easy)
   --car_name CAR_NAME   Name of this car (last 2 letters are randomly chosen
-                        each time). (default: tobi-joule-amd:tobid-XC)
+                        each time). (default: None)
   --spectate            Just be a spectator on the cars on the track.
                         (default: False)
 
-Run with no arguments to open dialog for server IP
-
+Run with no arguments to open dialog for arguments, if Gooey is installed
 ````
 
 ### joystick and keyboard
@@ -248,3 +300,8 @@ Sample runs follow.
 
 ## To make a new track
 TODO marcin
+
+
+## Using the track_info and track_map
+TODO marcin/antonio
+

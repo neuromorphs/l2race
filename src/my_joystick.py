@@ -39,9 +39,10 @@ class my_joystick:
     The read() method gets joystick input to return (car_command, user_input)
     """
     XBOX_ONE_BLUETOOTH_JOYSTICK = 'Xbox One S Controller' # XBox One when connected as Bluetooth in Windows
-    XBOX_WIRED = 'Xbox 360 Wireless Receiver' #Although in the name the word 'Wireless' appears, the controller is wired
+    XBOX_WIRED = 'Controller (Xbox One For Windows)' #Although in the name the word 'Wireless' appears, the controller is wired
     XBOX_ELITE = 'Xbox One Elite Controller' # XBox One when plugged into USB in Windows
     PS4_DUALSHOCK4 = 'Sony Interactive Entertainment Wireless Controller' # Only wired connection tested
+    PS4_WIRELESS_CONTROLLER = 'Sony Computer Entertainment Wireless Controller' # Only wired connection on macOS tested
 
     def __init__(self, joystick_number=JOYSTICK_NUMBER):
         """
@@ -89,14 +90,16 @@ class my_joystick:
         self.numAxes = self.joy.get_numaxes()
         self.numButtons = self.joy.get_numbuttons()
         self.name=self.joy.get_name()
+        logger.info(f'joystick is named "{self.name}"')
         if not self.name == my_joystick.XBOX_ONE_BLUETOOTH_JOYSTICK \
                 and not self.name == my_joystick.XBOX_ELITE \
                 and not self.name == my_joystick.XBOX_WIRED \
+                and not self.name == my_joystick.PS4_WIRELESS_CONTROLLER \
                 and not self.name == my_joystick.PS4_DUALSHOCK4:
             logger.warning('Name: {}'.format(self.name))
             logger.warning('Unknown joystick type {} found.'
                            'Add code to correctly map inputs by running my_joystick as main'.format(self.name))
-            raise RuntimeWarning('unknown joystick type {} found'.format(self.name))
+            raise RuntimeWarning('unknown joystick type "{}" found'.format(self.name))
         logger.debug('joystick named "{}" found with {} axes and {} buttons'.format(self.name, self.numAxes, self.numButtons))
 
     def _connect(self):
@@ -153,7 +156,6 @@ class my_joystick:
             Brake = 5
 
         elif self.name == my_joystick.XBOX_ONE_BLUETOOTH_JOYSTICK:
-            # Buttons A B X Y
             A = 0  # ghost (client_model)
             B = 1  # reverse
             X = 2  # restart game
@@ -164,7 +166,7 @@ class my_joystick:
             # Analog Buttons and Axes
             Steering = 0
             Throttle = 5
-            Brake = 2
+            Brake = 4
 
         elif self.name == my_joystick.XBOX_ELITE: # antonio's older joystick? also XBox One when plugged into USB cable on windows
             # Buttons A B X Y
@@ -187,12 +189,12 @@ class my_joystick:
             X = 2  # restart game
             Y = 3  # autodrive
             # Quit and Restart Client buttons
-            Quit = 8  # quit client
-            Restart_Client = 9  # restart client
+            Quit = 6  # quit client
+            Restart_Client = 7  # restart client
             # Analog Buttons and Axes
             Steering = 0
-            Throttle = 7
-            Brake = 6
+            Throttle = 5
+            Brake = 4
 
         elif self.name == my_joystick.PS4_DUALSHOCK4:
             # Buttons X O Square Triangle
@@ -207,6 +209,21 @@ class my_joystick:
             Steering = 0
             Throttle = 5
             Brake = 2
+            
+        elif self.name == my_joystick.PS4_WIRELESS_CONTROLLER:
+            # Buttons X O Square Triangle
+            X = 1  # ghost (client_model)
+            O = 2  # reverse
+            Square = 0  # restart game
+            Triangle = 3  # autodrive
+            # Quit and Restart Client buttons
+            Quit = 8
+            Restart_Client = 9
+            # Analog Buttons and Axes
+            Steering = 2
+            Throttle = 4
+            Brake = 3
+
             
             
         if 'Xbox' in self.name:
@@ -261,7 +278,7 @@ if __name__ == '__main__':
     atexit.register(deinit)
     pygame.init()
     joy = my_joystick()
-    new_axes = np.zeros(joy.numAxes,dtype=np.float)
+    new_axes = np.zeros(joy.numAxes,dtype=float)
     old_axes = new_axes.copy()
     it = 0
     print('Name of the current joystick is {}.'.format(joy.name))

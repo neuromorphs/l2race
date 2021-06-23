@@ -307,6 +307,7 @@ class client:
 
                 logger.info('initial car state is {}'.format(self.car.car_state))
 
+
     def run(self) -> None:
         """
         Either runs the game live or replays recording(s), depending on self.replay_file_list
@@ -706,18 +707,34 @@ class client:
             logger.error('Cannot replay: Caught {} trying to read CSV file {}'.format(e, file_path))
             return False
 
+        def get_header_params(filename):
+            para_dic = {}
+            with  open(filename,'r') as cmt_file:    # open file
+                for line in cmt_file:    # read each line
+                    if line[0] == '#':    # check the first character
+                        line = line[1:]    # remove first '#'
+                        para = line.split('=')     # seperate string by '='
+                        if len(para) == 2:
+                            para_dic[para[0].strip()] = para[1].strip().strip("\"") # remove " from around param
+                    else:
+                        break # done with header
+            return para_dic
+
+        header_params=get_header_params(file_path)
+        logger.info('header field parameters from {} are \n{}'.format(file_path,header_params))
+
         # Get used car name
-        s = str(pd.read_csv(file_path, skiprows=5, nrows=1))
-        self.track_name = re.search('"(.*)"', s).group(1)
-        logger.debug(self.track_name)
+        track_name = header_params['track_name']
+        logger.info('CSV file track is named '+track_name)
+        if track_name!=self.track_name:
+            logger.warning('replay track name "{}" differs from command line defined track name "{}", making new track instance for replay'.format(track_name,self.track_name))
+            self.track_name=track_name
+            self.track_instance: track = track(track_name=self.track_name)
+
 
         # Get used track
-        s = str(pd.read_csv(file_path, skiprows=6, nrows=1))
-        self.car_name = re.search('"(.*)"', s).group(1)
-        logger.debug(self.car_name)
-
-        # print(file_path)
-        # print(data.head())
+        self.car_name = header_params['car_name']
+        logger.debug('CSV file car is named' + self.car_name)
 
         # Define car and track
         self.track_instance = track(self.track_name)
@@ -745,25 +762,8 @@ class client:
                 continue
             playback_speed = self.car_command.steering
 
-            row = data.iloc[
-                r]  # position based indexing of DataFrame https://pythonhow.com/accessing-dataframe-columns-rows-and-cells/
-            # for index, row in data.iterrows():
-            self.car.car_state.command.autodrive_enabled = row['cmd.auto']
-            self.car.car_state.command.steering = row['cmd.steering']
-            self.car.car_state.command.throttle = row['cmd.throttle']
-            self.car.car_state.command.brake = row['cmd.brake']
-            self.car.car_state.command.reverse = row['cmd.reverse']
-
-            self.car.car_state.time = row['time']
-            self.car.car_state.position_m = Vector2(row['pos.x'], row['pos.y'])
-            self.car.car_state.velocity_m_per_sec = Vector2(row['vel.x'], row['vel.y'])
-            self.car.car_state.speed_m_per_sec = row['speed']
-            self.car.car_state.accel_m_per_sec_2 = Vector2(row['accel.x'], row['accel.y'])
-            self.car.car_state.steering_angle_deg = row['steering_angle']
-            self.car.car_state.body_angle_deg = row['body_angle']
-            self.car.car_state.yaw_rate_deg_per_sec = row['yaw_rate']
-            self.car.car_state.drift_angle_deg = row['drift_angle']
-
+            row:dict = data.iloc[r]  # position based indexing of DataFrame https://pythonhow.com/accessing-dataframe-columns-rows-and-cells/
+            self.car.car_state.parse_csv_row(row)
 
             self.update_ghost_car()
 
@@ -811,7 +811,9 @@ class client:
             logger.warning('tried to run client_car_model as ghost car but client_car_model is None')
             return
 
-        if self.ghost_car is None:
+        if self.ghost_car is None :
+            if self.car is None or self.car.car_state is None:
+                return  # we might be spectating, so don't have a car to ghost
             logger.info('making ghost car copy of car for showing client_car_model')
             self.ghost_car = copy.copy(self.car)  # just copy fields
             self.ghost_car.car_state = copy.copy(self.car.car_state)  # make sure we get our own car_state
