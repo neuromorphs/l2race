@@ -20,44 +20,53 @@ The key aims are to learn a controller from limited 'real world' data and to use
 
 
 ## Setup
-Conda is your friend! Make a new environment called l2race to work in l2race and do everything in that environment!
+The most straight forward way to install l2race is to use the terminal.
+Conda is your friend!
 
-You can try to build the entire conda env l2race using
-
+L2Race uses git submodules, so when you clone the project make sure you also clone them:
 ```shell script
-conda env create -f environment.yml
+git clone --recursive https://github.com/neuromorphs/l2race.git
+cd l2race
 ```
 
-If this does not work for some reason (some libraries are still not available from conda repos), then you can also use pip to install the requirements into your conda environment.
-Make a new environment (see https://docs.conda.io/projects/conda/en/latest/user-guide/tasks/manage-environments.html#). 
 
-First, install miniconda or conda, then make an empty python environment:
+Make sure miniconda or conda is installed. Create a new python environment and activate it. Finally install the requirements.
+
 ```shell script
 conda create --name l2race python=3.8
-```
-Activate it:
-```shell script
 conda activate l2race
+pip install -r requirements.txt
 ```
-You can install the requirements in this environment using its own pip.
- Make sure you are using the conda pip in your conda environment:
+
+If you are not using pycharm but any kind of terminal you have to define the python project root inside the l2race folder.
+```shell script
+export PYTHONPATH=./
+```
+
+Finally you can run the l2race client:
+```shell script
+python -m main --host=telluridevm.iniforum.ch
+```
+
+### Trouble shooting
+#### Pip
+
+You have to install the requirements for the l2race environment using its own pip.
+If the installation of the requirements does not work, make sure you are using the conda pip in your conda environment:
 ```shell script
 where pip
 C:\Users\tobid\anaconda3\envs\l2race\Scripts\pip.exe
 ```
-Install the requiremepnts:
-
+#### Git Submodules
+If you use an old version of git the submodules might not be loaded correctly. If there is an error like "module not found: VehicleModels", this is probably the case.
+Check the folder "commonroad-vehicle-models". Is it empty?
+Run:
 ```shell script
-pip install -r requirements.txt
-``` 
-#### commonroads Vehicle models
-Clone https://gitlab.lrz.de/tum-cps/commonroad-vehicle-models somewhere, and then add to pycharm as content-root.
-Code refers to commonroads as vehicle-models.XXX, e.g.
+git submodule update --init --recursive
+```
+Check again and if it is no longer empty, the submodules have been loaded correctly.
 
-````lang-python
-from vehiclemodels.parameters_vehicle1 import parameters_vehicle1  
-````
-#### pygame
+#### Pygame
 The necessary pygame 2.0 seems to install into windows and linux and macOS directly with pip now.
 
 If you still have problems, you can see the pygame 2.0-dev10 (needed for python 3.7) wheels at https://www.piwheels.org/project/pygame/ or https://github.com/pygame/pygame/releases.  (A _wheel_ is a kind of archi8ve of python stuff with all dependencies; they are named according to the platform and OS). Then use pip install wheel-file. Download the wheel for pygame 2.0 for python 3.7 and your OS.
@@ -92,7 +101,7 @@ From root of l2race, start the server and client from separate terminals (or fro
 
 The command 
 ```tags
-python -m main --host=telluridevm.iniforum.ch TODO fix server
+python -m main --host=telluridevm.iniforum.ch
 ```
 will start the client (your view of track with your car) running on the server we setup for the workshop called _telluridevm.iniforum.ch_. It is a powerful 16-core machine with plenty of CPU for running the complex car models.
 
