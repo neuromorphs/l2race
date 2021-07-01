@@ -1,5 +1,8 @@
-import importlib
 
+import sys
+sys.path.insert(0, './commonroad-vehicle-models/PYTHON/')
+
+import importlib
 from src.globals import AUTODRIVE_MODULE, AUTODRIVE_CLASS, CAR_MODEL_MODULE, CAR_MODEL_CLASS
 from src.client import define_game
 from src.l2race_utils import my_logger
