@@ -544,7 +544,6 @@ class client:
             y_map = self.track_instance.meters2pixels(y_track)
             hit_pos = self.track_instance.find_hit_position(angle=self.car.car_state.body_angle_deg,
                                                             pos=(x_map, y_map),
-                                                            track_map=self.track_instance.map_lidar,
                                                             dl=self.lidar)
             if hit_pos is not None:
                 pygame.draw.line(self.screen, (0, 0, 255), (x_map, y_map), hit_pos)
