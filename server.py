@@ -1,4 +1,6 @@
 # main file for l2race model server, run this class to start the model server
+import sys
+sys.path.insert(0, './commonroad-vehicle-models/PYTHON/')
 
 import argparse
 import atexit
