@@ -1,3 +1,6 @@
 [submodule "SI_Toolkit"]
 	path = SI_Toolkit
 	url = https://github.com/SensorsINI/SI_Toolkit
+[submodule "commonroad-vehicle-models"]
+	path = commonroad-vehicle-models
+	url = https://gitlab.lrz.de/tum-cps/commonroad-vehicle-models.git
