@@ -9,11 +9,11 @@ from src.l2race_utils import my_logger
 
 logger = my_logger(__name__)
 
-MAX_SPEED = 10.0  # The controller will try to keep to this speed on  curves
+MAX_SPEED = 12.0  # The controller will try to keep to this speed on  curves
 D_MIN = 30  # If the distance in to the track edge is smaller than this (in pixels) do full brake
 D_MAX = 350  # If the distance is bigger than this do full throttle
 WB = 2.9  # [m] wheel base of vehicle
-LFC = 3.0  # [m] look ahead distance
+LFC = 10.0  # [m] look ahead distance
 K = 0.1 # look forward gain
 
 
