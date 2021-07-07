@@ -290,7 +290,8 @@ class CarController:
             acceleration = state[3] - self.car_state[3]
 
             acceleration_cost += abs((acceleration + 1)/ 2)
-            distance_cost += abs(discount * distance_to_track)
+            # distance_cost += abs(discount * distance_to_track)
+            distance_cost +=  distance_to_track ** 2
 
             # Don't leave track!
             if(distance_to_track > TRACK_WIDTH):
