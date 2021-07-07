@@ -10,7 +10,7 @@ logger = my_logger(__name__)
 
 MAX_SPEED = 5.0
 WB = 2.9  # [m] wheel base of vehicle
-LFC = 3.0 # [m] look ahead distance
+LFC = 10.0 # [m] look ahead distance
 K = 0.1 # look forward gain
 
 

@@ -39,6 +39,7 @@ class my_joystick:
     The read() method gets joystick input to return (car_command, user_input)
     """
     XBOX_ONE_BLUETOOTH_JOYSTICK = 'Xbox One S Controller' # XBox One when connected as Bluetooth in Windows
+    XBOX_360_WIRELESS_RECEIVER = 'Xbox 360 Wireless Receiver' # XBox 360 when connected via USB wireless adapter on Linux
     XBOX_WIRED = 'Controller (Xbox One For Windows)' #Although in the name the word 'Wireless' appears, the controller is wired
     XBOX_ELITE = 'Xbox One Elite Controller' # XBox One when plugged into USB in Windows
     PS4_DUALSHOCK4 = 'Sony Interactive Entertainment Wireless Controller' # Only wired connection tested
@@ -92,6 +93,7 @@ class my_joystick:
         self.name=self.joy.get_name()
         logger.info(f'joystick is named "{self.name}"')
         if not self.name == my_joystick.XBOX_ONE_BLUETOOTH_JOYSTICK \
+                and not self.name == my_joystick.XBOX_360_WIRELESS_RECEIVER \
                 and not self.name == my_joystick.XBOX_ELITE \
                 and not self.name == my_joystick.XBOX_WIRED \
                 and not self.name == my_joystick.PS4_WIRELESS_CONTROLLER \
@@ -167,6 +169,20 @@ class my_joystick:
             Steering = 0
             Throttle = 5
             Brake = 4
+
+        elif self.name == my_joystick.XBOX_360_WIRELESS_RECEIVER:
+            # Buttons A B X Y
+            A = 0  # ghost (client_model)
+            B = 1  # reverse
+            X = 2  # restart game
+            Y = 3  # autodrive
+            # Quit and Restart Client buttons
+            Quit = 6  # quit client
+            Restart_Client = 7  # restart client
+            # Analog Buttons and Axes
+            Steering = 0
+            Throttle = 5
+            Brake = 2
 
         elif self.name == my_joystick.XBOX_ELITE: # antonio's older joystick? also XBox One when plugged into USB cable on windows
             # Buttons A B X Y
