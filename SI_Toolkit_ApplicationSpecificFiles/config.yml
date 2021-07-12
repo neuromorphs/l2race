@@ -1,30 +1,25 @@
-modeling:
-  NET_NAME: 'GRU-16H1-16H2'
-  PATH_TO_MODELS: './SI_Toolkit/TF/Models/'
-  RNN_PATH: './save_tf/'
-  PATH_TO_NORMALIZATION_INFO:   'None'  # './SI_Toolkit/NormalizationInfo/Dataset-1-norm.csv'
-  TRAINING_FILES: './ExperimentRecordings/Dataset-1/Train/'
-  VALIDATION_FILES: './ExperimentRecordings/Dataset-1/Validate/'
-  TEST_FILES: './ExperimentRecordings/Dataset-1/Test/'
-  PREDICTION_FEATURES_NAMES: ['pos.x', 'pos.y' , 'vel.x', 'vel.y', 'speed', 'accel.x', 'accel.y', 'steering_angle', 'body_angle', 'yaw_rate', 'drift_angle']
+  modeling:
+    NET_NAME: 'GRU-16H1-16H2'
+    RNN_PATH: './save_tf/'
+    PREDICTION_FEATURES_NAMES: ['pos.x', 'pos.y' , 'vel.x', 'vel.y', 'speed', 'accel.x', 'accel.y', 'steering_angle', 'body_angle', 'yaw_rate', 'drift_angle']
 
-normalization:
-  # PATH HAS TO END WITH A SOLIDUS ("/") CHARACTER
-  folder_with_data_to_calculate_norm_info: './ExperimentRecordings/Dataset-1/Train/'
+  paths:
+    # PATH HAS TO END WITH A SOLIDUS ("/") CHARACTER
+    path_to_experiment: 'Experiment-1/'
+    PATH_TO_EXPERIMENT_RECORDINGS: './SI_Toolkit_ApplicationSpecificFiles/Experiments/'  # Path where the experiments data is stored
 
-training_default:
-  # For training closed loop dynamics model:
-  control_inputs: ['cmd.throttle', 'cmd.brake', 'cmd.reverse']
-  state_inputs: ['pos.x', 'pos.y' , 'vel.x', 'vel.y', 'speed', 'accel.x', 'accel.y', 'steering_angle', 'body_angle', 'yaw_rate', 'drift_angle']
-  outputs: ['pos.x', 'pos.y' , 'vel.x', 'vel.y', 'speed', 'accel.x', 'accel.y', 'steering_angle', 'body_angle', 'yaw_rate', 'drift_angle']
-  # For training open loop dynamics model:
-  # inputs = ['position', 'positionD', 'angle_sin', 'angle_cos', 'angleD']
-  # outputs = inputs_list
-  # For training of RNN imitating MPC:
-  # inputs = ['position', 'positionD', 'angle', 'angleD', 'target_position']
-  # outputs = ['Q']
+  training_default:
+    # For training closed loop dynamics model:
+    control_inputs: ['cmd.throttle', 'cmd.brake', 'cmd.reverse']
+    state_inputs: ['pos.x', 'pos.y' , 'vel.x', 'vel.y', 'speed', 'accel.x', 'accel.y', 'steering_angle', 'body_angle', 'yaw_rate', 'drift_angle']
+    outputs: ['pos.x', 'pos.y' , 'vel.x', 'vel.y', 'speed', 'accel.x', 'accel.y', 'steering_angle', 'body_angle', 'yaw_rate', 'drift_angle']
+    # Cartpole examples: For training open loop dynamics model:
+    # inputs = ['position', 'positionD', 'angle_sin', 'angle_cos', 'angleD']
+    # outputs = inputs_list
+    # For training of RNN imitating MPC:
+    # inputs = ['position', 'positionD', 'angle', 'angleD', 'target_position']
+    # outputs = ['Q']
 
-testing:
-  PATH_TO_NORMALIZATION_INFO: './SI_Toolkit/NormalizationInfo/Dataset-1-norm.csv'
-  tests: ['GRU-6IN-16H1-16H2-5OUT-0', 'Dense-6IN-16H1-16H2-5OUT-0']  # May be 'Euler', Euler-predictor, name of network or None = 'Dense-16H1-16H2'
-  TEST_FILE: ['ExperimentRecordings/Dataset-1/Test/Test.csv']
+  testing:
+    tests: [ 'Euler' ]  # May be 'Euler', Euler-predictor, name of network or None = 'Dense-16H1-16H2'
+    TEST_FILE: 'Experiment-1.csv'
