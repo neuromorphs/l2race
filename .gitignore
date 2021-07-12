@@ -1,7 +1,15 @@
-/build/
+.DS_Store
+*__pycache__
+*.pyc
+*.csv
+*.png
+*.txt
+*.ckpt.*
+*.pt
+*.env
+*.vscode
+*.xml
+*.iml
 
-__pycache__
-*.__pycache__
-.vscode
 
-.idea/
+/SI_Toolkit_ApplicationSpecificFiles/Experiments/*
