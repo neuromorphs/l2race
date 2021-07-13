@@ -5,6 +5,7 @@ import os
 from math import radians, cos, sin
 from typing import Optional, Tuple
 
+import numpy as np
 import pygame
 import pygame.freetype
 from src.l2race_utils import my_logger
@@ -78,7 +79,10 @@ class car:
             logger.warning('no car image yet, cannot draw it')
             return
         # draw our car
-        rotated = pygame.transform.rotate(self.image, -self.car_state.body_angle_deg)
+        # Find remainder of body angle after dividing by 2pi since large angles result in out of memory error.
+        # And model instability results in huge angles sometimes.
+        angle_remainder=np.remainder(self.car_state.body_angle_deg,360)
+        rotated = pygame.transform.rotate(self.image, -angle_remainder)
         rect = rotated.get_rect()
 
         p=self.car_state.position_m
