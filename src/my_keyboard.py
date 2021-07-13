@@ -26,7 +26,7 @@ def show_tk_help():
     label = Message( root, textvariable=var, relief=RAISED)
     var.set(HELP)
     label.pack()
-    root.mainloop()
+    root.mainloop() # Todo windows does not show up sometimes
 
 
 class my_keyboard:
@@ -42,9 +42,10 @@ class my_keyboard:
         self.car_command:car_command = car_command()
         self.user_input:user_input = user_input()
         self.any_key_pressed=False # set true if any key is pressed
-        self.auto_pressed=False # only used to log changes to/from autodrive
-        self.run_user_model_pressed=False # only used to log changes to/from running user model
-        self.restart_pressed=False # only used to log restarts and prevent multiple restarts being sent
+        self._auto_pressed=False # only used to log changes to/from autodrive
+        self._run_user_model_pressed=False # only used to log changes to/from running user model
+        self._restart_pressed=False # only used to log restarts and prevent multiple restarts being sent
+        self._toggle_recording_pressed=False # only used to avoid multiple toggles of recording
 
     def read(self) -> Tuple[car_command,user_input]:
         pressed = pygame.key.get_pressed()
@@ -55,31 +56,31 @@ class my_keyboard:
         self.user_input.restart_car=False
         self.user_input.restart_client=False
         self.user_input.run_client_model=False
-        self.user_input.record_data=False
+        self.user_input.toggle_recording=False
 
         self.any_key_pressed=any(pressed)
 
         if pressed[pygame.K_y]:
             self.car_command.autodrive_enabled = True
-            if not self.auto_pressed:
+            if not self._auto_pressed:
                 logger.info('autodriver enabled')
-                self.auto_pressed=True
+                self._auto_pressed=True
         else:
             self.car_command.autodrive_enabled = False
-            if self.auto_pressed:
+            if self._auto_pressed:
                 logger.info('autodriver disabled')
-                self.auto_pressed=False
+                self._auto_pressed=False
 
         if pressed[pygame.K_m]:
             self.user_input.run_client_model = True
-            if not self.run_user_model_pressed:
+            if not self._run_user_model_pressed:
                 logger.info('run user model enabled')
-                self.run_user_model_pressed=True
+                self._run_user_model_pressed=True
         else:
             self.car_command.run_client_model = False
-            if self.run_user_model_pressed:
+            if self._run_user_model_pressed:
                 logger.info('run user model  disabled')
-                self.run_user_model_pressed=False
+                self._run_user_model_pressed=False
 
         if pressed[pygame.K_UP] or pressed[pygame.K_w]:
            self.car_command.throttle=1.
@@ -108,14 +109,23 @@ class my_keyboard:
             self.user_input.quit = True
 
         if pressed[pygame.K_r]:
-            if not self.restart_pressed: # if it was not pushed before, then set flag true
+            if not self._restart_pressed: # if it was not pushed before, then set flag true
                 if (pygame.key.get_mods() & pygame.KMOD_LSHIFT):
                     self.user_input.restart_client =True
                 else:
                     self.user_input.restart_car =True
-                self.restart_pressed=True # mark that we set the flag
+                self._restart_pressed=True # mark that we set the flag
         else: # if r key not pressed anymore
-                self.restart_pressed=False
+                self._restart_pressed=False
+
+        if pressed[pygame.K_l]: # TODO awkward logic to prevent mulitple toggling of recording during game loop
+            if not self._toggle_recording_pressed:
+                self.user_input.toggle_recording=True
+            else:
+                self.user_input.toggle_recording=False
+            self._toggle_recording_pressed=True
+        else:
+            self._toggle_recording_pressed=False
 
         if pressed[pygame.K_QUESTION] or pressed[pygame.K_h]:
             show_help()

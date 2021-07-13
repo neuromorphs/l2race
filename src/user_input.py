@@ -12,4 +12,4 @@ class user_input():
         self.restart_client=False # abort current run (server went down?) and restart from scratch
         self.quit=False # quit input from controller, mapped to ESC for keyboard and menu button for xbox controller
         self.run_client_model=False # run the client model of car
-        self.record_data=False # record data
+        self.toggle_recording=False # record data

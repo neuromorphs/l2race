@@ -7,7 +7,6 @@ class car_command:
     """
 
     def __init__(self):
-        # todo why are these floats and bools initialized to None?
         self.steering=0  # value bounded by -1:1, this is the desired steering angle relative to maximum value and it is only the desired steering angle; actual steering angle is controlled by hidden dynamics of steering actuation and its limits
         self.throttle=0  # bounded to 0-1 from 0 to maximum possible, acts on car longitudinal acceleration according to hidden car and its motor dynamics
         self.brake=0  # bounded from 0-1

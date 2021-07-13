@@ -1,6 +1,7 @@
 # records data from l2race car
 import os
 from collections import OrderedDict
+from pathlib import Path
 
 from src.car import car
 
@@ -52,7 +53,8 @@ class data_recorder:
             atexit.register(self.close_recording)
             self.num_records=0
             self.first_record_written=False
-            logger.info('created new recording {}'.format(self.filename))
+            p=Path(self.filename)
+            logger.info(f'created new recording {p.absolute()}')
         except Exception as ex:
             self.file=None
             logger.warning('{}: could not open {} for recording data'.format(ex, self.filename))

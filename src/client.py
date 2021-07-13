@@ -294,13 +294,6 @@ class client:
             if not self.spectate:
                 self.car = car(name=self.car_name, our_track=self.track_instance, screen=self.screen,
                                client_ip=self.gameSockAddr)
-                if self.recording_enabled:
-                    if self.data_recorders is None:  # todo add other cars to data_recorders as we get them from server
-                        self.data_recorders = [data_recorder(car=self.car)]
-                        try:
-                            self.data_recorders[0].open_new_recording()
-                        except RuntimeError as e:
-                            logger.warning('Could not open data recording; caught {}'.format(e))
 
                 if self.autodrive_controller:
                     self.autodrive_controller.car = self.car # note, shallow copy
@@ -370,9 +363,25 @@ class client:
                     continue
 
                 self.handle_message(cmd, payload)
-                if self.data_recorders:
-                    for r in self.data_recorders:
-                        r.write_sample()
+
+                # toggle recording of ourselves
+                if self.recording_enabled:
+                    if self.data_recorders is None:  # todo add other cars to data_recorders as we get them from server
+                        self.data_recorders = [data_recorder(car=self.car)]
+                        try:
+                            self.data_recorders[0].open_new_recording()
+                        except RuntimeError as e:
+                            logger.warning('Could not open data recording; caught {}'.format(e))
+
+                    if self.data_recorders:
+                        for r in self.data_recorders:
+                            r.write_sample()
+                else:
+                    if self.data_recorders:
+                        for r in self.data_recorders:
+                            r.close_recording()
+                            r=None
+                        self.data_recorders=None
 
             except socket.timeout:
                 logger.warning('Timeout on socket receive from server, using previous car state. '
@@ -411,6 +420,10 @@ class client:
             logger.info('quit recieved from keyboard or joystick, ending main loop')
             self.exit = True
             return
+
+        if self.user_input.toggle_recording:
+            self.recording_enabled = not self.recording_enabled
+            logger.info(f'toggled recording_enabled={self.recording_enabled}')
 
         if not self.spectate:
             if self.user_input.restart_car:

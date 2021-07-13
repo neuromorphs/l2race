@@ -12,9 +12,9 @@ logger = my_logger(__name__)
 MAX_SPEED = 12.0  # The controller will try to keep to this speed on  curves
 D_MIN = 30  # If the distance in to the track edge is smaller than this (in pixels) do full brake
 D_MAX = 350  # If the distance is bigger than this do full throttle
-WB = 2.9  # [m] wheel base of vehicle
+WB = 2.9  # [m] wheel base of vehicle - we don't officially know this
 LFC = 10.0  # [m] look ahead distance
-K = 0.1 # look forward gain
+K = 0.05 # look forward gain # todo what is this?  Is this proportional gain on steering wheel command?
 
 
 def calc_distance(x1, y1, x2, y2):
