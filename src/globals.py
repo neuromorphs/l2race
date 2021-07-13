@@ -52,6 +52,7 @@ GAME_FONT_SIZE = 16  # default is 16
 # Joystick connectivity
 CHECK_FOR_JOYSTICK_INTERVAL = 100 # check for missing joystick every this many cycles
 JOYSTICK_NUMBER = 0 # in case multiple joysticks, use this to set the desired one, starts from zero
+JOYSTICK_STEERING_GAIN=.15 # gain for joystick steering input. 1 is too much for most people, 0.15 is recommended
 
 # recording data
 DATA_FILENAME_BASE= 'l2race'
