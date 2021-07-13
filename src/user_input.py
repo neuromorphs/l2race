@@ -13,3 +13,5 @@ class user_input():
         self.quit=False # quit input from controller, mapped to ESC for keyboard and menu button for xbox controller
         self.run_client_model=False # run the client model of car
         self.toggle_recording=False # record data
+        self.open_playback_recording=False
+        self.close_playback_recording=False

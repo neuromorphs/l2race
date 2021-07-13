@@ -8,6 +8,7 @@ from typing import Tuple, List, Optional, Dict
 import argparse
 import argcomplete as argcomplete
 import select
+from easygui import easygui, fileopenbox
 from pandas import DataFrame
 from pygame.math import Vector2
 import pygame.freetype  # Import the freetype module.
@@ -425,6 +426,15 @@ class client:
             self.recording_enabled = not self.recording_enabled
             logger.info(f'toggled recording_enabled={self.recording_enabled}')
 
+        if self.user_input.open_playback_recording:
+            file=fileopenbox(msg='Select .csv recording file',
+                                         title='l2race',
+                                         filetypes=[['*.csv','Comma Separated Values file']],
+                                         multiple=False,
+                                         default='*.csv')
+            logger.info(f'selected {file} with file dialog')
+            self.replay(file)
+
         if not self.spectate:
             if self.user_input.restart_car:
                 self.restart_car('user asked to restart car')
@@ -657,18 +667,20 @@ class client:
                 'unexpected msg {} with payload {} received from server (should have gotten "car_state" message)'.format(
                     msg, payload))
 
-    def replay(self) -> bool:
+    def replay(self, filename=None) -> bool:
         """
         Replays the self.replay_file_list recordings. It will immediately return False if it cannot find the file to play. Otherwise
         it will start a loop that runs over the entire file to play it, and finally return True.
 
+        :param file: CSV file to play back
+
         :returns: False if it cannot find the file to play, True at the end of playing the entire recording.
         """
         # Load data
-        file_path = None
-        filename = None
         # Find the right file
-        if (self.replay_file_list is not None) and (self.replay_file_list is not 'last'):
+        if filename is not None:
+            file_path=filename
+        elif (self.replay_file_list is not None) and (self.replay_file_list is not 'last'):
 
             if isinstance(self.replay_file_list, List) and len(self.replay_file_list) > 1:
                 filename = self.replay_file_list[0]
@@ -712,7 +724,7 @@ class client:
             return False
 
         # Get race recording
-        logger.info('Replaying file {}'.format(file_path))
+        logger.info(f'Replaying file {file_path}')
         try:
             data: DataFrame = pd.read_csv(file_path, comment='#')  # skip comment lines starting with #
         except Exception as e:
@@ -769,7 +781,7 @@ class client:
                 self.exit = True
 
             self.car_command, self.user_input = self.input.read()  # gets input from keyboard or joystick
-            if self.input.exit:
+            if self.user_input.quit:
                 self.exit = True
                 continue
             playback_speed = self.car_command.steering
@@ -790,6 +802,10 @@ class client:
             if self.user_input.quit:
                 self.cleanup()
                 break
+
+            if self.user_input.close_playback_recording:
+                self.restart_car()
+                self.run_new_game()
 
             if self.user_input.restart_car:
                 r = 0

@@ -1,17 +1,10 @@
-# scipy
-svgpathtools
-pygame==2.0.1
-matplotlib
-numpy
-argparse
-argcomplete
-opencv-python
-# numba # not using now
-cython # cython needs to be compiled using setup.py
-scipy
-upnpy
-pandas
-pysindy
-torch # go to https://pytorch.org/get-started/locally/ for correct pip or conda command generator
-IPython
-cvxpy
+# requirements.txt
+ #
+ # installs dependencies from ./setup.py, and the package itself,
+ # in editable mode
+ -e .
+
+ # (the -e above is optional). you could also just install the package
+ # normally with just the line below (after uncommenting)
+ # .
+

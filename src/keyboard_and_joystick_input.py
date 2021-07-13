@@ -1,11 +1,11 @@
 """
-joystick race controller based on xbox bluetooth controller.
-Xbox has 11 buttons.
-buttons ABXY are first four buttons 0-3, then menu and window buttons are 4th and 5th from end, i.e. 7 and 6
+joystick race controller based on keyboard or xbox bluetooth controller.
+
 """
 # import logging
 from typing import Tuple
 import pygame # conda install -c cogsci pygame; maybe because it only is supplied for earlier python, might need conda install -c evindunn pygame ; sudo apt-get install libsdl-ttf2.0-0
+from pygame import KEYDOWN, KEYUP
 
 from src.my_joystick import my_joystick,printhelp as joystick_help
 from src.my_keyboard import my_keyboard, show_help as keyboard_help
@@ -45,16 +45,14 @@ class keyboard_and_joystick_input:
             except RuntimeWarning:
                 pass
 
+        event=None
+
         for event in pygame.event.get(): # https://riptutorial.com/pygame/example/18046/event-loop
             if event.type == pygame.QUIT:
                 self.exit = True
-
-        kc,ku=self.keyboard.read()
-
-        self.exit=ku.quit
-
-        if self.keyboard.any_key_pressed:
-            return kc,ku # start with keyboard input
+            elif event.type==KEYDOWN or event.type==KEYUP:
+                kc,ku=self.keyboard.read(event)  # definitely some type of keyboard event
+                return kc,ku # assume event is from keyboard and use it
 
         if self.joy :
             try:
@@ -63,9 +61,8 @@ class keyboard_and_joystick_input:
                 return jc,ju
             except:
                 self.joy=None
-                return kc,ku
 
-        return kc,ku
+        return self.keyboard.read(None) # return default input
 
     def __str__(self):
         # axStr='axes: '

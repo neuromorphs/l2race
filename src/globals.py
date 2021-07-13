@@ -86,6 +86,8 @@ HELP="""Keyboard commands:
     r resets car
     R restarts client from scratch (if server went down)
     l toggles recording logging to uniquely-named CSV file
+    ^o opens a file dialog to open a recording and play it back
+    ^w close recording playback
     ESC quits
     h|? shows this help
     """
