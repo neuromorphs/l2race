@@ -1,7 +1,8 @@
 #!/usr/bin/env python
 # main file for l2race model server, run this class to start the model server
 import sys
-sys.path.insert(0, '../commonroad-vehicle-models/PYTHON/')
+sys.path.insert(0, 'commonroad-vehicle-models/PYTHON/')
+sys.path.insert(0, 'src/')
 
 import argparse
 import atexit
@@ -303,7 +304,7 @@ class track_server_process(mp.Process):
 
 
 
-if __name__ == '__main__':
+def main():
 
     args = get_args()
     set_logging_level(args)
@@ -451,3 +452,4 @@ if __name__ == '__main__':
             add_spectator_to_track(track_name, client_addr)
         else:
             logger.warning('model server received unknown cmd={}'.format(cmd))
+

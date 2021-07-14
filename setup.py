@@ -1,5 +1,8 @@
 from setuptools import setup, find_packages
 from Cython.Build import cythonize
+import sys
+sys.path.insert(0, 'src/')
+
 # run with
 # python setup.py build_ext --inplace
 
