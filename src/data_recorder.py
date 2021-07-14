@@ -66,7 +66,7 @@ class data_recorder:
             self.file.close()
             self.file=None
         else:
-            logger.warning('no recording {} to close, maybe never opened?'.format(self.filename))
+            logger.info(f'recording {self.filename} already closed')
 
     def write_sample(self):
         if self.file is None:
