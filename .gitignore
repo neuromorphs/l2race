@@ -11,5 +11,15 @@
 *.xml
 *.iml
 
+__pycache__
+*.__pycache__
+.vscode
+*.pyc
+.DS_Store
+
+#Controller Data
+src/controllers/neural_mpc_controller_util/nn_prediction/models/
+src/controllers/neural_mpc_controller_util/nn_prediction/training/data/*
+training_data.csv
 
 /SI_Toolkit_ApplicationSpecificFiles/Experiments/*

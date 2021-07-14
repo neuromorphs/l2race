@@ -14,6 +14,11 @@ from l2race_utils import my_logger
 logger = my_logger(__name__)
 
 
+def squared_distance(p1, p2):
+    squared_distance = abs(p1[0] - p2[0]) ** 2 + abs(p1[1] - p2[1]) ** 2
+    return squared_distance
+
+
 def list_tracks() -> List[str]:
     """list all available tracks as list(str)
 
@@ -236,6 +241,8 @@ class track:
 
         self.waypoints_x = self.TrackInfo['waypoint_x']  # Waypoint x coordinates in pixels
         self.waypoints_y = self.TrackInfo['waypoint_y']  # Waypoint y coordinates in pixels
+        self.waypoints = [[self.waypoints_x[i] * M_PER_PIXEL, self.waypoints_y[i] * M_PER_PIXEL] for i in range(len(self.waypoints_x))]
+        
         self.num_waypoints = len(self.waypoints_x)
 
         self.angle_next_segment_east = self.TrackInfo['AngleNextSegmentEast'] # TODO angle in degrees of the next segment relative to east which is 0 degrees ??
@@ -363,6 +370,21 @@ class track:
 
         return closest_waypoint
 
+
+
+    def get_closest_index(self, p):
+
+        min_distance = 100000
+        waypoint_index = 0
+        for i in range(len(self.waypoints_x)):
+            waypoint = [self.waypoints_x[i], self.waypoints_y[i]]
+            dist = squared_distance(p, waypoint)
+            if(dist < min_distance):
+                min_distance = dist
+                waypoint_index = i
+        return waypoint_index
+
+        
     def get_current_angle_to_road(self, car_state=None,
                                   angle_car=None,
                                   x=None,
