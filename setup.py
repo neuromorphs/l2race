@@ -38,6 +38,7 @@ setup(
         # 'scikit-learn-extras',
         'upnpy',
         'pandas',
+        'geos', # needed since shapely does not install geos_c.dll needed, solved by geos install
         'shapely',
         'tensorflow>=2.5',
         # 'pysindy',
