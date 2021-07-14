@@ -1,10 +1,10 @@
 # arguments for l2race client and server
 import os
 
-from src.globals import *
+from globals import *
 import logging
 
-from src.track import list_tracks
+from track import list_tracks
 
 logger = logging.getLogger(__name__)
 
@@ -36,7 +36,7 @@ def client_args(parser):
 
     clientTrackCarMode = parser.add_argument_group('Track car/spectate options:')
 
-    clientTrackCarMode.add_argument("--track_name", type=str, default=TRACK_NAME, choices=list_tracks(), help="Name of track. Available tracks are in the '{}' folder, defined by src.globals.TRACKS_FOLDER.".format(TRACKS_FOLDER))
+    clientTrackCarMode.add_argument("--track_name", type=str, default=TRACK_NAME, choices=list_tracks(), help="Name of track. Available tracks are in the '{}' folder, defined by globals.TRACKS_FOLDER.".format(TRACKS_FOLDER))
     clientTrackCarMode.add_argument("--car_name", type=str, default=None, help="Name of this car (last 2 letters are randomly chosen each time).")
     clientTrackCarMode.add_argument("--spectate", action='store_true', help="Just be a spectator on the cars on the track.")
 
@@ -52,7 +52,7 @@ def server_args(parser):
     serverGroup.add_argument('--log',type=str,default=str(logging.getLevelName(LOGGING_LEVEL)),help='Set logging level. From most to least verbose, choices are "DEBUG", "INFO", "WARNING".')
     serverGroup.add_argument("--port", type=int, default=SERVER_PORT, help="Server port address for initiating connections from clients.")
     # serverGroup.add_argument("--timeout_s", type=int, default=CLIENT_TIMEOUT_SEC, help="server timeout in seconds before it ends thread for handling a car model")
-    # serverGroup.add_argument("--model", type=str, default=src.car_model.MODEL, help="server timeout in seconds before it ends thread for handling a car model")
+    # serverGroup.add_argument("--model", type=str, default=car_model.MODEL, help="server timeout in seconds before it ends thread for handling a car model")
 
     return parser
 

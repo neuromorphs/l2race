@@ -1,11 +1,12 @@
 # records data from l2race car
 import os
 from collections import OrderedDict
+from pathlib import Path
 
-from src.car import car
+from car import car
 
-from src.globals import DATA_FILENAME_BASE, DATA_FOLDER_NAME
-from src.l2race_utils import my_logger
+from globals import DATA_FILENAME_BASE, DATA_FOLDER_NAME
+from l2race_utils import my_logger
 import atexit
 
 logger = my_logger(__name__)
@@ -52,7 +53,8 @@ class data_recorder:
             atexit.register(self.close_recording)
             self.num_records=0
             self.first_record_written=False
-            logger.info('created new recording {}'.format(self.filename))
+            p=Path(self.filename)
+            logger.info(f'created new recording {p.absolute()}')
         except Exception as ex:
             self.file=None
             logger.warning('{}: could not open {} for recording data'.format(ex, self.filename))
@@ -64,7 +66,7 @@ class data_recorder:
             self.file.close()
             self.file=None
         else:
-            logger.warning('no recording {} to close, maybe never opened?'.format(self.filename))
+            logger.info(f'recording {self.filename} already closed')
 
     def write_sample(self):
         if self.file is None:

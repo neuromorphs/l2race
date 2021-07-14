@@ -1,17 +1,16 @@
 import math
 import numpy as np
 
-from src.car import car
-from src.controllers.car_controller import car_controller
-from src.globals import M_PER_PIXEL
-from src.car_command import car_command
-from src.l2race_utils import my_logger
+from car import car
+from controllers.car_controller import car_controller
+from globals import M_PER_PIXEL
+from car_command import car_command
+from l2race_utils import my_logger
 
 logger = my_logger(__name__)
 
 class rnn_controller(car_controller):
     """
-    This reference implementation is a pure pursuit controller given a waypoint list.
     For the controller the user needs to know information about the current car state, position in the track and the
     waypoint list
     """

@@ -134,8 +134,6 @@ You can ignore the "No IGD found". It means that upnp library (http://miniupnp.f
 
 ![screenshot](media/oval_track_screenshot.png)
 
-You can ignore any warnings about gooey and IGD. (Gooey is a GUI launcher. If you have gooey installed, it will start the client with a GUI that is prepopulated with defaults and your command line options. But it is not necessary. IGD is a tool that attempts to open necessary ports for l2race via UPnP. Usually you don't need to open these ports now.)
-
 ### Start the server
 
 If you want to run the server on your local machine, do it like this:
@@ -150,8 +148,6 @@ Install with "pip install Gooey". See README
 WARNING:__main__:Gooey GUI not available, using command line arguments.
 You can try to install with "pip install Gooey"
 ```
-
-Don't worry about missing Gooey; install it if you want to have a GUI pop up to launch the  server.
 
 ### Server options
 
@@ -182,7 +178,7 @@ Run with no arguments to open dialog for server IP
 C:\Users\tobid\anaconda3\envs\l2race\python.exe "F:/tobi/Dropbox (Personal)/GitHub/neuromorphs/l2race/main.py" -h
 pygame 2.0.1 (SDL 2.0.14, Python 3.8.6)
 Hello from the pygame community. https://www.pygame.org/contribute.html
-usage: main.py [-h] [--host HOST] [--port PORT] [--timeout_s TIMEOUT_S]
+usage: client.py [-h] [--host HOST] [--port PORT] [--timeout_s TIMEOUT_S]
                [--fps FPS] [--joystick JOYSTICK] [--record [RECORD]]
                [--replay [REPLAY]] [--autodrive AUTODRIVE AUTODRIVE]
                [--carmodel CARMODEL CARMODEL] [--lidar [LIDAR]]
@@ -251,7 +247,6 @@ Track car/spectate options::
   --spectate            Just be a spectator on the cars on the track.
                         (default: False)
 
-Run with no arguments to open dialog for arguments, if Gooey is installed
 ````
 
 ### joystick and keyboard

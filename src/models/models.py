@@ -4,12 +4,12 @@
 from abc import ABC # Abstract Base Class python
 import copy
 
-from src.l2race_utils import my_logger
+from l2race_utils import my_logger
 logger = my_logger(__name__)
 
-from src.car import car
-from src.car_command import car_command
-from src.car_state import car_state
+from car import car
+from car_command import car_command
+from car_state import car_state
 
 from modeling.SINDy.sindy import load_model
 
@@ -19,10 +19,10 @@ from modeling.SINDy.sindy import load_model
 import pandas as pd
 import torch
 from modeling.RNN0.utilis import create_rnn_instance, get_device
-from src.track import pixels2meters, meters2pixels
+from track import pixels2meters, meters2pixels
 import collections
 import numpy as np
-from src.globals import *
+from globals import *
 #######
 
 class client_car_model(ABC):

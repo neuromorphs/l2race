@@ -3,13 +3,13 @@ from typing import List, Tuple, Optional
 import pygame
 import numpy as np
 
-from src.globals import M_PER_PIXEL, TRACKS_FOLDER
+from globals import M_PER_PIXEL, TRACKS_FOLDER
 
 
 # Functions for finding hit position
 from scipy.special import tandg, cotdg, cosdg, sindg
 
-from src.l2race_utils import my_logger
+from l2race_utils import my_logger
 
 logger = my_logger(__name__)
 
@@ -322,7 +322,7 @@ class track:
             30 - middle line (normal car dynamics)
             40 - waypoints (normal car dynamics)
 
-        :param car_state: car_state from which coordinates of the point of interest (car postion) can me extracted
+        :param car_state: car_state from which coordinates of the point of interest (car position) can me extracted
         :param x: x-coordinate of point of interest in meter (usually the car position)
         :param y: y_car: y-coordinate of point of interest in meter (usually the car position)
         :return: A value corresponding to the surface type at the point of interest, 0 if out of map.

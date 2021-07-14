@@ -2,12 +2,18 @@
 Client l2race agent
 
 """
+
+import sys
+sys.path.insert(0, "src/")
+sys.path.insert(1, "commonroad-vehicle-models/PYTHON/")
+
 import importlib
 import os
 from typing import Tuple, List, Optional, Dict
 import argparse
 import argcomplete as argcomplete
 import select
+from easygui import easygui, fileopenbox
 from pandas import DataFrame
 from pygame.math import Vector2
 import pygame.freetype  # Import the freetype module.
@@ -23,20 +29,20 @@ import timeit
 # https://www.programiz.com/python-programming/shallow-deep-copy#:~:text=help%20of%20examples.-,Copy%20an%20Object%20in%20Python,reference%20of%20the%20original%20object.
 import  copy
 
-from src.globals import *
-from src.my_args import client_args, write_args_info
-from src.car_command import car_command
-from src.car_state import car_state
-from src.data_recorder import data_recorder
-from src.l2race_utils import find_unbound_port_in_range, open_ports, loop_timer
-from src.track import track
-from src.car import car, loadAndScaleCarImage
-from src.l2race_utils import my_logger
-from src.controllers import car_controller
-from src.controllers.pid_next_waypoint_car_controller import pid_next_waypoint_car_controller
-from src.models.models import linear_extrapolation_model, client_car_model
-from src.keyboard_and_joystick_input import keyboard_and_joystick_input
-from src.user_input import user_input
+from globals import *
+from my_args import client_args, write_args_info
+from car_command import car_command
+from car_state import car_state
+from data_recorder import data_recorder
+from l2race_utils import find_unbound_port_in_range, open_ports, loop_timer
+from track import track
+from car import car, loadAndScaleCarImage
+from l2race_utils import my_logger
+from controllers import car_controller
+from controllers.pid_next_waypoint_car_controller import pid_next_waypoint_car_controller
+from models.models import linear_extrapolation_model, client_car_model
+from keyboard_and_joystick_input import keyboard_and_joystick_input
+from user_input import user_input
 
 logger = my_logger(__name__)
 
@@ -294,13 +300,6 @@ class client:
             if not self.spectate:
                 self.car = car(name=self.car_name, our_track=self.track_instance, screen=self.screen,
                                client_ip=self.gameSockAddr)
-                if self.recording_enabled:
-                    if self.data_recorders is None:  # todo add other cars to data_recorders as we get them from server
-                        self.data_recorders = [data_recorder(car=self.car)]
-                        try:
-                            self.data_recorders[0].open_new_recording()
-                        except RuntimeError as e:
-                            logger.warning('Could not open data recording; caught {}'.format(e))
 
                 if self.autodrive_controller:
                     self.autodrive_controller.car = self.car # note, shallow copy
@@ -370,9 +369,13 @@ class client:
                     continue
 
                 self.handle_message(cmd, payload)
-                if self.data_recorders:
-                    for r in self.data_recorders:
-                        r.write_sample()
+
+                # toggle recording of ourselves
+                if self.recording_enabled:
+                    self.start_recording()
+                    self.maybe_record_data()
+                else:
+                    self.stop_recording()
 
             except socket.timeout:
                 logger.warning('Timeout on socket receive from server, using previous car state. '
@@ -393,6 +396,18 @@ class client:
         pygame.quit()
         quit()
 
+    def stop_recording(self):
+        if self.data_recorders:
+            for r in self.data_recorders:
+                r.close_recording()
+                r = None
+            self.data_recorders = None
+
+    def maybe_record_data(self):
+        if self.data_recorders:
+            for r in self.data_recorders:
+                r.write_sample()
+
     def process_user_or_autodrive_input(self):
         """
         Gets user or agent input and sends to model server, then does a non-blocking read
@@ -411,6 +426,19 @@ class client:
             logger.info('quit recieved from keyboard or joystick, ending main loop')
             self.exit = True
             return
+
+        if self.user_input.toggle_recording:
+            self.recording_enabled = not self.recording_enabled
+            logger.info(f'toggled recording_enabled={self.recording_enabled}')
+
+        if self.user_input.open_playback_recording:
+            file=fileopenbox(msg='Select .csv recording file',
+                                         title='l2race',
+                                         filetypes=[['*.csv','Comma Separated Values file']],
+                                         multiple=False,
+                                         default='*.csv')
+            logger.info(f'selected {file} with file dialog')
+            self.replay(file)
 
         if not self.spectate:
             if self.user_input.restart_car:
@@ -644,18 +672,20 @@ class client:
                 'unexpected msg {} with payload {} received from server (should have gotten "car_state" message)'.format(
                     msg, payload))
 
-    def replay(self) -> bool:
+    def replay(self, filename=None) -> bool:
         """
         Replays the self.replay_file_list recordings. It will immediately return False if it cannot find the file to play. Otherwise
         it will start a loop that runs over the entire file to play it, and finally return True.
 
+        :param file: CSV file to play back
+
         :returns: False if it cannot find the file to play, True at the end of playing the entire recording.
         """
         # Load data
-        file_path = None
-        filename = None
         # Find the right file
-        if (self.replay_file_list is not None) and (self.replay_file_list is not 'last'):
+        if filename is not None:
+            file_path=filename
+        elif (self.replay_file_list is not None) and (self.replay_file_list != 'last'):
 
             if isinstance(self.replay_file_list, List) and len(self.replay_file_list) > 1:
                 filename = self.replay_file_list[0]
@@ -699,7 +729,7 @@ class client:
             return False
 
         # Get race recording
-        logger.info('Replaying file {}'.format(file_path))
+        logger.info(f'Replaying file {file_path}')
         try:
             data: DataFrame = pd.read_csv(file_path, comment='#')  # skip comment lines starting with #
         except Exception as e:
@@ -756,7 +786,7 @@ class client:
                 self.exit = True
 
             self.car_command, self.user_input = self.input.read()  # gets input from keyboard or joystick
-            if self.input.exit:
+            if self.user_input.quit:
                 self.exit = True
                 continue
             playback_speed = self.car_command.steering
@@ -778,6 +808,10 @@ class client:
                 self.cleanup()
                 break
 
+            if self.user_input.close_playback_recording:
+                self.restart_car()
+                self.run_new_game()
+
             if self.user_input.restart_car:
                 r = 0
             if playback_speed >= -0.05:  # offset from zero to handle joysticks that have negative offset
@@ -798,8 +832,12 @@ class client:
         :returns: None
         """
         # car restart handled on server side
+        self.stop_recording()
         logger.info('sending message to restart car to server')
         self.send_to_server(self.gameSockAddr, 'restart_car', message)
+        if self.recording_enabled:
+            self.start_recording()
+
 
     def update_ghost_car(self) -> None:
         """
@@ -821,6 +859,15 @@ class client:
             self.ghost_car.image=loadAndScaleCarImage(self.ghost_car.image_name, self.ghost_car.car_state.static_info.length_m, self.screen)
 
         self.client_car_model.update_state(self.user_input.run_client_model, self.car.car_state.time, self.car_command, self.car, self.ghost_car)
+
+    def start_recording(self):
+        if self.data_recorders is None:  # todo add other cars to data_recorders as we get them from server
+            self.data_recorders = [data_recorder(car=self.car)]
+            try:
+                self.data_recorders[0].open_new_recording()
+            except RuntimeError as e:
+                logger.warning('Could not open data recording; caught {}'.format(e))
+
 
 # A wrapper around Game class to make it easier for a user to provide arguments
 def define_game(gui=True,  # set to False to prevent gooey dialog
@@ -895,7 +942,7 @@ def define_game(gui=True,  # set to False to prevent gooey dialog
         logger.addHandler(fh)
 
     if args.car_name is None:  # If car_name not provided as a terminal-line argument...
-        if car_name is None:  # If it is neither provided through main.py interface...
+        if car_name is None:  # If it is neither provided through client.py interface...
             try:  # try to create a car_name based on the host name
                 # make hopefully unique car name
                 import socket, getpass, random, string
@@ -906,7 +953,7 @@ def define_game(gui=True,  # set to False to prevent gooey dialog
                                                    k=2))  # https://stackoverflow.com/questions/2257441/random-string-generation-with-upper-case-letters-and-digits
             except:  # If nothing else works give it a default name
                 car_name = CAR_NAME
-        else:  # If car_name provided through main.py interface use this name as car_name
+        else:  # If car_name provided through client.py interface use this name as car_name
             pass
     else:  # If car_name provided as terminal-line argument give it precedence
         car_name = args.car_name
@@ -927,3 +974,50 @@ def define_game(gui=True,  # set to False to prevent gooey dialog
                   lidar=args.lidar)
 
     return game
+
+
+def main():
+    game = define_game(gui=False)
+    game.run()
+
+# if __name__ == '__main__':
+#     '''
+#     Here is place for your code to specify
+#     what arguments you wish to pass to the game instance
+#     e.g:
+
+#     # track_names = ['Sebring',
+#     #          'oval',
+#     #          'track_1',
+#     #          'track_2',
+#     #          'track_3',
+#     #          'track_4',
+#     #          'track_5',
+#     #          'track_6']
+#     #
+#     # import random
+#     # track_name = random.choice(track_names)
+
+#     '''
+
+#     '''
+#     define_game accepts various arguments which specify the game you want to play
+#     These arguments are:
+#     gui:            'with_gui'/'without gui',
+#     track_name:     'Sebring','oval','track_1','track_2','track_3','track_4','track_5','track_6'
+#     car_name:       any string
+#     server_host:    [change by user not recommended]
+#     server_port:    [change by user not recommended]
+#     joystick_number: [change only in multi-player game os the same device]?
+#     fps             [change by user not recommended]
+#     timeout_s       [change by user not recommended]
+#     record          True/False
+
+#     Providing arguments to define_game function is optional
+#     If an argument is not provided below the program checks if it was provided as corresponding flag.
+#     If also no corresponding flag was provided the program takes a default value
+#     The only case when a flag has precedence over a variable provided below is for disabling gui
+#     '''
+
+#     game = define_game(gui=False)
+#     game.run()

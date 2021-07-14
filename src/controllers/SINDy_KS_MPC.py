@@ -1,9 +1,9 @@
 import numpy as np
 import do_mpc
 
-from src.car import car
-from src.controllers.car_controller import car_controller
-from src.car_command import car_command
+from car import car
+from controllers.car_controller import car_controller
+from car_command import car_command
 
 # UNFINISHED! (USES PLACEHOLDER COST FUNCTION)
 # TODO implement cost function

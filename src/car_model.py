@@ -1,5 +1,4 @@
 # the actual model of car, run on server
-# TODO move to separate repo to hide from participants
 import logging
 from math import sin, radians, degrees, cos, copysign
 from typing import Tuple
@@ -8,11 +7,12 @@ from timeit import default_timer as timer
 import random
 import numpy as np
 
-from src.car_state import car_state
-from src.globals import *
-from src.l2race_utils import my_logger
-from src.track import track
-from .car_command import car_command
+from car import car
+from car_state import car_state
+from globals import *
+from l2race_utils import my_logger
+from track import track
+from car_command import car_command
 
 logger = my_logger(__name__)
 
@@ -418,6 +418,7 @@ class car_model:
         self.car_state.accel_m_per_sec_2.y = 0  # todo, for now and with KS/ST model, update for drifter and mb
         self.car_state.body_angle_sin=np.sin(radians(self.car_state.body_angle_deg))
         self.car_state.body_angle_cos=np.cos(radians(self.car_state.body_angle_deg))
+        self.car_state.surface_type=self.track.get_surface_type(car_state=self.car_state)
 
     # Constrain position of the car to map
     def constrain_to_map(self):

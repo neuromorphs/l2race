@@ -7,12 +7,12 @@ from timeit import default_timer as timer
 from time import sleep as sleep
 
 
-from src.globals import CLIENT_PORT_RANGE, ENABLE_UPNP, UPNP_LEASE_TIME
+from globals import CLIENT_PORT_RANGE, ENABLE_UPNP, UPNP_LEASE_TIME
 
 # customized logger with color output
 import logging
 
-from src.globals import LOGGING_LEVEL
+from globals import LOGGING_LEVEL
 import numpy as np
 from collections import deque
 class circular_buffer(deque):
