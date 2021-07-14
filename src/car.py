@@ -8,11 +8,11 @@ from typing import Optional, Tuple
 import numpy as np
 import pygame
 import pygame.freetype
-from src.l2race_utils import my_logger
-from src.track import track
+from l2race_utils import my_logger
+from track import track
 
-from src.car_state import car_state
-from src.globals import M_PER_PIXEL, G, CAR_NAME, GAME_FONT_NAME, GAME_FONT_SIZE
+from car_state import car_state
+from globals import M_PER_PIXEL, G, CAR_NAME, GAME_FONT_NAME, GAME_FONT_SIZE
 
 logger = my_logger(__name__)
 

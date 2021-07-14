@@ -13,14 +13,14 @@ import time
 INACTIVITY_RECONNECT_TIME = 15
 RECONNECT_TIMEOUT = 5
 
-from src.l2race_utils import my_logger
-from src.globals import JOYSTICK_NUMBER, JOYSTICK_STEERING_GAIN
+from l2race_utils import my_logger
+from globals import JOYSTICK_NUMBER, JOYSTICK_STEERING_GAIN
 
 logger = my_logger(__name__)
 # logger.setLevel(logging.DEBUG)
 
-from src.car_command import car_command
-from src.user_input import user_input
+from car_command import car_command
+from user_input import user_input
 
 def printhelp():
     print('\n-----------------------------------\nJoystick commands:\n'
@@ -269,6 +269,7 @@ class my_joystick:
         self.car_command.throttle = (1 + self.joy.get_axis(Throttle)) / 2.  # Throttle
         self.car_command.brake = (1 + self.joy.get_axis(Brake)) / 2.  # Brake
 
+        self.lastActive=time.time()
 
 
         logger.debug(self)

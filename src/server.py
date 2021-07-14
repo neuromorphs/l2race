@@ -1,6 +1,7 @@
+#!/usr/bin/env python
 # main file for l2race model server, run this class to start the model server
 import sys
-sys.path.insert(0, './commonroad-vehicle-models/PYTHON/')
+sys.path.insert(0, '../commonroad-vehicle-models/PYTHON/')
 
 import argparse
 import atexit
@@ -14,14 +15,14 @@ from timeit import default_timer as timer
 from time import sleep
 import multiprocessing as mp
 
-from src.car_state import car_state
-from src.l2race_utils import set_logging_level, loop_timer, become_daemon, \
+from car_state import car_state
+from l2race_utils import set_logging_level, loop_timer, become_daemon, \
     find_unbound_port_in_range
-from src.my_args import server_args
-from src.car_model import car_model
-from src.globals import *
-from src.track import track, list_tracks
-from src.l2race_utils import my_logger
+from my_args import server_args
+from car_model import car_model
+from globals import *
+from track import track, list_tracks
+from l2race_utils import my_logger
 
 logger = my_logger(__name__)
 SKIP_CHECK_SERVER_QUEUE = 0  # use to reduce checking queue, but causes timeout problems with adding car if too big. 0 to disable

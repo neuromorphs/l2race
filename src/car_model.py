@@ -8,11 +8,11 @@ from timeit import default_timer as timer
 import random
 import numpy as np
 
-from src.car_state import car_state
-from src.globals import *
-from src.l2race_utils import my_logger
-from src.track import track
-from .car_command import car_command
+from car_state import car_state
+from globals import *
+from l2race_utils import my_logger
+from track import track
+from car_command import car_command
 
 logger = my_logger(__name__)
 

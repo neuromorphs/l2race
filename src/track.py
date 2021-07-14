@@ -3,13 +3,13 @@ from typing import List, Tuple, Optional
 import pygame
 import numpy as np
 
-from src.globals import M_PER_PIXEL, TRACKS_FOLDER
+from globals import M_PER_PIXEL, TRACKS_FOLDER
 
 
 # Functions for finding hit position
 from scipy.special import tandg, cotdg, cosdg, sindg
 
-from src.l2race_utils import my_logger
+from l2race_utils import my_logger
 
 logger = my_logger(__name__)
 

@@ -8,7 +8,7 @@ from commonroad import tireModel
 import math
 from typing import *
 # from .vehicleParameters import VehicleParameters, vehicle_params_type
-from src.l2race_utils import my_logger
+from l2race_utils import my_logger
 logger = my_logger(__name__)
 logger.setLevel(logging.DEBUG)
 

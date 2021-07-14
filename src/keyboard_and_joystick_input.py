@@ -7,15 +7,15 @@ from typing import Tuple
 import pygame # conda install -c cogsci pygame; maybe because it only is supplied for earlier python, might need conda install -c evindunn pygame ; sudo apt-get install libsdl-ttf2.0-0
 from pygame import KEYDOWN, KEYUP
 
-from src.my_joystick import my_joystick,printhelp as joystick_help
-from src.my_keyboard import my_keyboard, show_help as keyboard_help
+from my_joystick import my_joystick,printhelp as joystick_help
+from my_keyboard import my_keyboard, show_help as keyboard_help
 
-# from src.l2race_utils import my_logger
+# from l2race_utils import my_logger
 # logger = my_logger(__name__)
 # logger.setLevel(logging.DEBUG)
 
-from src.car_command import car_command
-from src.user_input import user_input
+from car_command import car_command
+from user_input import user_input
 
 def printhelp():
     joystick_help()

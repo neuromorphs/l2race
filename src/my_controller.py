@@ -5,9 +5,9 @@ from typing import Tuple
 import numpy as np
 
 logger = logging.getLogger(__name__)
-from src.car import car
-from src.car_command import car_command
-from src.user_input import user_input
+from car import car
+from car_command import car_command
+from user_input import user_input
 
 
 

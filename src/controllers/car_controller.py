@@ -2,8 +2,8 @@
 
 from abc import ABC # the python Abstract Base Class
 
-from src.car import car
-from src.car_command import car_command
+from car import car
+from car_command import car_command
 
 
 class car_controller(ABC):

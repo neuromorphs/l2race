@@ -1,10 +1,10 @@
 import math
 
-from src.car import car
-from src.controllers.car_controller import car_controller
-from src.globals import M_PER_PIXEL
-from src.car_command import car_command
-from src.l2race_utils import my_logger
+from car import car
+from controllers.car_controller import car_controller
+from globals import M_PER_PIXEL
+from car_command import car_command
+from l2race_utils import my_logger
 
 logger = my_logger(__name__)
 

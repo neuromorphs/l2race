@@ -182,7 +182,7 @@ Run with no arguments to open dialog for server IP
 C:\Users\tobid\anaconda3\envs\l2race\python.exe "F:/tobi/Dropbox (Personal)/GitHub/neuromorphs/l2race/main.py" -h
 pygame 2.0.1 (SDL 2.0.14, Python 3.8.6)
 Hello from the pygame community. https://www.pygame.org/contribute.html
-usage: main.py [-h] [--host HOST] [--port PORT] [--timeout_s TIMEOUT_S]
+usage: client.py [-h] [--host HOST] [--port PORT] [--timeout_s TIMEOUT_S]
                [--fps FPS] [--joystick JOYSTICK] [--record [RECORD]]
                [--replay [REPLAY]] [--autodrive AUTODRIVE AUTODRIVE]
                [--carmodel CARMODEL CARMODEL] [--lidar [LIDAR]]

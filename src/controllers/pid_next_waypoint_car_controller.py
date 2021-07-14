@@ -1,9 +1,9 @@
 # driver controller
 import logging
 
-from src.car import car
-from src.car_command import car_command
-from src.controllers.car_controller import car_controller
+from car import car
+from car_command import car_command
+from controllers.car_controller import car_controller
 
 logger = logging.getLogger(__name__)
 MAX_SPEED = 5.0

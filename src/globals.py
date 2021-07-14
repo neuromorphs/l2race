@@ -30,17 +30,17 @@ ENABLE_UPNP = True  # set True to try unpnp to forward CLIENT_PORT_RANGE ports t
 UPNP_LEASE_TIME = 1200  # the lease time for these ports in seconds
 
 # your autodrive controller module (i.e. folder) and class name, must be a class that has read method that returns the car_command() object
-# AUTODRIVE_MODULE='src.controllers.pid_next_waypoint_car_controller'
+# AUTODRIVE_MODULE='controllers.pid_next_waypoint_car_controller'
 # AUTODRIVE_CLASS='pid_next_waypoint_car_controller'
 # overridden by command line --autodrive
-# AUTODRIVE_MODULE='src.controllers.pure_pursuit_controller'
+# AUTODRIVE_MODULE='controllers.pure_pursuit_controller'
 # AUTODRIVE_CLASS = 'pure_pursuit_controller'
-AUTODRIVE_MODULE='src.controllers.pure_pursuit_controller_v2'
+AUTODRIVE_MODULE='controllers.pure_pursuit_controller_v2'
 AUTODRIVE_CLASS = 'pure_pursuit_controller_v2'
 
 # your model class that takes car state and control and predicts the next state given a future time.
 # overridden by command line --model
-CAR_MODEL_MODULE= 'src.models.models' # the module (i.e. folder.file without .py)
+CAR_MODEL_MODULE= 'models.models' # the module (i.e. folder.file without .py)
 CAR_MODEL_CLASS = 'linear_extrapolation_model' # the class within the file
 # CAR_MODEL_CLASS= 'RNN_model'
 
@@ -52,7 +52,7 @@ GAME_FONT_SIZE = 16  # default is 16
 # Joystick connectivity
 CHECK_FOR_JOYSTICK_INTERVAL = 100 # check for missing joystick every this many cycles
 JOYSTICK_NUMBER = 0 # in case multiple joysticks, use this to set the desired one, starts from zero
-JOYSTICK_STEERING_GAIN=.15 # gain for joystick steering input. 1 is too much for most people, 0.15 is recommended
+JOYSTICK_STEERING_GAIN=.2 # gain for joystick steering input. 1 is too much for most people, 0.15 is recommended
 
 # recording data
 DATA_FILENAME_BASE= 'l2race'

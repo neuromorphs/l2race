@@ -4,14 +4,14 @@ from typing import Tuple
 import pygame
 from pygame import KMOD_CTRL, KEYDOWN
 
-from src.l2race_utils import my_logger
-from src.globals import *
+from l2race_utils import my_logger
+from globals import *
 
 from tkinter import *
 logger = my_logger(__name__)
 
-from src.car_command import car_command
-from src.user_input import user_input
+from car_command import car_command
+from user_input import user_input
 
 def show_help():
     print(HELP)

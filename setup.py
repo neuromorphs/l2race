@@ -9,16 +9,16 @@ with open("README.md", "r") as fh:
 setup(
     name="l2race", # Replace with your own username
     version="2.0.1",
-    author="Marcin Paluch, Antonio Rios, Chang Gao, Tobi Delbruck",
+    author="Tobi Delbruck, Marcin Paluch, Antonio Rios",
     author_email="tobi@ini.uzh.ch,marcin.paluch1994@gmail.com,arios@us.es",
     description="L2RACE challenge for Telluride Neuromorphic workshop",
     long_description=long_description,
     long_description_content_type="text/markdown",
     url="https://github.com/neuromorphs/l2race",
     packages=find_packages(),
-    scripts=['main.py','server.py'],
+    # scripts=['client.py','server.py'],
     entry_points = {
-        'console_scripts': ['l2race-client=main:main', 'l2race-server=server:main']
+        'console_scripts': ['l2race-client=src.client:main', 'l2race-server=src.server:main']
     },
     install_requires=[
         'svgpathtools',
@@ -29,11 +29,13 @@ setup(
         'argcomplete',
         'opencv-python',
         # numba # not using now
-        'cython', # cython needs to be compiled using setup.py
+        # 'cython', # cython needs to be compiled using setup.py
+        'scikit-learn>=0.24.1',
         'scipy',
+        # 'scikit-learn-extras',
         'upnpy',
         'pandas',
-        'pysindy',
+        # 'pysindy',
         'torch', # go to https://pytorch.org/get-started/locally/ for correct pip or conda command generator
         'IPython',
         'cvxpy',
@@ -44,7 +46,7 @@ setup(
         "License :: OSI Approved :: CC License",
         "Operating System :: OS Independent",
     ],
-    python_requires='>=3.7',
+    python_requires='>=3.8',
     # ext_modules = cythonize([
     #     "commonroad/vehicleDynamics_MB.pyx",
     #     "commonroad/vehicleDynamics_ST.pyx",
