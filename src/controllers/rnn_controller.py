@@ -11,7 +11,6 @@ logger = my_logger(__name__)
 
 class rnn_controller(car_controller):
     """
-    This reference implementation is a pure pursuit controller given a waypoint list.
     For the controller the user needs to know information about the current car state, position in the track and the
     waypoint list
     """
