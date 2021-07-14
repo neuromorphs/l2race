@@ -1,5 +1,5 @@
 from setuptools import setup, find_packages
-from Cython.Build import cythonize
+# from Cython.Build import cythonize
 import sys
 sys.path.insert(0, 'src/')
 
@@ -27,7 +27,7 @@ setup(
         'svgpathtools',
         'pygame==2.0.1',
         'matplotlib',
-        'numpy',
+        'numpy==1.19.2',
         'argparse',
         'argcomplete',
         'opencv-python',
@@ -38,6 +38,8 @@ setup(
         # 'scikit-learn-extras',
         'upnpy',
         'pandas',
+        'shapely',
+        'tensorflow>=2.5',
         # 'pysindy',
         'torch', # go to https://pytorch.org/get-started/locally/ for correct pip or conda command generator
         'IPython',

@@ -11,7 +11,6 @@ from car import car
 from car_command import car_command
 from car_state import car_state
 
-from modeling.SINDy.sindy import load_model
 
 
 #######
