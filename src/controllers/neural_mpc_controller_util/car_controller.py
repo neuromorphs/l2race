@@ -281,7 +281,7 @@ class CarController:
         acceleration_cost = 0
 
         distance_cost_weight = 1
-        acceleration_cost_weight = 20 * (MAX_SPEED -   self.car_state[3]) #Adaptive speed cost weight
+        acceleration_cost_weight = 5 * (MAX_SPEED -   self.car_state[3]) #Adaptive speed cost weight
 
         number_of_critical_states = 10
         number_of_states = len(trajectory) 
@@ -303,7 +303,7 @@ class CarController:
             # Don't leave track!
             if(distance_to_track > TRACK_WIDTH):
                 if(index < number_of_critical_states):
-                    distance_cost += 100
+                    distance_cost += 1000
             index += 1
 
         acceleration_cost = 1 /acceleration_cost

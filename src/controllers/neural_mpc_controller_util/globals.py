@@ -25,8 +25,8 @@ INITIAL_SPEED = 8
 CONTINUE_FROM_LAST_STATE = False
 
 TRACK_NAME = "track_2"
-M_TO_PIXEL = 0.1
-TRACK_WIDTH = 2
+M_TO_PIXEL = 0.2
+TRACK_WIDTH = 4
 
 
 ##########################################
