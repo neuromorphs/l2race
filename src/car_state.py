@@ -10,16 +10,21 @@ from inspect import getmembers
 logger = my_logger(__name__)
 from globals import SCREEN_WIDTH_PIXELS, SCREEN_HEIGHT_PIXELS, M_PER_PIXEL
 
-VERSION='2.0'
+VERSION='3.0'
 # history
 # 1.0, car_name was in header, each row had length_m and width_m
 # 1.1 car_name, length_m, width_m moved to car_state.static_into and are now printed to header here
 # 2.0 changed to scheme where fields are defined in car_state self.csv_fields and are complete field names
+# 3.0 added track surface type
 
 class car_state:
     """
     Complete state of car. Updated by hidden model based on control input.
     Participants have access only to this state, which does not include many of the state variables for some models.
+
+    ****
+    This state MUST be kept small to minimize the pickled size for UDP tranfer of the state.
+    ****
 
     """
 
@@ -65,6 +70,9 @@ class car_state:
         self.fw_ang_speed_hz=0.0 # front wheel rotation rate in Hz  - only for drifter std and mb
         self.rw_ang_speed_hz=0.0 # rear wheel rotation rate in Hz  - only for drifter std and mb
 
+        # from track
+        self.surface_type=20 # asphalt starting value, from track.py
+
         self.static_info=self.static_info(name=name,length_m=length_m,width_m=width_m,client_ip=client_ip)
 
         # added to state to deal with 2*Pi-cut problem of angle
@@ -78,7 +86,7 @@ class car_state:
 
         self.server_msg='' # message from server to be displayed to driver
 
-        # define all fields to be writtent to CSV file.
+        # Define all fields to be written to CSV file.
         # If field is Vector 2 it will be expanded to x,y parts.
         # If field is bool it will be written as 0,1 for False,True
         self.csv_fields=[
@@ -103,6 +111,8 @@ class car_state:
             'body_angle_cos',
             'fw_ang_speed_hz',
             'rw_ang_speed_hz',
+            'surface_type',
+            # 'server_msg'
         ]
 
     """
@@ -122,22 +132,13 @@ class car_state:
         return self.static_info.client_ip[0] if self.static_info.client_ip else None
 
     def __str__(self):
-        s='t={:1f}\n{}\npos=({:4.1f},{:4.1f})m vel=({:5.1f},{:5.1f})m/s, speed={:6.2f}m/s accel={:6.2f}m/s^2\nsteering_angle={:4.1f}deg body_angle={:4.1f}deg\nyaw_rate={:4.1f}deg/s drift_angle={:4.1f}\nFW {:.1f}Hz RW {:.1f}Hz\nmsg: {}' \
-            .format(self.time,
-                    str(self.command),
-                    self.position_m.x,
-                    self.position_m.y,
-                    self.velocity_m_per_sec.x,
-                    self.velocity_m_per_sec.y,
-                    self.speed_m_per_sec,
-                    self.accel_m_per_sec_2.length(),
-                    self.steering_angle_deg,
-                    self.body_angle_deg,
-                    self.yaw_rate_deg_per_sec,
-                    self.drift_angle_deg,
-                    self.fw_ang_speed_hz,
-                    self.rw_ang_speed_hz,
-                    self.server_msg)
+        s=f't={self.time:1f}\n' \
+          '{str(self.command)}\n' \
+          'pos=({self.position_m.x:4.1f},{self.position_m.y:4.1f})m vel=({self.velocity_m_per_sec.x:5.1f},{self.velocity_m_per_sec.x:5.1f})m/s, speed={self.velocity_m_per_sec.x:6.2f}m/s accel={self.accel_m_per_sec_2.length():6.2f}m/s^2\n' \
+          'steering_angle={self.steering_angle_deg:4.1f}deg body_angle={self.body_angle_deg:4.1f}deg\n' \
+          'yaw_rate={self.yaw_rate_deg_per_sec:4.1f}deg/s drift_angle={self.drift_angle_deg:4.1f}\n' \
+          'FW {self.fw_ang_speed_hz:.1f}Hz RW {self.rw_ang_speed_hz:.1f}Hz surface={self.surface_type:.1f}\n' \
+          'msg: {str(self.server_msg)}'
         return s
 
     def get_csv_file_header(self, car):
@@ -192,6 +193,7 @@ class car_state:
 
     def get_record_csvrow(self):
             """
+            Returns one row of the recording CSV file, which is constructed automatically from the self.csv_fields string.
 
             :return: row of CSV file
             """

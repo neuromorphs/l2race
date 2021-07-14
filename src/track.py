@@ -315,7 +315,7 @@ class track:
             30 - middle line (normal car dynamics)
             40 - waypoints (normal car dynamics)
 
-        :param car_state: car_state from which coordinates of the point of interest (car postion) can me extracted
+        :param car_state: car_state from which coordinates of the point of interest (car position) can me extracted
         :param x: x-coordinate of point of interest in meter (usually the car position)
         :param y: y_car: y-coordinate of point of interest in meter (usually the car position)
         :return: A value corresponding to the surface type at the point of interest, 0 if out of map.
