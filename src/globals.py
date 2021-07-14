@@ -104,7 +104,7 @@ SCREEN_WIDTH_PIXELS = 1024  # pixels
 SCREEN_HEIGHT_PIXELS = 768  # pixels
 # meters per screen pixel, e.g. 4m car would be 40 pixels, so about 4% of width
 # increase M_PER_PIXEL to make cars smaller relative to track
-M_PER_PIXEL = 0.10  # Overall scale parameter: 0.2 makes the cars really small on track. 0.1 makes them fill about 1/3 of track width.
+M_PER_PIXEL = 0.20  # Overall scale parameter: 0.2 makes the cars really small on track. 0.1 makes them fill about 1/3 of track width.
 
 # car model and solver
 MODEL = vehicle_dynamics_st # vehicle_dynamics_ks vehicle_dynamics_ST vehicle_dynamics_MB

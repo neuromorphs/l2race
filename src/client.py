@@ -334,7 +334,7 @@ class client:
                     'opening necessary UDP ports in CLIENT_PORT_RANGE {}...'.format(CLIENT_PORT_RANGE), 10, 10,
                     [200, 200, 200])
                 pygame.display.flip()
-                open_ports()
+                # open_ports()
             except Exception as ex:
                 logger.warning("Caught exception '{}' when trying to open l2race client ports".format(ex))
 

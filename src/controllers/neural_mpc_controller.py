@@ -41,8 +41,8 @@ class neural_mpc_controller(car_controller):
         """
         self.car = my_car
         self.car_command = car_command()
-        print("my_car", my_car)
-        self.car_controller = CarController(None, predictor="nn", model_name="Dense-128-128-128-128-invariant-10")
+        # self.car_controller = CarController(None, predictor="nn", model_name="Dense-128-128-128-128-invariant-10")
+        self.car_controller = CarController(None, predictor="nn", model_name="Dense-128-128-128-128-high-speed")
 
     def read(self):
         """

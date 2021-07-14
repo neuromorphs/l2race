@@ -77,6 +77,11 @@ class CarController:
 
         self.car_state = [pos_x, pos_y, steering_angle_rad, speed, body_angle_rad, yaw_rate_deg_rad_sec, drift_angle_rad]
 
+        # Map repetitive states
+        self.car_state[4] = self.car_state[4] % 6.28
+        if self.car_state[4] > 3.14: 
+            self.car_state[4] = self.car_state[4] - 6.28
+
         # self.car_state = state
         self.track = track
         
@@ -292,6 +297,8 @@ class CarController:
             acceleration_cost += abs((acceleration + 1)/ 2)
             # distance_cost += abs(discount * distance_to_track)
             distance_cost +=  distance_to_track ** 2
+            # if distance_to_track < TRACK_WIDTH/5:
+            #     distance_cost = 0
 
             # Don't leave track!
             if(distance_to_track > TRACK_WIDTH):
