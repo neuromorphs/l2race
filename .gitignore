@@ -18,7 +18,6 @@ __pycache__
 .DS_Store
 
 #Controller Data
-src/controllers/neural_mpc_controller_util/nn_prediction/models/
 src/controllers/neural_mpc_controller_util/nn_prediction/training/data/*
 training_data.csv
 

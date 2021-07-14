@@ -1,0 +1,1 @@
+{"predict_delta": true, "normalize_data": true, "model_name": "Dense-128-128-128-128-high-speed", "cut_invariants": true, "epochs": 40, "batch_size": 128}

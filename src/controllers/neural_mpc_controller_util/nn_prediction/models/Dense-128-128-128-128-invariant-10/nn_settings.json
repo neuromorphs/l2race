@@ -1,0 +1,6 @@
+{
+    "predict_delta": true,
+    "normalize_data": true,
+    "model_name": "Dense-128-128-128-128-invariant-10",
+    "cut_invariants": true
+}
