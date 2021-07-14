@@ -453,3 +453,7 @@ def main():
         else:
             logger.warning('model server received unknown cmd={}'.format(cmd))
 
+
+
+if __name__ == '__main__':
+    main()

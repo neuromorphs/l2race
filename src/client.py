@@ -980,6 +980,10 @@ def main():
     game = define_game(gui=False)
     game.run()
 
+if __name__ == '__main__':
+    main()
+
+    
 # if __name__ == '__main__':
 #     '''
 #     Here is place for your code to specify
