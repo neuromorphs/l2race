@@ -350,11 +350,6 @@ class CarController:
         @param: trajectory {list<state>} The trajectory of states that needs to be evaluated
         @returns: cost {float}: the scalar cost of the trajectory
         """
-
-        distance_cost_weight = 1
-        terminal_speed_cost_weight = 25000
-        terminal_position_cost_weight = 3
-        angle_cost_weight = 2
     
         distance_cost = 0
         angle_cost = 0

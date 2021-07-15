@@ -24,6 +24,13 @@ TRACK_WIDTH = 2
 ####   Neural MPC Car Controller     #####
 ##########################################
 
+# Cost function weights
+distance_cost_weight = 1
+terminal_speed_cost_weight = 25000
+terminal_position_cost_weight = 3
+angle_cost_weight = 2
+
+
 # Path Prediction
 CONTROLLER_PREDICTIOR = "nn"
 CONTROLLER_MODEL_NAME = "Dense-128-128-128-128-high-speed"  # For large race track: M_PER_PIXEL = 0.2, speed up to 25m/s
