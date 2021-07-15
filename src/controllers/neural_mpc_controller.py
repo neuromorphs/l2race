@@ -29,7 +29,7 @@ MAX_SPEED = 5.0
 
 class neural_mpc_controller(car_controller):
     """
-    This reference implementation is a basic PID controller that aims for the next waypoint.
+    This implementation is a neural MPC controller.
     For the controller the user needs to know information about the current car state and its position in the track
     Then, the user should implement a controller that generate a new car command to apply to the car
     """
@@ -46,7 +46,7 @@ class neural_mpc_controller(car_controller):
 
     def read(self):
         """
-        Computes the next steering angle tying to follow the waypoint list
+        Computes the next steering angle using the current state using car_controller
 
         :return: car_command that will be applied to the car
         """
@@ -62,6 +62,7 @@ class neural_mpc_controller(car_controller):
         
         self.car_command.steering = next_control_input[0]
         self.car_command.throttle = min(next_control_input[1],1)
+        #todo add braking to control
 
         return self.car_command
 

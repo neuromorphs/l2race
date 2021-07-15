@@ -251,8 +251,8 @@ class client:
                 if event.type == pygame.QUIT:
                     self.exit = True  # TODO clean up, seems redundant. what sets pygame.QUIT?
                     break
-            car_command, user_input = self.input.read()
-            if self.input.exit or user_input.quit:
+            self.input.read(self.car_command, self.user_input )
+            if self.user_input.quit:
                 logger.info('startup aborted before connecting to server')
                 pygame.quit()
             if not self.ping_server():
@@ -415,7 +415,7 @@ class client:
 
         :return: (cmd,payload) available from server, or None,None if nothing is available.
         """
-        self.car_command, self.user_input = self.input.read()
+        self.input.read(self.car_command,self.user_input)
         if self.car_command.autodrive_enabled:
             if self.autodrive_controller is None:
                 raise RuntimeError(
@@ -785,7 +785,7 @@ class client:
                 logger.info('KeyboardInterrupt, stopping client')
                 self.exit = True
 
-            self.car_command, self.user_input = self.input.read()  # gets input from keyboard or joystick
+            self.input.read(None, self.car_command, self.user_input)  # gets input from keyboard or joystick
             if self.user_input.quit:
                 self.exit = True
                 continue

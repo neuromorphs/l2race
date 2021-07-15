@@ -29,14 +29,14 @@ class keyboard_and_joystick_input:
     def __init__(self):
         self.joy=None
         self.keyboard=my_keyboard()
-        self.exit=False
 
-    def read(self) -> Tuple[car_command,user_input]:
+    def read(self, car_command:car_command,user_input:user_input):
         """
         Reads input from user from either keyboard or joystick. Keyboard takes precedence if any key is pressed.
         If user closes window, self.exit is set True.
 
-        :returns: the car_command,user_input
+        :param car_command: the command to fill in
+        :param user_input: the user input (e.g. open file) to fill in
         """
         # Event queue
         if self.joy is None:
@@ -45,35 +45,21 @@ class keyboard_and_joystick_input:
             except RuntimeWarning:
                 pass
 
-        event=None
+        self.keyboard.read(car_command, user_input)  # definitely some type of keyboard event
 
-        for event in pygame.event.get(): # https://riptutorial.com/pygame/example/18046/event-loop
-            if event.type == pygame.QUIT:
-                self.exit = True
-            elif event.type==KEYDOWN or event.type==KEYUP:
-                kc,ku=self.keyboard.read(event)  # definitely some type of keyboard event
-                return kc,ku # assume event is from keyboard and use it
+        if self.keyboard.any_key_pressed:
+            # if any key is pressed down, don't use joystick input
+            return
 
-        if self.joy :
+        # if no keyboard event but we have a joystick, get command and user input from that
+        if self.joy is not None :
             try:
-                jc,ju=self.joy.read()
-                self.exit=ju.quit
-                return jc,ju
+                self.joy.read(car_command, user_input)
+                return
             except:
                 self.joy=None
 
-        return self.keyboard.read(None) # return default input
+        return  # no effect on command
 
-    def __str__(self):
-        # axStr='axes: '
-        # for a in self.axes:
-        #     axStr=axStr+('{:5.2f} '.format(a))
-        # butStr='buttons: '
-        # for b in self.buttons:
-        #     butStr=butStr+('1' if b else '_')
-        #
-        # return axStr+' '+butStr
-        s="steer={:4.1f} throttle={:4.1f} brake={:4.1f}".format(self.car_command.steering, self.car_command.throttle, self.car_command.brake)
-        return s
 
 

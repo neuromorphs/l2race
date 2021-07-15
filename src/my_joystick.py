@@ -56,10 +56,6 @@ class my_joystick:
         :raises RuntimeWarning if no joystick is found or it is unknown type
         """
         self.joy: Optional[joystick.Joystick] = None
-        self.car_command: car_command = car_command()
-        self.user_input: user_input = user_input()
-        self.default_car_command = car_command()
-        self.default_user_input = user_input()
         self.numAxes: Optional[int] = None
         self.numButtons: Optional[int] = None
         self.axes = None
@@ -133,12 +129,13 @@ class my_joystick:
                raise RuntimeWarning('no joystick found')
 
 
-    def read(self) -> Tuple[car_command,user_input]:
+    def read(self,  car_command:car_command,user_input:user_input) -> None:
         """
         Returns the car_command, user_input tuple. Use check_if_connected() and connect() to check and connect to joystick.
 
-        :returns: the car_command,user_input
-
+        :param car_command: the command to fill in
+        :param user_input: the user input (e.g. open file) to fill in
+ 
         :raises RuntimeWarning if joystick disappears
         """
 
@@ -245,48 +242,34 @@ class my_joystick:
             
         if 'Xbox' in self.name:
             # Buttons A B X Y
-            self.user_input.restart_client = self.joy.get_button(X)  # X button - restart
-            self.car_command.reverse = True if self.joy.get_button(B) == 1 else False  # B button - reverse
-            if not self.car_command.reverse:  # only if not in reverse
-                self.car_command.autodrive_enabled = True if self.joy.get_button(Y) == 1 else False  # Y button - autodrive
-            self.user_input.run_client_model = self.joy.get_button(A)  # A button - ghost
+            if self.joy.get_button(X)==1: user_input.restart_client = True  # X button - restart
+            car_command.reverse = True if self.joy.get_button(B) == 1 else False  # B button - reverse
+            if not car_command.reverse:  # only if not in reverse
+                if self.joy.get_button(Y) == 1:  car_command.autodrive_enabled = True  # Y button - autodrive
+            user_input.run_client_model = self.joy.get_button(A)  # A button - ghost
 
         elif 'Sony' in self.name:
             # Buttons X O Square Triangle
-            self.user_input.restart_client = self.joy.get_button(Square)  # Square button - restart
-            self.car_command.reverse = True if self.joy.get_button(O) == 1 else False  # O button - reverse
-            if not self.car_command.reverse:  # only if not in reverse
-                self.car_command.autodrive_enabled = True if self.joy.get_button(Triangle) == 1 else False  # Triangle button - autodrive
-            self.user_input.run_client_model = self.joy.get_button(X)  # X button - ghost
+            if  self.joy.get_button(Square)==1: user_input.restart_client = True # Square button - restart
+            car_command.reverse = True if self.joy.get_button(O) == 1 else False  # O button - reverse
+            if not car_command.reverse:  # only if not in reverse
+                if self.joy.get_button(Triangle) == 1: car_command.autodrive_enabled = True  # Triangle button - autodrive
+            user_input.run_client_model = self.joy.get_button(X)  # X button - ghost
 
         # Quit and Restart Client buttons
-        self.user_input.restart_car = self.joy.get_button(Restart_Client)  # menu button - Restart Client
-        self.user_input.quit = self.joy.get_button(Quit)  # windows button - Quit Client
+        if self.joy.get_button(Restart_Client)==1: user_input.restart_car = True   # menu button - Restart Client
+        if self.joy.get_button(Quit): user_input.quit = True # windows button - Quit Client
 
         # Analog Buttons and Axes
-        self.car_command.steering = JOYSTICK_STEERING_GAIN * self.joy.get_axis(
-            Steering)  # Steering returns + for right push, which should make steering angle positive, i.e. CW
-        self.car_command.throttle = (1 + self.joy.get_axis(Throttle)) / 2.  # Throttle
-        self.car_command.brake = (1 + self.joy.get_axis(Brake)) / 2.  # Brake
+        car_command.steering = JOYSTICK_STEERING_GAIN * self.joy.get_axis(Steering)
+        # Steering returns + for right push, which should make steering angle positive, i.e. CW
+        car_command.throttle = (1 + self.joy.get_axis(Throttle)) / 2.  # Throttle
+        car_command.brake = (1 + self.joy.get_axis(Brake)) / 2.  # Brake
 
         self.lastActive=time.time()
 
 
         logger.debug(self)
-        return self.car_command, self.user_input
-
-    def __str__(self):
-        # axStr='axes: '
-        # for a in self.axes:
-        #     axStr=axStr+('{:5.2f} '.format(a))
-        # butStr='buttons: '
-        # for b in self.buttons:
-        #     butStr=butStr+('1' if b else '_')
-        #
-        # return axStr+' '+butStr
-        s="steer={:4.1f} throttle={:4.1f} brake={:4.1f}".format(self.car_command.steering, self.car_command.throttle, self.car_command.brake)
-        return s
-
 
 if __name__ == '__main__':
     from colorama import init, deinit, Fore, Style
