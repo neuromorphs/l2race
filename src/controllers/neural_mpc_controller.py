@@ -49,7 +49,6 @@ class neural_mpc_controller(car_controller):
 
         :param cmd: car_command that will be applied to the car
         """
-        cmd = car_command()
 
         self.car_controller.set_state(self.car.car_state, self.car.track)
         next_control_sequence = self.car_controller.control_step()
