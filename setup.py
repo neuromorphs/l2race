@@ -38,8 +38,10 @@ setup(
         # 'scikit-learn-extras',
         'upnpy',
         'pandas',
+        'geos', # needed since shapely does not install geos_c.dll needed, solved by conda install geos
         'shapely',
         'tensorflow>=2.5',
+        'typing-extensions>=3.7.4',
         # 'pysindy',
         'torch', # go to https://pytorch.org/get-started/locally/ for correct pip or conda command generator
         'IPython',
