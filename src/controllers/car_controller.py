@@ -16,9 +16,9 @@ class car_controller(ABC):
         """
         self.car = my_car
 
-    def read(self)->car_command:
+    def read(self, cmd:car_command)->None:
         """
-        Return a car_command to control the car
-        :return: car_command, i.e. .steering, .throttle, .brake, .reverse
+        Control the car via car_command
+        :param cmd: the  .steering, .throttle, .brake, .reverse
         """
         pass

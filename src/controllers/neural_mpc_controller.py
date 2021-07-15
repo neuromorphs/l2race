@@ -40,17 +40,16 @@ class neural_mpc_controller(car_controller):
         :param car: All car info: car_state and track
         """
         self.car = my_car
-        self.car_command = car_command()
         # self.car_controller = CarController(None, predictor="nn", model_name="Dense-128-128-128-128-invariant-10")
         self.car_controller = CarController(None, predictor="nn", model_name="Dense-128-128-128-128-high-speed")
 
-    def read(self):
+    def read(self, cmd:car_command) -> None:
         """
         Computes the next steering angle using the current state using car_controller
 
-        :return: car_command that will be applied to the car
+        :param cmd: car_command that will be applied to the car
         """
-        self.car_command = car_command()
+        cmd = car_command()
 
         self.car_controller.set_state(self.car.car_state, self.car.track)
         next_control_sequence = self.car_controller.control_step()
@@ -60,10 +59,7 @@ class neural_mpc_controller(car_controller):
 
         # print("NEXT CONTROL",  next_control_input)
         
-        self.car_command.steering = next_control_input[0]
-        self.car_command.throttle = min(next_control_input[1],1)
+        cmd.steering = next_control_input[0]
+        cmd.throttle = min(next_control_input[1],1)
         #todo add braking to control
 
-        return self.car_command
-
-  

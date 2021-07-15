@@ -30,7 +30,7 @@ class SINDy_KS_MPC(car_controller):
         :param car: All car info: car_state and track
         """
         self.car = my_car
-        self.car_command = car_command()
+        cmd = car_command()
         self.max_speed = MAX_SPEED
         self.max_steering = MAX_STEERING
         self.n_horizon = N_HORIZON
@@ -137,11 +137,11 @@ class SINDy_KS_MPC(car_controller):
     #             tvp_template['_tvp',k,'nearest_waypoint_idx'] = self.car.track.get_nearest_waypoint_idx(x=x, y=y)
     #     return tvp_template
 
-    def read(self):
+    def read(self, cmd:car_command):
         """
         Computes and returns MPC output
 
-        :return: car_command that will be applied to the car
+        :param cmd: car_command that will be applied to the car
         """
         # get current state
         x = self.car.car_state.position_m.x
@@ -168,9 +168,8 @@ class SINDy_KS_MPC(car_controller):
             s0 = self.simulator.make_step(u0)
 
         # convert commands to float before passing to simulator
-        self.car_command.throttle = float(u0[0])
-        self.car_command.brake = float(u0[1])
-        self.car_command.steering = float(u0[2])
-        self.car_command.autodrive_enabled = True
+        cmd.throttle = float(u0[0])
+        cmd.brake = float(u0[1])
+        cmd.steering = float(u0[2])
 
-        return self.car_command
+        return cmd

@@ -420,7 +420,7 @@ class client:
             if self.autodrive_controller is None:
                 raise RuntimeError(
                     'Tried to use autodrive control but there is no controller defined. See AUTODRIVE_CLASS in src/globals.py or on command line with --autodrive.')
-            self.car_command = self.autodrive_controller.read()
+            self.autodrive_controller.read(self.car_command)
 
         if self.user_input.quit:
             logger.info('quit recieved from keyboard or joystick, ending main loop')

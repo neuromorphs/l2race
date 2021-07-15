@@ -47,13 +47,13 @@ class pure_pursuit_controller_v2(car_controller):
         :param car: All car info: car_state and track
         """
         self.car = my_car
-        self.car_command = car_command()
+        cmd = None
         self.max_speed = MAX_SPEED
         self.d_min = D_MIN
         self.d_max = D_MAX
         self.old_nearest_point_index = 0
 
-    def read(self):
+    def read(self, cmd: car_command) -> None:
         """
         Computes the next steering angle tying to follow the waypoint list
 
@@ -94,7 +94,7 @@ class pure_pursuit_controller_v2(car_controller):
         alpha = math.atan2(wp_y - rear_y, wp_x - rear_x) - yaw_angle_rad
         steering_angle = math.atan2(2.0 * WB * math.sin(alpha) / Lf, 1.0)
 
-        self.car_command.steering = steering_angle
+        cmd.steering = steering_angle
 
         # Set throttle
         # Calculate distance to the track edge
@@ -112,14 +112,11 @@ class pure_pursuit_controller_v2(car_controller):
                 self.max_speed = MAX_SPEED
 
             if self.car.car_state.speed_m_per_sec < self.max_speed:
-                self.car_command.throttle = min((d/dd)-(self.d_min/dd), 1.0)
-                self.car_command.brake = 0
+                cmd.throttle = min((d/dd)-(self.d_min/dd), 1.0)
+                cmd.brake = 0
             else:
-                self.car_command.brake = min((-d/dd)+(self.d_max/dd), 1.0)
-                self.car_command.throttle = 0
+                cmd.brake = min((-d/dd)+(self.d_max/dd), 1.0)
+                cmd.throttle = 0
         else:
-            self.car_command.throttle = 0
-            self.car_command.brake = 0
-
-        self.car_command.autodrive_enabled = True
-        return self.car_command
+            cmd.throttle = 0
+            cmd.brake = 0
