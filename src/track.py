@@ -241,6 +241,8 @@ class track:
 
         self.waypoints_x = self.TrackInfo['waypoint_x']  # Waypoint x coordinates in pixels
         self.waypoints_y = self.TrackInfo['waypoint_y']  # Waypoint y coordinates in pixels
+        self.AngleNextCheckpointEast =  M_PER_PIXEL * self.TrackInfo['AngleNextCheckpointEast'] #absolute Angles of track line segments
+        self.AngleNextCheckpointRelative =  M_PER_PIXEL * self.TrackInfo['AngleNextCheckpointRelative'] # Relative angles of track line segmentes
         self.waypoints = [[self.waypoints_x[i] * M_PER_PIXEL, self.waypoints_y[i] * M_PER_PIXEL] for i in range(len(self.waypoints_x))]
         
         self.num_waypoints = len(self.waypoints_x)

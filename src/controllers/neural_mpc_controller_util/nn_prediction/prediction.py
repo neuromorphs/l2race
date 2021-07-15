@@ -6,7 +6,7 @@ from tensorflow import keras
 from sklearn import preprocessing
 import joblib
 import matplotlib.pyplot as plt
-from src.controllers.neural_mpc_controller_util.globals import *
+from src.controllers.neural_mpc_controller_util.neural_mpc_settings import *
 import json
 import time
 

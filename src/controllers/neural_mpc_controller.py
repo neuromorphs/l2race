@@ -20,7 +20,7 @@ from src.car import car
 from src.car_command import car_command
 from src.controllers.car_controller import car_controller
 
-from src.controllers.neural_mpc_controller_util.car_controller import *
+from src.controllers.neural_mpc_controller_util.neural_mpc import *
 
 
 logger = logging.getLogger(__name__)
