@@ -66,26 +66,38 @@ git submodule update --init --recursive
 ```
 Check again and if it is no longer empty, the submodules have been loaded correctly.
 
+
+
+#### Installation
+_requirements.txt_ refers to setup.py for dependencies.
+
+Install to your conda environment either with pip or setup.py from terminal:
+
+```shell script
+pip install -e . 
+```
+or 
+```shell script
+python setup.py develop 
+```
+
+The -e and develop options install referring to your working code, so your edits take effect on console script invocations.
+
 #### Pygame
 The necessary pygame 2.0 seems to install into windows and linux and macOS directly with pip now.
 
 If you still have problems, you can see the pygame 2.0-dev10 (needed for python 3.7) wheels at https://www.piwheels.org/project/pygame/ or https://github.com/pygame/pygame/releases.  (A _wheel_ is a kind of archi8ve of python stuff with all dependencies; they are named according to the platform and OS). Then use pip install wheel-file. Download the wheel for pygame 2.0 for python 3.7 and your OS.
 
-
-#### requirements.txt notes
-_requirements.txt_ was built automatically using https://stackoverflow.com/questions/31684375/automatically-create-requirements-txt
-```shell script
-pip install pipreqs
-pipreqs --force .
-```
-
 #### Pytorch
-If you want to use our RNN models you additionally need to install Pytorch. To install a working version of Pytorch you need not only specify your OS but also your CUDA. We therefore recommend that you check the right installation command directly at the [Pytorch official webpage](https://pytorch.org).
+If you want to use our RNN models you additionally need to install Pytorch. 
+To install a working version of Pytorch you need not only specify your OS but also CUDA support for your GPU. 
+We therefore recommend that you check the right installation command directly at the [Pytorch official webpage](https://pytorch.org).
 
 
 ## pycharm
 You should be able to open l2race project from pycharm directly, since l2race includes the jetbrains/pycharm .idea folder.
-Once in pycharm, if you have already setup the l2race conda environment, then pycharm should find it. If not, set up the conda enviroment in pycharm using Project settings/Project interpreter and point to your l2race conda environment:
+Once in pycharm, if you have already setup the l2race conda environment, then pycharm should find it. 
+If not, set up the conda enviroment in pycharm using Project settings/Project interpreter and point to your l2race conda environment:
 
 ![pycharm setup](media/pycharm_env.png)
 
@@ -97,62 +109,23 @@ The server computes the car dynamics model in response to your command input and
 
 From root of l2race, start the server and client from separate terminals (or from pycharm; see below).
 
-### Start client (typical remote use case)
-
-The command 
-```tags
-python -m main --host=telluridevm.iniforum.ch
-```
-will start the client (your view of track with your car) running on the server we setup for the workshop called _telluridevm.iniforum.ch_. It is a powerful 16-core machine with plenty of CPU for running the complex car models.
-
-Here is a run example:
-```shell script
-(l2race) F:\tobi\Dropbox (Personal)\GitHub\neuromorphs\l2race>python -m main --host=telluridevm.iniforum.ch
-pygame 2.0.0.dev10 (SDL 2.0.12, python 3.7.7)
-Hello from the pygame community. https://www.pygame.org/contribute.html
-2020-08-09 19:07:28,967 - commonroad.vehicleDynamics_MB - WARNING - check_cython: F:\tobi\Dropbox (Personal)\GitHub\neuromorphs\l2race\commonroad\vehicleDynamics_MB.py is still just a slowly interpreted script. (vehicleDynamics_MB.py:21)
-2020-08-09 19:07:29,142 - src.client - WARNING - Gooey GUI builder not available, will use command line arguments.
-Install with "pip install Gooey". See README (client.py:63)
-2020-08-09 19:07:29,143 - src.client - WARNING - Gooey GUI not available, using command line arguments. 
-You can try to install with "pip install Gooey".
-Ignore this warning if you do not want a GUI. (client.py:71)
-2020-08-09 19:07:29,283 - src.client - INFO - using pygame version 2.0.0.dev10 (client.py:92)
-2020-08-09 19:07:29,328 - src.my_joystick - INFO - joystick named "Xbox One S Controller" found with 6 axes and 11 buttons (my_joystick.py:66)
-Joystick commands:
-steer with left joystick left|right
-throttle is right paddle, brake is left paddle
-B toggles reverse gear
-Y toggles automatic control (if implemented)
-Menu button resets car
-X R restarts client from scratch (if server went down)
-Windows button quits
-
-2020-08-09 19:07:31,335 - src.client - WARNING - Caught exception No IGD found. when trying to open l2race client ports (client.py:249)
-.....
-```
-You can ignore the "No IGD found". It means that upnp library (http://miniupnp.free.fr/) could not find an Internet Gateway Domain plug and play manager to open port. If you are using the remote server or a local server, the clienht should start running and you should see something like this:
-
-![screenshot](media/oval_track_screenshot.png)
-
 ### Start the server
-
 If you want to run the server on your local machine, do it like this:
 
 ```shell script
-(l2race) F:\tobi\Dropbox (Personal)\GitHub\neuromorphs\l2race>python -m server
-pygame 2.0.0.dev10 (SDL 2.0.12, python 3.7.7)
-Hello from the pygame community. https://www.pygame.org/contribute.html
-WARNING:commonroad.vehicleDynamics_MB:check_cython: F:\tobi\Dropbox (Personal)\GitHub\neuromorphs\l2race\commonroad\vehicleDynamics_MB.py is still just a slowly interpreted script.
-WARNING:__main__:Gooey GUI builder not available, will use command line arguments.
-Install with "pip install Gooey". See README
-WARNING:__main__:Gooey GUI not available, using command line arguments.
-You can try to install with "pip install Gooey"
+(l2race) python -m src.client
 ```
+### Start client (typical remote use case)
+```shell script
+(l2race) python -m src.server
+```
+
+
 
 ### Server options
 
 ````shell script
-C:\Users\tobid\anaconda3\envs\l2race\python.exe "F:/tobi/Dropbox (Personal)/GitHub/neuromorphs/l2race/server.py" -h
+python  src/server.py -h
 pygame 2.0.1 (SDL 2.0.14, Python 3.8.6)
 Hello from the pygame community. https://www.pygame.org/contribute.html
 usage: server.py [-h] [--allow_off_track] [--log LOG] [--port PORT]
@@ -175,7 +148,7 @@ Run with no arguments to open dialog for server IP
 
 ## Client options
 ````shell script
-C:\Users\tobid\anaconda3\envs\l2race\python.exe "F:/tobi/Dropbox (Personal)/GitHub/neuromorphs/l2race/main.py" -h
+python src/client.py -h
 pygame 2.0.1 (SDL 2.0.14, Python 3.8.6)
 Hello from the pygame community. https://www.pygame.org/contribute.html
 usage: client.py [-h] [--host HOST] [--port PORT] [--timeout_s TIMEOUT_S]
