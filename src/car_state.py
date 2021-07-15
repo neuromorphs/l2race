@@ -132,7 +132,7 @@ class car_state:
         return self.static_info.client_ip[0] if self.static_info.client_ip else None
 
     def __str__(self):
-        return f't={self.time:1f}\n{str(self.command)}\npos=({self.position_m.x:4.1f},{self.position_m.y:4.1f})m vel=({self.velocity_m_per_sec.x:5.1f},{self.velocity_m_per_sec.x:5.1f})m/s, speed={self.velocity_m_per_sec.x:6.2f}m/s accel={self.accel_m_per_sec_2.length():6.2f}m/s^2\nsteering_angle={self.steering_angle_deg:4.1f}deg body_angle={self.body_angle_deg:4.1f}deg\nyaw_rate={self.yaw_rate_deg_per_sec:4.1f}deg/s drift_angle={self.drift_angle_deg:4.1f}\nFW {self.fw_ang_speed_hz:.1f}Hz RW {self.rw_ang_speed_hz:.1f}Hz surface={self.surface_type:.1f}\nmsg: {str(self.server_msg)}'
+        return f't={self.time:1f}\n{str(self.command)}\npos=({self.position_m.x:4.1f},{self.position_m.y:4.1f})m vel=({self.velocity_m_per_sec.x:5.1f},{self.velocity_m_per_sec.x:5.1f})m/s, speed={self.speed_m_per_sec:6.2f}m/s accel={self.accel_m_per_sec_2.length():6.2f}m/s^2\nsteering_angle={self.steering_angle_deg:4.1f}deg body_angle={self.body_angle_deg:4.1f}deg\nyaw_rate={self.yaw_rate_deg_per_sec:4.1f}deg/s drift_angle={self.drift_angle_deg:4.1f}\nFW {self.fw_ang_speed_hz:.1f}Hz RW {self.rw_ang_speed_hz:.1f}Hz surface={self.surface_type:.1f}\nmsg: {str(self.server_msg)}'
 
     def get_csv_file_header(self, car):
         """

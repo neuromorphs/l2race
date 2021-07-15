@@ -375,7 +375,8 @@ class CarController:
 
             simulated_position = geom.Point(state[0], state[1])
             distance_to_track = simulated_position.distance(self.trackline)
-            distance_to_track = distance_to_track ** 2
+
+            distance_to_track = distance_to_track ** 2 if distance_to_track<100 else 10000 # handle overflow
 
             # Don't leave track!
             if distance_to_track > TRACK_WIDTH:
