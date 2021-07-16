@@ -2,7 +2,7 @@ import logging
 from cpython cimport array
 import math
 
-from src.globals import KS_TO_ST_SPEED_M_PER_SEC
+from src.l2race_settings import KS_TO_ST_SPEED_M_PER_SEC
 from src.l2race_utils import my_logger
 logger = my_logger(__name__)
 from .steeringConstraints import steeringConstraints

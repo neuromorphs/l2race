@@ -5,7 +5,7 @@ import pygame
 from pygame import KMOD_CTRL, KEYDOWN, KEYUP, K_QUESTION, K_h, KMOD_SHIFT, K_r, K_ESCAPE, K_y, K_l, K_o, K_w
 
 from l2race_utils import my_logger
-from globals import *
+from l2race_settings import *
 
 from tkinter import *
 logger = my_logger(__name__)

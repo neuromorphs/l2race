@@ -21,7 +21,7 @@ from modeling.RNN0.utilis import create_rnn_instance, get_device
 from track import pixels2meters, meters2pixels
 import collections
 import numpy as np
-from globals import *
+from l2race_settings import *
 #######
 
 class client_car_model(ABC):

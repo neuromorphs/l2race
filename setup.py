@@ -46,7 +46,9 @@ setup(
         'torch', # go to https://pytorch.org/get-started/locally/ for correct pip or conda command generator
         'IPython',
         'cvxpy',
-        'easygui'
+        'easygui',
+        'kivy', # UI using https://kivy.org/doc/stable/api-kivy.app.html#creating-an-application
+        # 'reloading'
         ],
     classifiers=[
         "Programming Language :: Python :: 3",

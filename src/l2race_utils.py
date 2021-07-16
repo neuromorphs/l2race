@@ -7,12 +7,12 @@ from timeit import default_timer as timer
 from time import sleep as sleep
 
 
-from globals import CLIENT_PORT_RANGE, ENABLE_UPNP, UPNP_LEASE_TIME
+from l2race_settings import CLIENT_PORT_RANGE, ENABLE_UPNP, UPNP_LEASE_TIME
 
 # customized logger with color output
 import logging
 
-from globals import LOGGING_LEVEL
+from l2race_settings import LOGGING_LEVEL
 import numpy as np
 from collections import deque
 class circular_buffer(deque):

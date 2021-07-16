@@ -3,7 +3,7 @@ from typing import List, Tuple, Optional
 import pygame
 import numpy as np
 
-from globals import M_PER_PIXEL, TRACKS_FOLDER
+from l2race_settings import M_PER_PIXEL, TRACKS_FOLDER
 
 
 # Functions for finding hit position

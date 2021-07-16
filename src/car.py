@@ -12,7 +12,7 @@ from l2race_utils import my_logger
 from track import track
 
 from car_state import car_state
-from globals import M_PER_PIXEL, G, CAR_NAME, GAME_FONT_NAME, GAME_FONT_SIZE
+from l2race_settings import M_PER_PIXEL, G, CAR_NAME, GAME_FONT_NAME, GAME_FONT_SIZE
 
 logger = my_logger(__name__)
 
@@ -62,7 +62,7 @@ class car:
         :param screen: - the pygame drawing surface
         :param client_ip: - our IP address
         '''
-        self.car_state = car_state(name=name, client_ip=client_ip)
+        self.car_state:car_state = car_state(name=name, client_ip=client_ip)
 
         self.track=our_track
         self.image_name = image_name

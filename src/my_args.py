@@ -1,7 +1,7 @@
 # arguments for l2race client and server
 import os
 
-from globals import *
+from l2race_settings import *
 import logging
 
 from track import list_tracks

@@ -5,10 +5,10 @@ from pygame.math import Vector2
 
 from car_command import car_command
 from l2race_utils import my_logger
-from inspect import getmembers
+import numpy as np
 
 logger = my_logger(__name__)
-from globals import SCREEN_WIDTH_PIXELS, SCREEN_HEIGHT_PIXELS, M_PER_PIXEL
+from l2race_settings import SCREEN_WIDTH_PIXELS, SCREEN_HEIGHT_PIXELS, M_PER_PIXEL
 
 VERSION='3.0'
 # history
@@ -212,4 +212,15 @@ class car_state:
             s=s+('{:f}'.format(l[-1]))
             return s
 
+    def check_if_went_haywire(self)->Optional[str]:
+        """
+        Checks if model went crazy and returns server message if so, otherwise None
+
+        :returns: None if OK, message if model determined to have gone unstable
+        """
+        if np.abs(self.body_angle_deg)>1e6:
+            s=f'body angle  {self.body_angle_deg:.1f} is too large'
+            logger.error(s)
+            return s
+        return None
 

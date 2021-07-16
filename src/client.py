@@ -28,8 +28,9 @@ import re
 import timeit
 # https://www.programiz.com/python-programming/shallow-deep-copy#:~:text=help%20of%20examples.-,Copy%20an%20Object%20in%20Python,reference%20of%20the%20original%20object.
 import  copy
+# import kivy
 
-from globals import *
+from l2race_settings import *
 from my_args import client_args, write_args_info
 from car_command import car_command
 from car_state import car_state
@@ -614,6 +615,10 @@ class client:
             name = s.static_info.name  # get the car name from the remote state
             if name == self.car_name:
                 self.car.car_state = s  # update our own state
+                if self.car.car_state.check_if_went_haywire() is not None:
+                    logger.error(f'car state went untable, restarting car')
+                    self.restart_car()
+                    return
                 continue  # don't add ourselves to list of other (spectator) cars
             # update other cars on the track
             c = self.spectate_cars.get(name)  # get the car

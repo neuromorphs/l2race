@@ -1,6 +1,6 @@
 import math
 
-from src.globals import KS_TO_ST_SPEED_M_PER_SEC
+from src.l2race_settings import KS_TO_ST_SPEED_M_PER_SEC
 from .steeringConstraints import steeringConstraints
 from .accelerationConstraints import accelerationConstraints
 from .vehicleDynamics_KS import vehicleDynamics_KS

@@ -14,7 +14,7 @@ INACTIVITY_RECONNECT_TIME = 15
 RECONNECT_TIMEOUT = 5
 
 from l2race_utils import my_logger
-from globals import JOYSTICK_NUMBER, JOYSTICK_STEERING_GAIN
+from l2race_settings import JOYSTICK_NUMBER, JOYSTICK_STEERING_GAIN
 
 logger = my_logger(__name__)
 # logger.setLevel(logging.DEBUG)

@@ -1,7 +1,7 @@
 # the actual model of car, run on server
 import logging
 from math import sin, radians, degrees, cos, copysign
-from typing import Tuple
+from typing import Tuple, Optional
 from scipy.integrate import solve_ivp  # Methods tried before, now not uesed anymore: RK23, RK45, LSODA, BDF, DOP853
 from timeit import default_timer as timer
 import random
@@ -9,7 +9,7 @@ import numpy as np
 
 from car import car
 from car_state import car_state
-from globals import *
+from l2race_settings import *
 from l2race_utils import my_logger
 from track import track
 from car_command import car_command
@@ -216,11 +216,10 @@ class car_model:
             # Save the results of model update to model_state variable
             self.model_state = self.solver.y[:, -1]
 
-        # check if soln went haywire, i..e. any element of state is NaN
-        has_nan=np.isnan(np.sum(self.model_state))
-        if has_nan:
-            logger.warning(f'model state has NaN: {self.model_state}')
-            quit(1)
+        went_untable=self.car_state.check_if_went_haywire()
+        if went_untable is not None:
+            self.car_state.server_msg+=went_untable
+            return
 
         # This flag changes to True if it was not possible to perform real-time update of car model
         too_slow = timer() > calculations_time_start + 0.8 * dt_sec
@@ -274,6 +273,7 @@ class car_model:
                                                                                          str(self.car_state)))
 
         self.cycle_count += 1
+
 
     def choose_initial_position(self):
         # Randomly choose initial position

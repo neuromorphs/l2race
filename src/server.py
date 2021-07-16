@@ -21,7 +21,7 @@ from l2race_utils import set_logging_level, loop_timer, become_daemon, \
     find_unbound_port_in_range
 from my_args import server_args
 from car_model import car_model
-from globals import *
+from l2race_settings import *
 from track import track, list_tracks
 from l2race_utils import my_logger
 

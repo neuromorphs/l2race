@@ -25,7 +25,7 @@ import collections
 
 import sys
 sys.path.append('../../')
-from src.globals import *
+from src.l2race_settings import *
 from src.track import find_hit_position, meters2pixels, pixels2meters, track
 
 

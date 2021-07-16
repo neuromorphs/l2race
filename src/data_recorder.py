@@ -5,7 +5,7 @@ from pathlib import Path
 
 from car import car
 
-from globals import DATA_FILENAME_BASE, DATA_FOLDER_NAME
+from l2race_settings import DATA_FILENAME_BASE, DATA_FOLDER_NAME
 from l2race_utils import my_logger
 import atexit
 

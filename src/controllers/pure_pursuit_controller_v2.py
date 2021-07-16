@@ -3,7 +3,7 @@ import numpy as np
 
 from car import car
 from controllers.car_controller import car_controller
-from globals import M_PER_PIXEL
+from l2race_settings import M_PER_PIXEL
 from car_command import car_command
 from l2race_utils import my_logger
 
