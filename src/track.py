@@ -43,9 +43,15 @@ def list_tracks() -> List[str]:
     # Find all the png files in the directory - these are the pictures of available tracks
     files = list_files(directory, "png")
     # For every found png file
+
+    def rchop(s, suffix):
+        if suffix and s.endswith(suffix):
+            return s[:-len(suffix)]
+        return s
+
     for f in files:
         # ...strip the .png suffix from its name to get track name and append to the list of all track names
-        tr.append(f.strip('.png'))
+        tr.append(rchop(f,'.png'))
     # Return track names list
     return tr
 
@@ -228,9 +234,16 @@ class track:
         """
         self.name = track_name
         logger.info('loading track image and info files with base name {}'.format(media_folder_path + track_name))
-        self.track_image = pygame.image.load(media_folder_path + track_name + '.png')
-        self.track_map = np.load(media_folder_path + track_name + '_map.npy', allow_pickle=True)
-        self.TrackInfo = np.load(media_folder_path + track_name + '_info.npy', allow_pickle=True).item() # TODO document why .item() needed
+        try:
+            png_ = media_folder_path + track_name + '.png'
+            self.track_image = pygame.image.load(png_)
+            map_npy_ = media_folder_path + track_name + '_map.npy'
+            self.track_map = np.load(map_npy_, allow_pickle=True)
+            info_npy_ = media_folder_path + track_name + '_info.npy'
+            self.TrackInfo = np.load(info_npy_, allow_pickle=True).item() # TODO document why .item() needed
+        except FileNotFoundError as ex:
+            logger.error(f'exception {ex} with filename {ex.filename2} trying to open track named {track_name} from folder {media_folder_path}')
+            raise
         # TrackInfo dict has following
         # waypoint_x
         # waypoint_Y

@@ -13,7 +13,7 @@ from typing import Tuple, List, Optional, Dict
 import argparse
 import argcomplete as argcomplete
 import select
-from easygui import easygui, fileopenbox
+from easygui import easygui, fileopenbox, indexbox
 from pandas import DataFrame
 from pygame.math import Vector2
 import pygame.freetype  # Import the freetype module.
@@ -29,6 +29,8 @@ import timeit
 # https://www.programiz.com/python-programming/shallow-deep-copy#:~:text=help%20of%20examples.-,Copy%20an%20Object%20in%20Python,reference%20of%20the%20original%20object.
 import  copy
 # import kivy
+import time
+
 
 from l2race_settings import *
 from my_args import client_args, write_args_info
@@ -36,7 +38,7 @@ from car_command import car_command
 from car_state import car_state
 from data_recorder import data_recorder
 from l2race_utils import find_unbound_port_in_range, open_ports, loop_timer
-from track import track
+from track import track, list_tracks
 from car import car, loadAndScaleCarImage
 from l2race_utils import my_logger
 from controllers import car_controller
@@ -53,30 +55,32 @@ logger = my_logger(__name__)
 def get_args():
     parser = argparse.ArgumentParser(
         description='l2race client: run this if you are a racer.',
-        epilog='Run with no arguments to open dialog for arguments, if Gooey is installed', allow_abbrev=True,
+        allow_abbrev=True,
         formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     parser = client_args(parser)
     argcomplete.autocomplete(parser)
     args = parser.parse_args()
+    # check if show dialog to choose track
+    if args.track_name is None or args.track_name=='' or str.lower(args.track_name)=='none' or str.lower(args.track_name)=='choose' or str.lower(args.track_name)=='dialog':
+        args.track_name=select_track_dialog()
+        if args.track_name is None:
+            logger.info(f'user did not select any track')
+            quit(0)
     return args
 
 
-def launch_gui():
-    # may only apply to windows
-    try:
-        from gooey import Gooey  # pip install Gooey
-    except Exception:
-        logger.info('Gooey GUI builder not available, will use command line arguments.\n'
-                    'Install with "pip install Gooey". See README')
+def select_track_dialog()->Optional[str]:
+    """ Show dialog for track
 
-    try:
-        ga = Gooey(get_args, program_name="l2race client", default_size=(575, 600))
-        logger.info('Use --ignore-gooey to disable GUI and run with command line arguments')
-        ga()
-    except:
-        logger.info('Gooey GUI not available, using command line arguments. \n'
-                    'You can try to install with "pip install Gooey". '
-                    'Ignore this warning if you do not want a GUI launcher.')
+    :returns: track name or None if cancelled
+    """
+    tracks = list_tracks()
+    track_num = indexbox('What track do you want?', 'Tracks', tracks)
+    if track_num is None:
+        return None
+    track_name = tracks[track_num]
+    logger.info(f'User chose {track_name} by dialog')
+    return track_name
 
 
 class client:
@@ -441,6 +445,19 @@ class client:
             logger.info(f'selected {file} with file dialog')
             self.replay(file)
 
+        if self.user_input.choose_new_track:
+            name=select_track_dialog()
+            if name is not None:
+                self.track_name=name
+                self.__init__(car_name=self.car_name,
+                              track_name=self.track_name,
+                              controller=self.autodrive_controller,
+                              client_car_model=self.client_car_model,
+                              server_host=self.server_host,
+                              server_port=self.server_port)
+                self.run()
+            pass
+
         if not self.spectate:
             if self.user_input.restart_car:
                 self.restart_car('user asked to restart car')
@@ -452,7 +469,8 @@ class client:
                     for r in self.data_recorders:
                         r.close_recording()
                     self.data_recorders = None
-
+            if self.user_input.choose_new_track:
+                pass
             # send control to server
             self.send_to_server(self.gameSockAddr, 'command', self.car_command)
         else:
@@ -790,7 +808,7 @@ class client:
                 logger.info('KeyboardInterrupt, stopping client')
                 self.exit = True
 
-            self.input.read(None, self.car_command, self.user_input)  # gets input from keyboard or joystick
+            self.input.read(self.car_command, self.user_input)  # gets input from keyboard or joystick
             if self.user_input.quit:
                 self.exit = True
                 continue
@@ -840,6 +858,7 @@ class client:
         self.stop_recording()
         logger.info('sending message to restart car to server')
         self.send_to_server(self.gameSockAddr, 'restart_car', message)
+        self.car_command=car_command() # override in case server does not reset the autodrive_enabled flag TODO not clear why needed
         if self.recording_enabled:
             self.start_recording()
 
@@ -873,45 +892,7 @@ class client:
             except RuntimeError as e:
                 logger.warning('Could not open data recording; caught {}'.format(e))
 
-
-# A wrapper around Game class to make it easier for a user to provide arguments
-def define_game(gui=True,  # set to False to prevent gooey dialog
-                track_name=None,
-                ctrl=None,
-                car_model=None,
-                spectate=False,
-                car_name=None,
-                server_host=None,
-                server_port=None,
-                joystick_number=None,
-                fps=None,
-                timeout_s=None,
-                record=False,  # TODO parameters not used
-                record_note=None,
-                replay=None,
-                ) -> client:
-    """
-    Defines the client side of l2race game for user by handling the command line arguments if they are supplied.
-
-        :param gui: Set true to use Gooey to put up dialog to launch client, if Gooey is installed.
-        :param ctrl: Optional autodrive controller that implements the read method to return (car_command, user_input)
-        :param car_model: Your local dynamical model of car.
-        :param track_name: string name of track, without .png suffix
-        :param spectate: set True to just spectate
-        :param car_name: Your name for your car
-        :param server_host: hostname of server, e.g. 'localhost' or 'telluridevm.iniforum.ch'
-        :param server_port: port on server to initiate communication
-        :param joystick_number: joystick number if more than one
-        :param fps: desired frames per second of game loop
-        :param timeout_s: socket read timeout for blocking reads (main loop uses nonblocking reads)
-        :param record: boolean, set it True to record data for all cars to CSV files
-        :param record_note: note to add to recording CSV filename and header section
-        :param replay: None for normal live mode, or List[str] of filenames to play back a set of car recordings together
-
-    :return: the client(), which must them be started.
-    """
-    if gui:
-        launch_gui()
+def main():
     args = get_args()
     try:
         mod = importlib.import_module(args.autodrive[0])
@@ -932,7 +913,6 @@ def define_game(gui=True,  # set to False to prevent gooey dialog
         car_model=None
 
     if not args.record is None:  # if recording data, also record command line arguments and log output to a text file
-        import time
         timestr = time.strftime("%Y%m%d-%H%M")
         filepath = os.path.join(DATA_FOLDER_NAME, 'l2race-log-' + str(timestr) + '.txt')
         logger.info('Since recording is enabled, writing arguments and logger output to {}'.format(filepath))
@@ -947,19 +927,16 @@ def define_game(gui=True,  # set to False to prevent gooey dialog
         logger.addHandler(fh)
 
     if args.car_name is None:  # If car_name not provided as a terminal-line argument...
-        if car_name is None:  # If it is neither provided through client.py interface...
-            try:  # try to create a car_name based on the host name
-                # make hopefully unique car name
-                import socket, getpass, random, string
-                hostname = socket.gethostname()
-                username = getpass.getuser()
-                car_name = str(hostname) + ':' + str(username) + '-'
-                car_name += ''.join(random.choices(string.ascii_uppercase,
-                                                   k=2))  # https://stackoverflow.com/questions/2257441/random-string-generation-with-upper-case-letters-and-digits
-            except:  # If nothing else works give it a default name
-                car_name = CAR_NAME
-        else:  # If car_name provided through client.py interface use this name as car_name
-            pass
+        try:  # try to create a car_name based on the host name
+            # make hopefully unique car name
+            import socket, getpass, random, string
+            hostname = socket.gethostname()
+            username = getpass.getuser()
+            car_name = str(hostname) + ':' + str(username) + '-'
+            car_name += ''.join(random.choices(string.ascii_uppercase,
+                                               k=2))  # https://stackoverflow.com/questions/2257441/random-string-generation-with-upper-case-letters-and-digits
+        except:  # If nothing else works give it a default name
+            car_name = CAR_NAME
     else:  # If car_name provided as terminal-line argument give it precedence
         car_name = args.car_name
 
@@ -977,56 +954,9 @@ def define_game(gui=True,  # set to False to prevent gooey dialog
                   record=args.record,
                   replay_file_list=args.replay,
                   lidar=args.lidar)
-
-    return game
-
-
-def main():
-    game = define_game(gui=False)
     game.run()
 
 if __name__ == '__main__':
     main()
 
-    
-# if __name__ == '__main__':
-#     '''
-#     Here is place for your code to specify
-#     what arguments you wish to pass to the game instance
-#     e.g:
 
-#     # track_names = ['Sebring',
-#     #          'oval',
-#     #          'track_1',
-#     #          'track_2',
-#     #          'track_3',
-#     #          'track_4',
-#     #          'track_5',
-#     #          'track_6']
-#     #
-#     # import random
-#     # track_name = random.choice(track_names)
-
-#     '''
-
-#     '''
-#     define_game accepts various arguments which specify the game you want to play
-#     These arguments are:
-#     gui:            'with_gui'/'without gui',
-#     track_name:     'Sebring','oval','track_1','track_2','track_3','track_4','track_5','track_6'
-#     car_name:       any string
-#     server_host:    [change by user not recommended]
-#     server_port:    [change by user not recommended]
-#     joystick_number: [change only in multi-player game os the same device]?
-#     fps             [change by user not recommended]
-#     timeout_s       [change by user not recommended]
-#     record          True/False
-
-#     Providing arguments to define_game function is optional
-#     If an argument is not provided below the program checks if it was provided as corresponding flag.
-#     If also no corresponding flag was provided the program takes a default value
-#     The only case when a flag has precedence over a variable provided below is for disabling gui
-#     '''
-
-#     game = define_game(gui=False)
-#     game.run()

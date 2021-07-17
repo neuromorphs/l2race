@@ -47,7 +47,7 @@ setup(
         'IPython',
         'cvxpy',
         'easygui',
-        'kivy', # UI using https://kivy.org/doc/stable/api-kivy.app.html#creating-an-application
+        # 'kivy', # UI using https://kivy.org/doc/stable/api-kivy.app.html#creating-an-application
         # 'reloading'
         ],
     classifiers=[

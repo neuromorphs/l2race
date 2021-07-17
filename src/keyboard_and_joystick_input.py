@@ -30,7 +30,7 @@ class keyboard_and_joystick_input:
         self.joy=None
         self.keyboard=my_keyboard()
 
-    def read(self, car_command:car_command,user_input:user_input):
+    def read(self, car_command:car_command, user_input:user_input):
         """
         Reads input from user from either keyboard or joystick. Keyboard takes precedence if any key is pressed.
         If user closes window, self.exit is set True.

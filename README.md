@@ -30,6 +30,10 @@ cd l2race
 ```
 
 
+# Installation
+
+The -e and develop options install referring to your working code, so your edits take effect on console script invocations.
+
 Make sure miniconda or conda is installed. Create a new python environment and activate it. Finally install the requirements.
 
 ```shell script
@@ -38,17 +42,49 @@ conda activate l2race
 pip install -r requirements.txt
 ```
 
+
 If you are not using pycharm but any kind of terminal you have to define the python project root inside the l2race folder.
 ```shell script
 export PYTHONPATH=./
 ```
 
-Finally you can run the l2race client:
+_requirements.txt_ refers to setup.py for dependencies.
+
+Install to your conda environment either with pip or setup.py from terminal:
+
 ```shell script
-python -m main --host=telluridevm.iniforum.ch
+pip install -e . 
+```
+or
+```shell script
+python setup.py develop 
 ```
 
-### Trouble shooting
+Finally you can run the l2race client.
+
+In one terminal
+```shell script
+$ l2race-server
+pygame 2.0.1 (SDL 2.0.14, Python 3.8.5)
+Hello from the pygame community. https://www.pygame.org/contribute.html
+←[38;21m2021-07-17 23:38:43,409 - src.server - INFO - waiting on <socket.socket fd=352, family=Address
+Family.AF_INET, type=SocketKind.SOCK_DGRAM, proto=0, laddr=('0.0.0.0', 50000)> (server.py:314)←[0m
+←[38;21m2021-07-17 23:38:43,928 - src.server - INFO - received cmd "ping" with payload "None" from ('1
+27.0.0.1', 54586) (server.py:442)←[0m
+←[38;21m2021-07-17 23:38:43,932 - src.server - INFO - received cmd "add_car" with payload "('empty', '
+LAPTOP-SS5VU6HO:tobid-CW')" from ('127.0.0.1', 54586) (server.py:442)←[0m
+....
+```
+
+In another terminal
+```shell script
+$ l2race-client
+pygame 2.0.1 (SDL 2.0.14, Python 3.8.5)
+Hello from the pygame community. https://www.pygame.org/contribute.html
+...
+```
+
+### Troubleshooting
 #### Pip
 
 You have to install the requirements for the l2race environment using its own pip.
@@ -66,22 +102,6 @@ git submodule update --init --recursive
 ```
 Check again and if it is no longer empty, the submodules have been loaded correctly.
 
-
-
-#### Installation
-_requirements.txt_ refers to setup.py for dependencies.
-
-Install to your conda environment either with pip or setup.py from terminal:
-
-```shell script
-pip install -e . 
-```
-or 
-```shell script
-python setup.py develop 
-```
-
-The -e and develop options install referring to your working code, so your edits take effect on console script invocations.
 
 #### Pygame
 The necessary pygame 2.0 seems to install into windows and linux and macOS directly with pip now.
@@ -114,6 +134,7 @@ If you want to run the server on your local machine, do it like this:
 
 ```shell script
 (l2race) python -m src.client
+
 ```
 ### Start client (typical remote use case)
 ```shell script
@@ -147,16 +168,17 @@ Run with no arguments to open dialog for server IP
 ````
 
 ## Client options
-````shell script
-python src/client.py -h
-pygame 2.0.1 (SDL 2.0.14, Python 3.8.6)
+````console
+
+D:\envs\l2race\python.exe src/client.py -h
+pygame 2.0.1 (SDL 2.0.14, Python 3.8.5)
 Hello from the pygame community. https://www.pygame.org/contribute.html
 usage: client.py [-h] [--host HOST] [--port PORT] [--timeout_s TIMEOUT_S]
-               [--fps FPS] [--joystick JOYSTICK] [--record [RECORD]]
-               [--replay [REPLAY]] [--autodrive AUTODRIVE AUTODRIVE]
-               [--carmodel CARMODEL CARMODEL] [--lidar [LIDAR]]
-               [--track_name {empty,oval,oval_easy,Sebri,track_1,track_2,track_3,track_4,track_5,track_6}]
-               [--car_name CAR_NAME] [--spectate] [--log LOG]
+                 [--fps FPS] [--joystick JOYSTICK] [--record [RECORD]]
+                 [--replay [REPLAY]] [--autodrive AUTODRIVE AUTODRIVE]
+                 [--carmodel CARMODEL CARMODEL] [--lidar [LIDAR]]
+                 [--track_name {empty,oval,oval_easy,Sebring,track_1,track_2,track_3,track_4,track_5,track_6,,dialog,choose}]
+                 [--car_name CAR_NAME] [--spectate] [--log LOG]
 
 l2race client: run this if you are a racer.
 
@@ -195,14 +217,14 @@ Control/Modeling arguments::
                         autodrive is enabled on controller. Pass it the module
                         (i.e. folder.file without .py) and the class within
                         the file. (default:
-                        ['src.controllers.pure_pursuit_controller_v2',
-                        'pure_pursuit_controller_v2'])
+                        ['src.controllers.neural_mpc_controller',
+                        'neural_mpc_controller'])
   --carmodel CARMODEL CARMODEL
                         Your client car module and class and class to be run
                         as ghost car when model evaluation is enabled on
                         controller. Pass it the module (i.e. folder.file
                         without .py) and the class within the file. (default:
-                        ['src.models.models', 'linear_extrapolation_model'])
+                        ['models.models', 'linear_extrapolation_model'])
 
 Sensor arguments::
   --lidar [LIDAR]       Draw the point at which car would hit the track edge
@@ -211,10 +233,11 @@ Sensor arguments::
                         found. (default: None)
 
 Track car/spectate options::
-  --track_name {empty,oval,oval_easy,Sebri,track_1,track_2,track_3,track_4,track_5,track_6}
-                        Name of track. Available tracks are in the
-                        './media/tracks/' folder, defined by
-                        src.globals.TRACKS_FOLDER. (default: oval_easy)
+  --track_name {empty,oval,oval_easy,Sebring,track_1,track_2,track_3,track_4,track_5,track_6,,dialog,choose}
+                        Name of track (or empty string or 'none' or 'choose'
+                        or 'dialog' to show dialog). Available tracks are in
+                        the './media/tracks/' folder, defined by
+                        globals.TRACKS_FOLDER. (default: dialog)
   --car_name CAR_NAME   Name of this car (last 2 letters are randomly chosen
                         each time). (default: None)
   --spectate            Just be a spectator on the cars on the track.
@@ -222,7 +245,7 @@ Track car/spectate options::
 
 ````
 
-### joystick and keyboard
+### Joystick and keyboard
  - Help for each device is printed on startup. For keyboard, you can type h anytime to see the keys help in console.
  - You need to focus on the pygame window for either input to work.
 
@@ -280,5 +303,5 @@ TODO marcin
 
 
 ## Using the track_info and track_map
-TODO marcin/antonio
+TODO marcin
 

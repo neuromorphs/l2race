@@ -76,7 +76,7 @@ DATA_FOLDER_NAME= 'data'
 
 # car and track options
 CAR_NAME='l2racer' # label stuck on car
-TRACK_NAME='oval_easy' # tracks are stored in the 'media' folder. Data for a track must be extracted using scripts in Track_Preparation before using in l2race
+TRACK_NAME='dialog' # tracks are stored in the 'media' folder. Data for a track must be extracted using scripts in Track_Preparation before using in l2race
 TRACKS_FOLDER='./media/tracks/' # location of tracks relative to root of l2race
 # Other possible track names:
 # track_names = [
@@ -100,6 +100,7 @@ HELP="""Keyboard commands:
     y turns on autodrive while key is pressed (if autodrive class specified)
     r resets car
     R restarts client from scratch (if server went down)
+    T select new track
     l toggles recording logging to uniquely-named CSV file
     ^o opens a file dialog to open a recording and play it back
     ^w close recording playback

@@ -1,4 +1,8 @@
+import logging
 import sys
+
+from l2race_utils import my_logger
+
 sys.path.insert(0, './commonroad-vehicle-models/PYTHON/')
 
 from vehiclemodels.parameters_vehicle1 import parameters_vehicle1
@@ -20,7 +24,7 @@ import matplotlib.pyplot as plt
 import time
 import math
 
-
+logger=my_logger(__name__)
 
 
 '''
@@ -347,8 +351,10 @@ class CarController:
     def cost_function(self, trajectory):
         """
         calculate the cost of a trajectory
-        @param: trajectory {list<state>} The trajectory of states that needs to be evaluated
-        @returns: cost {float}: the scalar cost of the trajectory
+
+        :param trajectory: {list<state>} The trajectory of states that needs to be evaluated
+
+        :returns: cost {float}: the scalar cost of the trajectory
         """
     
         distance_cost = 0
@@ -416,8 +422,10 @@ class CarController:
     def control_step(self):
         """
         Calculate an aprocimation to the optimal next control sequence
-        @returns: next_control_sequence{list<control input>} The optimal control sequnce
+
+        :returns: next_control_sequence{list<control input>} The optimal control sequnce
         """
+
         self.update_trackline()
 
         # Do not overshoot the car's steering contraints

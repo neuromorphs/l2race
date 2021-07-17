@@ -1,8 +1,10 @@
 # Driver control input from keyboard
 from threading import Thread
 from typing import Tuple
+
+import easygui
 import pygame
-from pygame import KMOD_CTRL, KEYDOWN, KEYUP, K_QUESTION, K_h, KMOD_SHIFT, K_r, K_ESCAPE, K_y, K_l, K_o, K_w
+from pygame import KMOD_CTRL, KEYDOWN, KEYUP, K_QUESTION, K_h, KMOD_SHIFT, K_r, K_ESCAPE, K_y, K_l, K_o, K_w, K_t
 
 from l2race_utils import my_logger
 from l2race_settings import *
@@ -15,10 +17,7 @@ from user_input import user_input
 
 def show_help():
     print(HELP)
-
-    # TODO show help in popup window, not so easy in python...
-    thread=Thread(target=show_tk_help)
-    thread.start()
+    easygui.textbox("l2race help","l2race help",HELP)
 
 def show_tk_help():
     root = Tk()
@@ -66,6 +65,7 @@ class my_keyboard:
         user_input.toggle_recording=False
         user_input.open_playback_recording=False
         user_input.close_playback_recording=False
+        user_input.choose_new_track=False
 
         for event in pygame.event.get(): # https://riptutorial.com/pygame/example/18046/event-loop
             if event.type == pygame.QUIT:
@@ -100,6 +100,9 @@ class my_keyboard:
                     elif key==K_y:
                         car_command.autodrive_enabled=False
                         logger.info('disabled autodrive')
+                    elif key==K_t:
+                        user_input.choose_new_track=True
+                        logger.info('user wants to select new track')
                 elif type==KEYDOWN:
                     if key==K_y:
                         car_command.autodrive_enabled=True

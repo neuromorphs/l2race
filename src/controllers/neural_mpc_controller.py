@@ -50,6 +50,15 @@ class neural_mpc_controller(car_controller):
         :param cmd: car_command that will be applied to the car
         """
 
+        # check if speed too low, return zero throttle and steering/brake if so
+        speed = self.car.car_state.speed_m_per_sec
+        if speed < MIN_SPEED_MPS:
+            logger.warning(f'speed {speed} m/s is below MIN_SPEED_MPS of {MIN_SPEED_MPS} m/s, zeroing throttle and steering')
+            cmd.steering=0
+            cmd.throttle=0
+            cmd.brake=0
+            return
+
         self.car_controller.set_state(self.car.car_state, self.car.track)
         next_control_sequence = self.car_controller.control_step()
         # self.car_controller.draw_simulated_history(0, [])

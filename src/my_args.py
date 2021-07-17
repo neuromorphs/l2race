@@ -31,12 +31,17 @@ def client_args(parser):
 
     clientSensorGroup = parser.add_argument_group('Sensor arguments:')
     clientSensorGroup.add_argument("--lidar", type=float, nargs='?', default=None, const=5.0,
-                                   help="Draw the point at which car would hit the track edge if moving on a straight line. "
+                                   help="Draw the point at which car would hit the track edge if moving on a straight "
+                                        "line. "
                                         "The numerical value gives precision in pixels with which this point is found.")
 
     clientTrackCarMode = parser.add_argument_group('Track car/spectate options:')
 
-    clientTrackCarMode.add_argument("--track_name", type=str, default=TRACK_NAME, choices=list_tracks(), help="Name of track. Available tracks are in the '{}' folder, defined by globals.TRACKS_FOLDER.".format(TRACKS_FOLDER))
+    track_choices=list_tracks()
+    track_choices.append('')
+    track_choices.append('dialog')
+    track_choices.append('choose')
+    clientTrackCarMode.add_argument("--track_name", type=str, default=TRACK_NAME, choices=track_choices, help="Name of track (or empty string or 'none' or 'choose' or 'dialog' to show dialog). Available tracks are in the '{}' folder, defined by globals.TRACKS_FOLDER.".format(TRACKS_FOLDER))
     clientTrackCarMode.add_argument("--car_name", type=str, default=None, help="Name of this car (last 2 letters are randomly chosen each time).")
     clientTrackCarMode.add_argument("--spectate", action='store_true', help="Just be a spectator on the cars on the track.")
 

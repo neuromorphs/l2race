@@ -8,6 +8,7 @@ class user_input():
     Includes the restart_car, restart_client, record_data, run_client_model, and quit commands
     """
     def __init__(self):
+        self.choose_new_track = False
         self.restart_car=False # in debugging mode, restarts car at starting line
         self.restart_client=False # abort current run (server went down?) and restart from scratch
         self.quit=False # quit input from controller, mapped to ESC for keyboard and menu button for xbox controller
