@@ -75,7 +75,7 @@ def select_track_dialog()->Optional[str]:
     :returns: track name or None if cancelled
     """
     tracks = list_tracks()
-    track_num = indexbox('What track do you want?', 'Tracks', tracks)
+    track_num = indexbox('What track do you want?', 'Tracks', tracks, image='media/all_tracks.png')
     if track_num is None:
         return None
     track_name = tracks[track_num]

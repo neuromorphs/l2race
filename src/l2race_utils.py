@@ -1,8 +1,11 @@
 # utility methods
+import importlib
+import inspect
 import logging
 import os
 import socket, pickle
-from time import sleep
+from pathlib import Path
+from time import sleep, time
 from timeit import default_timer as timer
 from time import sleep as sleep
 
@@ -15,6 +18,46 @@ import logging
 from l2race_settings import LOGGING_LEVEL
 import numpy as np
 from collections import deque
+
+
+def reload_class_if_modified(obj:object, every:int=1)->object:
+    """
+    Reloads an object if the source file was modified since runtime started or since last reloaded
+
+    :param obj: the original object
+    :param every: only check every this many times we are invoked
+
+    :returns: the original object if classpath file has not been modified
+        since startup or last reload time,
+        otherwise the reloaded object.
+    """
+    reload_class_if_modified.counter+=1
+    if reload_class_if_modified.counter>1 and reload_class_if_modified.counter%every!=0:
+        return obj
+    try:
+        module=inspect.getmodule(obj)
+        cp=Path(module.__file__)
+        mtime=cp.stat().st_mtime
+        classname=type(obj).__name__
+
+        if (mtime>reload_class_if_modified.start_time and (not (classname in reload_class_if_modified.dict))) \
+                or ((classname in reload_class_if_modified.dict) and mtime>reload_class_if_modified.dict[classname]):
+            importlib.reload(module)
+            class_ =getattr(module,classname)
+            o=class_()
+            reload_class_if_modified.dict[classname]=mtime
+            logger.info(f'reloaded modified {classname}')
+            return o
+        else:
+            return obj
+    except Exception as e:
+        logger.error(f'could not reload {obj}: got exception {e}')
+        return obj
+
+reload_class_if_modified.dict=dict()
+reload_class_if_modified.start_time=time()
+reload_class_if_modified.counter=0
+
 class circular_buffer(deque):
     def __init__(self, size=0):
         super(circular_buffer, self).__init__(maxlen=size)

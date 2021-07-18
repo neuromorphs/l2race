@@ -16,6 +16,8 @@ Email: bollif@ethz.ch
 # driver controller
 import logging
 
+import l2race_settings
+from l2race_utils import reload_class_if_modified
 from src.car import car
 from src.car_command import car_command
 from src.controllers.car_controller import car_controller
@@ -24,7 +26,6 @@ from src.controllers.neural_mpc_controller_util.neural_mpc import *
 
 
 logger = logging.getLogger(__name__)
-MAX_SPEED = 5.0
 
 
 class neural_mpc_controller(car_controller):
@@ -40,6 +41,7 @@ class neural_mpc_controller(car_controller):
         :param car: All car info: car_state and track
         """
         self.car = my_car
+        self.g=neural_mpc_settings()
         # self.car_controller = CarController(None, predictor="nn", model_name="Dense-128-128-128-128-invariant-10")
         self.car_controller = CarController(None, predictor="nn", model_name="Dense-128-128-128-128-high-speed")
 
@@ -49,11 +51,12 @@ class neural_mpc_controller(car_controller):
 
         :param cmd: car_command that will be applied to the car
         """
+        self.g=reload_class_if_modified(self.g)
 
         # check if speed too low, return zero throttle and steering/brake if so
         speed = self.car.car_state.speed_m_per_sec
-        if speed < MIN_SPEED_MPS:
-            logger.warning(f'speed {speed} m/s is below MIN_SPEED_MPS of {MIN_SPEED_MPS} m/s, zeroing throttle and steering')
+        if speed < self.g.MIN_SPEED_MPS:
+            logger.warning(f'speed {speed} m/s is below MIN_SPEED_MPS of {self.g.MIN_SPEED_MPS} m/s, zeroing throttle and steering')
             cmd.steering=0
             cmd.throttle=0
             cmd.brake=0
@@ -68,6 +71,5 @@ class neural_mpc_controller(car_controller):
         # print("NEXT CONTROL",  next_control_input)
         
         cmd.steering = next_control_input[0]
-        cmd.throttle = min(next_control_input[1],1)
-        #todo add braking to control
+        cmd.throttle = min(next_control_input[1],1) # throttle can be negative to brake
 

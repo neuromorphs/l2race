@@ -12,10 +12,11 @@ import time
 
 # from src.controllers.neural_mpc_controller_util.nn_prediction.training.train import train_network
 
+g=neural_mpc_settings()
 
 class NeuralNetworkPredictor:
 
-    def __init__(self, model_name = MODEL_NAME):
+    def __init__(self, model_name = g.MODEL_NAME):
 
         print("Initializing nn_predctor with model name {}".format(model_name))
 
@@ -138,6 +139,6 @@ if __name__ == '__main__':
     # print(trajectories)
 
     end = time.time()
-    print("TIME FOR {} Trajectoriy".format(number_of_tests))
+    print("TIME FOR {} Trajectory".format(number_of_tests))
     print(end - start)
     # print("Next_state", next_state)
