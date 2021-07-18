@@ -1,7 +1,7 @@
 import logging
 import sys
 
-from l2race_utils import my_logger
+from l2race_utils import my_logger, reload_class_if_modified
 
 sys.path.insert(0, './commonroad-vehicle-models/PYTHON/')
 
@@ -351,6 +351,8 @@ class CarController:
         :returns: cost {float}: the scalar cost of the trajectory
         """
 
+        self.g:neural_mpc_settings=reload_class_if_modified(self.g,every=100)
+
         distance_cost = 0
         angle_cost = 0
         terminal_speed_cost = 0
@@ -405,7 +407,7 @@ class CarController:
 
         # Total cost
         cost = (
-                self.g.DISTANCE_COST_WEIGHT * distance_cost
+                self.g.DISTANCE_FROM_CENTERLINE_COST_WEIGHT * distance_cost
                 + self.g.TERMINAL_SPEED_COST_WEIGHT * terminal_speed_cost
                 + self.g.TERMINAL_POSITION_COST_WEIGHT * terminal_position_cost
                 + self.g.ANGLE_COST_WEIGHT * angle_cost

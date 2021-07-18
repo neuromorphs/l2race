@@ -65,7 +65,7 @@ class neural_mpc_controller(car_controller):
         :param cmd: car_command that will be applied to the car
         """
         super().read(cmd)
-        self.g=reload_class_if_modified(self.g)
+        self.g:neural_mpc_settings=reload_class_if_modified(self.g)
 
         # check if speed too low, return zero throttle and steering/brake if so
         speed = self.car.car_state.speed_m_per_sec
@@ -77,7 +77,7 @@ class neural_mpc_controller(car_controller):
                 cmd.brake=0
                 return
             else:
-                logger.info(f'speed {speed} m/s is below MIN_SPEED_MPS of {self.g.MIN_SPEED_MPS} m/s, using {self.low_speed_controller}')
+                # logger.info(f'speed {speed} m/s is below MIN_SPEED_MPS of {self.g.MIN_SPEED_MPS} m/s, using {self.low_speed_controller}')
                 self.low_speed_controller.read(cmd)
                 return
 

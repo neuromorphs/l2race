@@ -11,7 +11,7 @@ class neural_mpc_settings():
     T_CONTROL = 0.2  # TODO ??
     T_EULER_STEP = 0.01  # TODO ??
 
-    MIN_SPEED_MPS = 3.0  # minimum speed of car that controller will generate control (model is not trained below this speed)
+    MIN_SPEED_MPS = 5.0  # minimum speed of car that controller will generate control (model is not trained below this speed)
 
     # controller uses this controller where neural_mpc_controller is not trained
     LOW_SPEED_CONTROLLER_MODULE, LOW_SPEED_CONTROLLER_CLASS = 'src.controllers.pure_pursuit_controller_v2', 'pure_pursuit_controller_v2'
@@ -33,10 +33,10 @@ class neural_mpc_settings():
     ##########################################
 
     # Cost function weights
-    DISTANCE_COST_WEIGHT = 1
+    DISTANCE_FROM_CENTERLINE_COST_WEIGHT = 1
     TERMINAL_SPEED_COST_WEIGHT = 5000
     TERMINAL_POSITION_COST_WEIGHT = 3
-    ANGLE_COST_WEIGHT = 2
+    ANGLE_COST_WEIGHT = 2 # weights
 
     # Path Prediction
     CONTROLLER_PREDICTIOR = "nn"
@@ -59,7 +59,7 @@ class neural_mpc_settings():
 
     # Relation to track
     NUMBER_OF_NEXT_WAYPOINTS = 20  # TODO how related to horizon?
-    NUMBER_OF_IGNORED_CLOSEST_WAYPOINTS = 3  # TODO what is effect?
+    NUMBER_OF_IGNORED_CLOSEST_WAYPOINTS = 5 # TODO what is effect?
     ANGLE_COST_INDEX_START = 5  # TODO ??
     ANGLE_COST_INDEX_STOP = 15  # TODO ??
 
