@@ -307,7 +307,7 @@ class client:
                                client_ip=self.gameSockAddr)
 
                 if self.autodrive_controller:
-                    self.autodrive_controller.car = self.car # note, shallow copy
+                    self.autodrive_controller.set_car(self.car) # note, shallow copy
 
                 logger.info('initial car state is {}'.format(self.car.car_state))
 

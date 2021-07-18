@@ -14,7 +14,7 @@ class neural_mpc_settings():
     MIN_SPEED_MPS = 3.0  # minimum speed of car that controller will generate control (model is not trained below this speed)
 
     # controller uses this controller where neural_mpc_controller is not trained
-    LOW_SPEED_CONTROLLER_MODULE, LOW_SPEED_CONTROLLER_CLASS = 'pure_pursuit_controller_v2', 'src.controllers.pure_pursuit_controller_v2'
+    LOW_SPEED_CONTROLLER_MODULE, LOW_SPEED_CONTROLLER_CLASS = 'src.controllers.pure_pursuit_controller_v2', 'pure_pursuit_controller_v2'
 
     ##########################################
     #######         Experiments        #######

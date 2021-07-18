@@ -46,8 +46,8 @@ class pure_pursuit_controller_v2(car_controller):
 
         :param car: All car info: car_state and track
         """
+        super().__init__(my_car)
         self.car = my_car
-        cmd = None
         self.max_speed = MAX_SPEED
         self.d_min = D_MIN
         self.d_max = D_MAX
@@ -59,6 +59,7 @@ class pure_pursuit_controller_v2(car_controller):
 
         :return: car_command that will be applied to the car
         """
+        super().read(cmd)
         next_waypoint_id = self.car.track.get_nearest_waypoint_idx(car_state=self.car.car_state,
                                                                    x=self.car.car_state.position_m.x,
                                                                    y=self.car.car_state.position_m.y)

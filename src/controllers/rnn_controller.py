@@ -21,6 +21,7 @@ class rnn_controller(car_controller):
 
         :param car: All car info: car_state and track
         """
+        super().__init__(my_car)
         self.car = my_car
         cmd = car_command()
 
@@ -30,6 +31,7 @@ class rnn_controller(car_controller):
         Computes the next steering angle tying to follow the waypoint list
         :param cmd: the car_command to fill
         """
+        super(rnn_controller, self).read(cmd)
         next_waypoint_id = self.car.track.get_nearest_waypoint_idx(car_state=self.car.car_state,
                                                                    x=self.car.car_state.position_m.x,
                                                                    y=self.car.car_state.position_m.y)

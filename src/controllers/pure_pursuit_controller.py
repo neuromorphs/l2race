@@ -43,6 +43,7 @@ class pure_pursuit_controller(car_controller):
 
         :param car: All car info: car_state and track
         """
+        super().__init__(my_car)
         self.car = my_car
         self.max_speed = MAX_SPEED
         self.old_nearest_point_index = 0
