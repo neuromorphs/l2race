@@ -71,6 +71,11 @@ and to enable the service run:
 sudo systemctl daemon-reload
 ```
 
+Start the service at startup:
+```shell script
+update-rc.d l2race defaults
+```
+
 Check if the service runs automatically after reboot:
 ```shell script
 sudo reboot
