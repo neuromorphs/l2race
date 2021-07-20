@@ -1,4 +1,13 @@
 # How to setup the l2race server
+This is a guide how to set up the l2race remote server for the telluride workshop.
+
+## Requirements
+To install the l2race server, you will need:
+- Ubuntu machine with super user rights
+- Public IP / Internet address
+- Open ports: all UDP ports have to be open and point on the server
+- Conda/Miniconda
+
 
 ## Install l2race
 Login via SSH to the ubuntu machine and go to your home folder. 
@@ -28,6 +37,7 @@ python src/server.py
 
 ## Run l2race as service
 
+### Create a start script:
 Create the file start.sh in the home folder with the following content:
 
 ```txt
@@ -38,7 +48,7 @@ cd l2race
 ```
 
 
-Create a service:
+### Create a service:
 
 Create a service file called l2race.service in the directory /lib/systemd/system/
 with the following content:
