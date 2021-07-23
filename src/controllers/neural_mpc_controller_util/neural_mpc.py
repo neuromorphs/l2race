@@ -1,5 +1,8 @@
 import logging
 import sys
+from collections import deque
+
+import matplotlib
 
 from l2race_utils import my_logger, reload_class_if_modified
 
@@ -28,14 +31,16 @@ logger = my_logger(__name__)
 '''
 Can calculate the next control step due to the cost function
 '''
+from src.controllers.car_controller import car_controller
+from src.car import car
+from src.track import track
 
-
-class CarController:
+class CarController(car_controller):
     """
     Implementation of a neural MPPI MPC controller
     """
 
-    def __init__(self, track, predictor="euler", model_name=None):
+    def __init__(self, car: car, track: track, predictor="euler", model_name=None):
         """
         Initilalize the MPPI MPC car controller
         @param track{Track}: The track which the car should complete 
@@ -45,6 +50,7 @@ class CarController:
         """
 
         # Global
+        super().__init__(car)
         self.g = neural_mpc_settings()
 
         # Racing objects
@@ -74,9 +80,10 @@ class CarController:
         # Data collection
         self.collect_distance_costs = []
         self.collect_acceleration_costs = []
-
+        self.counter=0
         # Get track ready
         # self.update_trackline()
+        self.stats=self.mpc_stats(self, size=3000)
 
     def set_state(self, car_state, track):
         """
@@ -280,12 +287,12 @@ class CarController:
             0,
             self.g.INITIAL_STEERING_VARIANCE,
             self.g.NUMBER_OF_INITIAL_TRAJECTORIES * self.g.NUMBER_OF_STEPS_PER_TRAJECTORY,
-        )
+            )
         acceleration = np.random.normal(
             0,
             self.g.INITIAL_ACCELERATION_VARIANCE,
             self.g.NUMBER_OF_INITIAL_TRAJECTORIES * self.g.NUMBER_OF_STEPS_PER_TRAJECTORY,
-        )
+            )
 
         control_input_sequences = np.column_stack((steering, acceleration))
         control_input_sequences = np.reshape(
@@ -372,7 +379,7 @@ class CarController:
         angle_sum = np.sum(angles_squared)
 
         for state in trajectory:
-            discount = (number_of_states - 0.1 * index) / number_of_states
+            # discount = (number_of_states - 0.1 * index) / number_of_states
             # Discount is no longer used
 
             simulated_position = geom.Point(state[0], state[1])
@@ -382,11 +389,11 @@ class CarController:
 
             # Don't leave track!
             if distance_to_track > self.g.TRACK_WIDTH:
-                distance_cost += 1000
+                distance_cost += self.g.MAX_COST
             index += 1
 
-            if distance_to_track < self.g.TRACK_WIDTH / 3:
-                distance_cost = distance_cost / 3
+            if distance_to_track < self.g.TRACK_WIDTH / 3.:
+                distance_cost = distance_cost / 3.
             index += 1
 
         # Terminal Speed cost
@@ -394,8 +401,8 @@ class CarController:
         terminal_speed = terminal_state[3]
         terminal_speed_cost += abs(1 / terminal_speed)
 
-        if terminal_state[3] < 5:  # Min speed  = 5
-            terminal_speed_cost += 3 * abs(5 - terminal_speed)
+        if terminal_state[3] < self.g.MIN_SPEED_MPS:  # Min speed  = 5
+            terminal_speed_cost += 3 * abs(self.g.MIN_SPEED_MPS - terminal_speed)
 
         # Terminal Position cost
         terminal_position = geom.Point(terminal_state[0], terminal_state[1])
@@ -406,13 +413,23 @@ class CarController:
         angle_cost = angle_sum * terminal_state[3]
 
         # Total cost
+        weighted_distance_cost = self.g.DISTANCE_FROM_CENTERLINE_COST_WEIGHT * distance_cost
+        weighted_speed_cost = self.g.TERMINAL_SPEED_COST_WEIGHT * terminal_speed_cost
+        weighted_position_cost = self.g.TERMINAL_POSITION_COST_WEIGHT * terminal_position_cost
+        weighted_angle_cost = self.g.ANGLE_COST_WEIGHT * angle_cost
         cost = (
-                self.g.DISTANCE_FROM_CENTERLINE_COST_WEIGHT * distance_cost
-                + self.g.TERMINAL_SPEED_COST_WEIGHT * terminal_speed_cost
-                + self.g.TERMINAL_POSITION_COST_WEIGHT * terminal_position_cost
-                + self.g.ANGLE_COST_WEIGHT * angle_cost
+                weighted_distance_cost
+                + weighted_speed_cost
+                + weighted_position_cost
+                + weighted_angle_cost
         )
-
+        self.counter+=1
+        if self.stats is not None:
+            self.stats.add(cost, weighted_distance_cost,weighted_speed_cost,weighted_position_cost,weighted_angle_cost)
+        # if self.counter%10000==0:
+        #     logger.info(f'cost {cost:.2n} = dist {weighted_distance_cost:.2n} + speed {weighted_speed_cost:.2n} + pos {weighted_position_cost:.1n} + angle {weighted_angle_cost:.2n}')
+        if self.counter%self.stats.size==0:
+            self.stats.compute_and_show()
         return cost
 
     def control_step(self):
@@ -473,7 +490,7 @@ class CarController:
         return next_control_sequence
 
     """
-    draws the simulated history (position and speed) of the car into a plot for a trajectory distribution resp. the history of all trajectory distributions
+    draws the simulated history (position and speed) of the car into a fig for a trajectory distribution resp. the history of all trajectory distributions
     """
 
     def draw_simulated_history(self, waypoint_index=0, chosen_trajectory=[]):
@@ -545,3 +562,64 @@ class CarController:
 
         plt.savefig("live_rollouts.png")
         return plt
+
+
+    class mpc_stats():
+        def __init__(self, outer, size=1000):
+            """ Initialize the statistics
+            :param outer: the containing instance
+            :param size: how many stats to keep in circular RingBuffer
+            """
+            self.size=size
+            self.costs=deque(maxlen=size)
+            self.dist_costs=deque(maxlen=size)
+            self.speed_costs=deque(maxlen=size)
+            self.position_costs=deque(maxlen=size)
+            self.angle_costs=deque(maxlen=size)
+            self.fig:matplotlib.pyplot.figure=None
+            self.outer=outer
+
+        def add(self,cost, dist, speed, pos, ang):
+            self.costs.append(cost)
+            self.dist_costs.append(dist)
+            self.speed_costs.append(speed)
+            self.position_costs.append(pos)
+            self.angle_costs.append(ang)
+
+        def compute_and_show(self):
+            self.outer.car.client.set_paused(True)
+            # logger.info(f'plotting {len(self.costs)} samples')
+            # if self.fig is None:
+            #     self.fig, self.ax = plt.subplots()
+            # else:
+            #     self.fig.clf()
+            # log=False
+            # def pl(c,label=''): # https://stackoverflow.com/questions/28398200/matplotlib-plotting-transparent-histogram-with-non-transparent-edge
+            #     # increment and get the "props" cycle (and extract the color)
+            #     color = next(self.ax._get_lines.prop_cycler)["color"]
+            #     # 1. draw: inner area with alpha
+            #     self.ax.hist(np.array(c) ,bins=100,label=label,color=color, alpha=0.3)
+            # pl(self.costs,'cost')
+            # pl(self.dist_costs,'dist')
+            # pl(self.speed_costs,'speed')
+            # pl(self.position_costs,'position')
+            # pl(self.angle_costs,'angle')
+            # self.ax.legend()
+            # self.ax.set_xlabel('cost')
+            # self.ax.set_ylabel('frequency')
+            # self.fig.show()
+            def meas(c):
+                a=np.array(c)
+                mean=np.mean(a)
+                std=np.std(a)
+                # med=np.median(a)
+                return f'{mean:.2f} ± {std:.2f}'
+            all=[[self.costs,'cost'],[self.dist_costs,'dist'],[self.speed_costs,'speed'],[self.position_costs,'pos'],[self.angle_costs,'angle']]
+            s='Costs '
+            for a in all:
+                s=s+a[1]+': '+meas(a[0])+' '
+            logger.info(f'\n{s}')
+
+            self.outer.car.client.set_paused(False)
+
+

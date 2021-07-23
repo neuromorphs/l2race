@@ -129,10 +129,10 @@ for name in names:
     # snap = True should prevent color interpolations between areas of different colors
     # It doesn't work fine, is also not crucial - we use another picture to extract information about the track
     # Maybe it makes the boundaries of colours more sharp, maybe one can remove it. Not relevant now.
-    # This is the plot checking where is the starting point and direction of the contour point list
-    # plt.plot(x,y,       lw=1,  color = '#000000', marker='.', snap = True)
-    # plt.plot(x[0],y[0], lw=10, color = '#FFFF00', marker='o', snap = True)
-    # plt.plot(x[1],y[1], lw=10, color = '#778899', marker='o', snap = True)
+    # This is the fig checking where is the starting point and direction of the contour point list
+    # plt.fig(x,y,       lw=1,  color = '#000000', marker='.', snap = True)
+    # plt.fig(x[0],y[0], lw=10, color = '#FFFF00', marker='o', snap = True)
+    # plt.fig(x[1],y[1], lw=10, color = '#778899', marker='o', snap = True)
 
 
 
@@ -182,7 +182,7 @@ for name in names:
 
     fig, ax = plt.subplots()
 
-    # You have to plot the invisible start line, otherwise the picture rescales
+    # You have to fig the invisible start line, otherwise the picture rescales
     plt.plot((xs, xs), (y[0]-dy, y[0]+dy), linewidth=1,  color='0.0', snap=True)  # Start line (gray)
     plt.plot(x, y, linewidth=lw_sand,  color='0.2', snap=True)
     plt.plot(x, y, linewidth=lw_asphalt,  color='0.8', snap=True)
@@ -222,7 +222,7 @@ for name in names:
 
     fig, ax = plt.subplots()
 
-    # You have to plot the invisible start line, otherwise the picture rescales
+    # You have to fig the invisible start line, otherwise the picture rescales
 
     plt.plot(x, y, linewidth=lw_sand,  color='0.0', snap=True)
     plt.plot(x, y, linewidth=lw_asphalt,  color='0.0', snap=True)

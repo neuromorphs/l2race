@@ -166,8 +166,8 @@ for name in names:
         # Matplotlib code to check if you combined contours correctly
         # if name == 'track_6':
         #     plt.figure()
-        #     plt.plot(xl, yl, 'r.')
-        #     plt.plot(xr, yr, 'b.')
+        #     plt.fig(xl, yl, 'r.')
+        #     plt.fig(xr, yr, 'b.')
         #     plt.title(track_name)
         #     plt.show()
 

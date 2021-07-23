@@ -8,7 +8,7 @@ from l2race_utils import my_logger
 
 logger=my_logger(__name__)
 
-class car_controller(ABC):
+class car_controller(ABC): # this class is an abstract base class (ABC)
 
     def __init__(self, my_car: car = None)->None:
         """

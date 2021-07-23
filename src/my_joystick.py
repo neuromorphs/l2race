@@ -67,6 +67,7 @@ class my_joystick:
         self.run_user_model_pressed = False  # only used to log changes to/from running user model
 
         self._rev_was_pressed = False  # to go to reverse mode or toggle out of it
+        self._auto_was_pressed = False  # to toggle out of autodrive if we pressed Y on joy to enter it
         joystick.init()
         count = joystick.get_count()
         if count < 1:
@@ -245,15 +246,16 @@ class my_joystick:
             if self.joy.get_button(X)==1: user_input.restart_client = True  # X button - restart
             car_command.reverse = True if self.joy.get_button(B) == 1 else False  # B button - reverse
             if not car_command.reverse:  # only if not in reverse
-                if self.joy.get_button(Y) == 1:  car_command.autodrive_enabled = True  # Y button - autodrive
+                if self.joy.get_button(Y) == 1:  car_command.autodrive_enabled = True; self._auto_was_pressed=True  # Y button - autodrive
+                elif self.joy.get_button(Y)==0 and self._auto_was_pressed: car_command.autodrive_enabled=False; self._auto_was_pressed=False
             user_input.run_client_model = self.joy.get_button(A)  # A button - ghost
 
         elif 'Sony' in self.name:
             # Buttons X O Square Triangle
             if  self.joy.get_button(Square)==1: user_input.restart_client = True # Square button - restart
             car_command.reverse = True if self.joy.get_button(O) == 1 else False  # O button - reverse
-            if not car_command.reverse:  # only if not in reverse
-                if self.joy.get_button(Triangle) == 1: car_command.autodrive_enabled = True  # Triangle button - autodrive
+            if self.joy.get_button(Triangle) == 1:  car_command.autodrive_enabled = True; self._auto_was_pressed=True  # Y button - autodrive
+            elif self.joy.get_button(Triangle)==0 and self._auto_was_pressed: car_command.autodrive_enabled=False; self._auto_was_pressed=False
             user_input.run_client_model = self.joy.get_button(X)  # X button - ghost
 
         # Quit and Restart Client buttons

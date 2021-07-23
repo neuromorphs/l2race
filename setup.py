@@ -47,6 +47,7 @@ setup(
         'IPython',
         'cvxpy',
         'easygui',
+        'numpy-ringbuffer',
         # 'kivy', # UI using https://kivy.org/doc/stable/api-kivy.app.html#creating-an-application
         # 'reloading'
         ],

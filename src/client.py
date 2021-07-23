@@ -88,6 +88,7 @@ def select_track_dialog()->Optional[str]:
 
 
 class client:
+    CLIENT_MESSAGES={'pong','game_port','state','track_shutdown','string_message'}
 
     def __init__(self,
                  track_name: str = 'track',
@@ -166,6 +167,7 @@ class client:
         self.autodrive_controller = controller  # automatic self driving controller specified in constructor
         self.client_car_model = client_car_model  # our model of car
         self.ghost_car: Optional[car] = None  # this is car that we show when running self.client_car_model
+        self.paused=False
 
         self.lidar = lidar  # variable controlling if to show lidar mini and with what precission
         self.t_max = 0.0
@@ -308,7 +310,7 @@ class client:
                 self.gameSockAddr))
             if not self.spectate:
                 self.car = car(name=self.car_name, our_track=self.track_instance, screen=self.screen,
-                               client_ip=self.gameSockAddr)
+                               client_ip=self.gameSockAddr, client=self)
 
                 if self.autodrive_controller:
                     self.autodrive_controller.set_car(self.car) # note, shallow copy
@@ -439,6 +441,11 @@ class client:
         if self.user_input.toggle_recording:
             self.recording_enabled = not self.recording_enabled
             logger.info(f'toggled recording_enabled={self.recording_enabled}')
+
+        if self.user_input.toggle_paused:
+            self.set_paused(not self.paused)
+
+            return
 
         if self.user_input.open_playback_recording:
             file=fileopenbox(msg='Select .csv recording file',
@@ -584,7 +591,8 @@ class client:
             color = (255, 10, 10)
         else:
             color = None
-        self.render_multi_line(str(self.server_message), 10, SCREEN_HEIGHT_PIXELS - 50, color=color)
+        if self.server_message is not None:
+            self.render_multi_line(str(self.server_message), 5, SCREEN_HEIGHT_PIXELS - 30, color=color)
 
     def draw_lidar(self) -> None:
         if self.lidar and self.car is not None:
@@ -649,7 +657,7 @@ class client:
                                                image_name='car_other.png',
                                                our_track=self.track_instance,
                                                client_ip=s.static_info.client_ip,
-                                               screen=self.screen)
+                                               screen=self.screen, client=self)
             self.spectate_cars[name].car_state = s  # set its state
 
         # manage recordings
@@ -691,13 +699,11 @@ class client:
             logger.warning('{}, will try to look for it again'.format(payload))
             self.gotServer = False
         elif msg == 'string_message':
-            logger.info('recieved message "{}"'.format(payload))
+            logger.info('recieved string message "{}"'.format(payload))
             self.last_server_message_time = time.time()
             self.server_message = payload
         else:
-            logger.warning(
-                'unexpected msg {} with payload {} received from server (should have gotten "car_state" message)'.format(
-                    msg, payload))
+            logger.warning(f'unexpected msg {msg} with payload {payload} received from server (should have gotten one of {client.CLIENT_MESSAGES})')
 
     def replay(self, filename=None) -> bool:
         """
@@ -794,7 +800,7 @@ class client:
 
         # Define car and track
         self.track_instance = track(self.track_name)
-        self.car = car(name=self.car_name, our_track=self.track_instance, screen=self.screen)
+        self.car = car(name=self.car_name, our_track=self.track_instance, screen=self.screen, client=self)
 
         # decimate data to make it play faster
         # data = data.iloc[::4, :]
@@ -896,6 +902,17 @@ class client:
             except RuntimeError as e:
                 logger.warning('Could not open data recording; caught {}'.format(e))
 
+    def set_paused(self, paused:bool)->None:
+        """ Sets the paused state, which informs server to freeze time
+        :param paused: boolean
+        """
+        self.paused= paused
+        if self.paused:
+            self.send_to_server(self.gameSockAddr, 'pause', self.car_command)
+        else:
+            self.send_to_server(self.gameSockAddr, 'unpause', self.car_command)
+
+
 def main():
     args = get_args()
     try:
@@ -946,7 +963,7 @@ def main():
 
 
     game = client(track_name=args.track_name,
-                  controller=controller,
+                  controller=controller,  # IMPORTANT, we must call set_car on the controller later, after server specifies our car
                   client_car_model=car_model,
                   spectate=args.spectate,
                   car_name=car_name,

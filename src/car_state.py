@@ -218,8 +218,8 @@ class car_state:
 
         :returns: None if OK, message if model determined to have gone unstable
         """
-        if np.abs(self.body_angle_deg)>1e6:
-            s=f'body angle  {self.body_angle_deg:.1f} is too large'
+        if np.abs(self.body_angle_deg)>20*360:
+            s=f'body angle  {self.body_angle_deg:.1f} deg is too large'
             logger.error(s)
             return s
         return None

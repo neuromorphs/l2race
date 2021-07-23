@@ -97,15 +97,22 @@ TRACKS_FOLDER='./media/tracks/' # location of tracks relative to root of l2race
 HELP="""Keyboard commands:
     drive with LEFT/UP/RIGHT/DOWN or AWDS keys
     hold SPACE pressed to reverse with drive keys\n
-    y turns on autodrive while key is pressed (if autodrive class specified)
-    r resets car
+    
+    r resets car to starting line
     R restarts client from scratch (if server went down)
+    p toggles pause (server time is frozen for all clients)
+    
     T select new track
+    
     l toggles recording logging to uniquely-named CSV file
     ^o opens a file dialog to open a recording and play it back
     ^w close recording playback
+    
+    y turns on autodrive while key is pressed (if autodrive class specified)
+    Y toggles autodrive mode to run without holding down key
+    
     ESC quits
-    h|? shows this help
+    h|?|F1 shows this help
     """
 
 #######################################################

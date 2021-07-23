@@ -29,6 +29,8 @@ logger = my_logger(__name__)
 SKIP_CHECK_SERVER_QUEUE = 0  # use to reduce checking queue, but causes timeout problems with adding car if too big. 0 to disable
 MAX_TIMESTEP = 0.1  # Max timestep of car model simulation. We limit it to avoid instability
 
+SERVER_MESSAGES={'ping','add_car','add_spectator'}
+
 def get_args():
     parser = argparse.ArgumentParser(
         description='l2race client: run this if you are a racer.',
@@ -54,6 +56,8 @@ def send_message(socket: socket, lock: mp.Lock, client_addr: Tuple[str, int], ms
 
 
 class track_server_process(mp.Process):
+
+    TRACK_SERVER_MESSAGES={'command','send_states','restart_car','remove_car','remove_spectator','pause','unpause'}
     ''' The main process that runs each track.'''
     def __init__(self,
                  queue_from_server: mp.Queue,
@@ -78,6 +82,8 @@ class track_server_process(mp.Process):
         self.exit = False
         self.last_message_time = timer()  # used to terminate ourselves if no messages for some time
         self.skip_checking_server_queue_count = 0
+        self.paused=False # client can set True to pause time
+        self.paused_duration=0. # time we were paused to subtract from time
 
         self.allow_off_track = allow_off_track
 
@@ -125,22 +131,27 @@ class track_server_process(mp.Process):
             raise e
         self.track_socket_address = self.track_socket.getsockname()  # get the port info for our local port
         logger.info('for track {} bound free local UDP port address {}'.format(self.track_name, self.local_port_number))
-        last_time = timer()
+        last_time = timer()-self.paused_duration
 
         # Track process makes a single socket bound to a single port for all the clients (cars and spectators).
         # To handle multiple clients, when it gets a message from a client, it responds to the client using the client address.
 
         looper = loop_timer(MODEL_UPDATE_RATE_HZ)
-        looper.LOG_INTERVAL_SEC=60
+        looper.LOG_INTERVAL_SEC=180
         while not self.exit:
             now = timer()
-            dt = now - last_time
-            last_time = now
             if now - self.last_message_time > KILL_ZOMBIE_TRACK_TIMEOUT_S:
                 logger.warning('track process {} got no input for {}s, terminating'.format(self.track_name, KILL_ZOMBIE_TRACK_TIMEOUT_S))
                 self.exit = True
                 self.cleanup()
                 continue
+            dt = now - last_time
+            last_time = now
+
+            if self.paused:
+                self.paused_duration+=dt
+                pass
+
             self.process_server_queue()  # 'add_car' 'add_spectator'
 
             # Here we make the constrained real time from real time
@@ -153,17 +164,18 @@ class track_server_process(mp.Process):
 
             # now we do main simulation/response
             # update all the car models
-            for client, model in self.car_dict.items():
-                if isinstance(model, car_model):
-                    model.update(dt)  # car_state time updates already here
-                    model.time += dt  # car_model time updates here
-                    # poll for UDP messages
-            # update the global list of car states that cars share
-            self.car_states_list.clear()
-            for model in self.car_dict.values():
-                # put copy of each state in list but strip off the contained list of other car states
-                model_copy: car_state = copy.copy(model.car_state)
-                self.car_states_list.append(model_copy)
+            if not self.paused:
+                for client, model in self.car_dict.items():
+                    if isinstance(model, car_model):
+                        model.update(dt)  # car_state time updates already here
+                        model.time += dt  # car_model time updates here
+                        # poll for UDP messages
+                # update the global list of car states that cars share
+                self.car_states_list.clear()
+                for model in self.car_dict.values():
+                    # put copy of each state in list but strip off the contained list of other car states
+                    model_copy: car_state = copy.copy(model.car_state)
+                    self.car_states_list.append(model_copy)
 
 
             # process incoming UDP messages from clients, e.g. to update command
@@ -239,8 +251,16 @@ class track_server_process(mp.Process):
         elif msg == 'remove_spectator':
             logger.info('removing spectator {} from track {}'.format(client, self.track_name))
             self.spectator_list.remove(client)
+        elif msg=='pause':
+            self.paused=True
+            self.send_client_string_message(client,'server is paused')
+            pass
+        elif msg=='unpause':
+            self.send_client_string_message(client,'server is unpaused')
+            self.paused=False
+            pass
         else:
-            logger.warning('unknown cmd {} received; ignoring'.format(msg))
+            logger.warning(f'unknown cmd {msg} received; ignoring; must be one of {track_server_process.TRACK_SERVER_MESSAGES}')
 
     def send_states(self, client):
         msg = 'state'
@@ -451,7 +471,7 @@ def main():
             track_name = payload
             add_spectator_to_track(track_name, client_addr)
         else:
-            logger.warning('model server received unknown cmd={}'.format(cmd))
+            logger.warning(f'model server received unknown cmd={cmd}; must be one of {SERVER_MESSAGES}')
 
 
 

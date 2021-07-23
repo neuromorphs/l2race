@@ -16,3 +16,4 @@ class user_input():
         self.toggle_recording=False # record data
         self.open_playback_recording=False
         self.close_playback_recording=False
+        self.toggle_paused=False

@@ -53,7 +53,8 @@ class car:
                  image_name='car_red',
                  our_track:Optional[track]=None,
                  screen:pygame.surface=None,
-                 client_ip:Tuple[str,int]=None):
+                 client_ip:Tuple[str,int]=None,
+                 client=None):
         ''' Constructs a new car.
 
         :param name: - the car name
@@ -61,6 +62,7 @@ class car:
         :param our_track: - existing track() instance
         :param screen: - the pygame drawing surface
         :param client_ip: - our IP address
+        :param client: the containing client that runs this car
         '''
         self.car_state:car_state = car_state(name=name, client_ip=client_ip)
 
@@ -69,6 +71,8 @@ class car:
         self.image=loadAndScaleCarImage(image_name=image_name, length_m=self.car_state.static_info.length_m, screen=screen)
         pygame.freetype.init()
         self.game_font = pygame.freetype.SysFont(name = GAME_FONT_NAME, size = GAME_FONT_SIZE)
+        self.client=client # use for car to control client, e.g. to pause server for lengthy calculations or analysis
+
         # self.rect = self.image.get_rect()
 
     def draw(self, screen):

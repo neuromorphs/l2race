@@ -46,7 +46,7 @@ class neural_mpc_controller(car_controller):
         self.car = my_car
         self.g=neural_mpc_settings()
         # self.car_controller = CarController(None, predictor="nn", model_name="Dense-128-128-128-128-invariant-10")
-        self.car_controller = CarController(None, predictor="nn", model_name="Dense-128-128-128-128-high-speed")
+        self.car_controller = CarController(car=my_car, track=None, predictor="nn", model_name="Dense-128-128-128-128-high-speed") # must set track later
         self.low_speed_controller:Optional[car_controller]=None
         try:
             mod = importlib.import_module(self.g.LOW_SPEED_CONTROLLER_MODULE)
@@ -94,6 +94,8 @@ class neural_mpc_controller(car_controller):
         cmd.throttle = min(next_control_input[1],1) # throttle can be negative to brake
 
     def set_car(self,car:car) ->None:
-        super(neural_mpc_controller, self).set_car(car)
+        super().set_car(car)
+        if self.car_controller is not None:
+            self.car_controller.set_car(car)
         if self.low_speed_controller is not None:
             self.low_speed_controller.set_car(car)

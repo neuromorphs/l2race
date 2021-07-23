@@ -4,7 +4,7 @@ from typing import Tuple
 
 import easygui
 import pygame
-from pygame import KMOD_CTRL, KEYDOWN, KEYUP, K_QUESTION, K_h, KMOD_SHIFT, K_r, K_ESCAPE, K_y, K_l, K_o, K_w, K_t
+from pygame import KMOD_CTRL, KEYDOWN, KEYUP, K_QUESTION, K_h, KMOD_SHIFT, K_r, K_ESCAPE, K_y, K_l, K_o, K_w, K_t, K_p
 
 from l2race_utils import my_logger
 from l2race_settings import *
@@ -66,6 +66,7 @@ class my_keyboard:
         user_input.open_playback_recording=False
         user_input.close_playback_recording=False
         user_input.choose_new_track=False
+        user_input.toggle_paused=False
 
         for event in pygame.event.get(): # https://riptutorial.com/pygame/example/18046/event-loop
             if event.type == pygame.QUIT:
@@ -77,7 +78,7 @@ class my_keyboard:
                 # definitely some type of keyboard event occured, something changed, process these types here
                 if type==KEYUP:
                     # process key typed events
-                    if key==K_QUESTION or key==K_h:
+                    if key==K_QUESTION or key==K_h or key==pygame.K_F1:
                         show_help()
                     elif key==K_r:
                         if  mod&KMOD_SHIFT==0:
@@ -90,21 +91,28 @@ class my_keyboard:
                         user_input.quit = True
                         logger.info(f'ESC key typed, quitting')
                     elif key==K_l:
-                        user_input.toggle_recording= not user_input.toggle_recording
+                        user_input.toggle_recording= True
                     elif key==K_o and mod&KMOD_CTRL!=0:
                         user_input.open_playback_recording=True
                         logger.info(f'opening recording for playback')
                     elif key==K_w and mod&KMOD_CTRL!=0:
                         user_input.close_playback_recording=True
                         logger.info('closing playback')
-                    elif key==K_y:
+                    elif key==K_y and mod&KMOD_SHIFT!=0:
+                        car_command.autodrive_enabled=not car_command.autodrive_enabled
+                        logger.info('disabled autodrive')
+                    elif key==K_y and mod&KMOD_SHIFT==0:
                         car_command.autodrive_enabled=False
                         logger.info('disabled autodrive')
                     elif key==K_t:
                         user_input.choose_new_track=True
                         logger.info('user wants to select new track')
+                    elif key==K_p:
+                        user_input.toggle_paused=True
+                        logger.info('user toggled pause')
+
                 elif type==KEYDOWN:
-                    if key==K_y:
+                    if key==K_y and mod&KMOD_SHIFT==0: # k without shift held pushed down
                         car_command.autodrive_enabled=True
                         logger.info('enabled autodrive')
 

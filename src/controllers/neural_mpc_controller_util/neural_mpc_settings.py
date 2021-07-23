@@ -33,7 +33,7 @@ class neural_mpc_settings():
     ##########################################
 
     # Cost function weights
-    DISTANCE_FROM_CENTERLINE_COST_WEIGHT = 1
+    DISTANCE_FROM_CENTERLINE_COST_WEIGHT = 1.
     TERMINAL_SPEED_COST_WEIGHT = 5000
     TERMINAL_POSITION_COST_WEIGHT = 3
     ANGLE_COST_WEIGHT = 2 # weights
@@ -44,7 +44,7 @@ class neural_mpc_settings():
     # CONTROLLER_MODEL_NAME = "Dense-128-128-128-128-invariant-10"  # For small race track: M_PER_PIXEL = 0.1, speed up to 15m/s
 
     NUMBER_OF_STEPS_PER_TRAJECTORY = 10  # MPC horizon in steps TODO what are these?
-    INVERSE_TEMP = 5 # TODO ??
+    INVERSE_TEMP = 100 # TODO ??
 
     # Initializing parameters
     NUMBER_OF_INITIAL_TRAJECTORIES = 150  # number of rollouts per control step
@@ -64,7 +64,7 @@ class neural_mpc_settings():
     ANGLE_COST_INDEX_STOP = 15  # TODO ??
 
     # Relations to car
-    MAX_COST = 1000  # Cost that is set to infinity (weights = 0)
+    MAX_COST = 1000.  # Cost that is set to infinity (weights = 0)
 
     ##########################################
     #########       NN Training     ##########

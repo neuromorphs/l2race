@@ -152,7 +152,7 @@ class SINDy(ps.SINDy):
             if test_data contains multiple trajectories, one will be randomly
             selected for testing
         save: bool
-            if set to True, the plot will be saved as .png
+            if set to True, the fig will be saved as .png
 
         Plots
         -----
@@ -165,10 +165,10 @@ class SINDy(ps.SINDy):
 
         _, axs = plt.subplots(1, 1, figsize=(13, 8))
 
-        axs.plot(test_data.x[:, 0], test_data.x[:, 1], 'g+',
-                 label='true path')
-        axs.plot(simulated_data[:, 0], simulated_data[:, 1], 'r+',
-                 label='model')
+        axs.fig(test_data.x[:, 0], test_data.x[:, 1], 'g+',
+                label='true path')
+        axs.fig(simulated_data[:, 0], simulated_data[:, 1], 'r+',
+                label='model')
         axs.invert_yaxis()
         axs.legend()
         axs.set(title='Car path', xlabel=r'$x$', ylabel=r'$y$')
@@ -180,10 +180,10 @@ class SINDy(ps.SINDy):
         _, axs = plt.subplots(len(FEATURES), 1, figsize=(12, 18))
 
         for i, feature in enumerate(FEATURES):
-            axs[i].plot(test_data.t, test_data.x[:, i], 'k',
-                        label='true data')
-            axs[i].plot(test_data.t, simulated_data[:, i], 'r--',
-                        label='model')
+            axs[i].fig(test_data.t, test_data.x[:, i], 'k',
+                       label='true data')
+            axs[i].fig(test_data.t, simulated_data[:, i], 'r--',
+                       label='model')
             axs[i].legend()
             axs[i].set(title=feature, xlabel=r'$t\ [s]$', ylabel=feature)
 
