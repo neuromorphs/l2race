@@ -26,7 +26,8 @@ def client_args(parser):
     clientOutputGroup.add_argument("--replay", nargs='?', const='last', type=str, help="Replay one or more CSV recordings. If 'last' or no file is supplied, play the most recent recording in the '{}' folder.".format(DATA_FOLDER_NAME))
 
     clientControllerGroup = parser.add_argument_group('Control/Modeling arguments:')
-    clientControllerGroup.add_argument("--autodrive",type=str,nargs=2, default=[AUTODRIVE_MODULE,AUTODRIVE_CLASS],help="The autodrive module and class to be run when autodrive is enabled on controller. Pass it the module (i.e. folder.file without .py) and the class within the file.")
+    clientControllerGroup.add_argument("--autodrive_controller",type=str,nargs=2, default=[AUTODRIVE_MODULE,AUTODRIVE_CLASS],help="The autodrive module and class to be run when autodrive is enabled on controller. Pass it the module (i.e. folder.file without .py) and the class within the file.")
+    clientControllerGroup.add_argument("--autodrive_initially_on", type=bool, default=AUTODRIVE_INITIALLY_ON, help="Turn on autodrive at startup.")
     clientControllerGroup.add_argument("--carmodel", type=str, nargs=2, default=[CAR_MODEL_MODULE, CAR_MODEL_CLASS], help="Your client car module and class and class to be run as ghost car when model evaluation is enabled on controller. Pass it the module (i.e. folder.file without .py) and the class within the file.")
 
     clientSensorGroup = parser.add_argument_group('Sensor arguments:')

@@ -51,7 +51,7 @@ UPNP_LEASE_TIME = 1200  # the lease time for these ports in seconds
 
 AUTODRIVE_MODULE='src.controllers.neural_mpc_controller'
 AUTODRIVE_CLASS = 'neural_mpc_controller'
-
+AUTODRIVE_INITIALLY_ON=False # set to true to enable at startup
 
 
 # your model class that takes car state and control and predicts the next state given a future time.
@@ -150,7 +150,6 @@ MODEL_UPDATE_RATE_HZ = 50  # rate that server attempts to update all the car mod
 MAX_CARS_PER_TRACK = 6  # only this many cars can run on each track
 MAX_SPECTATORS_PER_TRACK = 10  # only this many spectators can connect to each track
 KS_TO_ST_SPEED_M_PER_SEC = 2.0  # transistion speed from KS to ST model types
-
 
 ### Constants for RNN0 model:
 import pandas as pd

@@ -95,6 +95,7 @@ class client:
                  spectate: bool = False,
                  car_name: str = CAR_NAME,
                  controller: car_controller = None,
+                 autodrive_initially_on=AUTODRIVE_INITIALLY_ON,
                  client_car_model : client_car_model= None,
                  server_host: str = SERVER_HOST,
                  server_port: int = SERVER_PORT,
@@ -163,6 +164,7 @@ class client:
         self.car: Optional[car] = None  # will make it later after we get info from server about car
         self.input: keyboard_and_joystick_input = keyboard_and_joystick_input()
         self.car_command: car_command = car_command() # current car_command
+        self.car_command.autodrive_enabled=autodrive_initially_on
         self.user_input: user_input = user_input() # current user_input
         self.autodrive_controller = controller  # automatic self driving controller specified in constructor
         self.client_car_model = client_car_model  # our model of car
@@ -463,6 +465,7 @@ class client:
                 self.__init__(car_name=self.car_name,
                               track_name=self.track_name,
                               controller=self.autodrive_controller,
+                              autodrive_initially_on=car_command.autodrive_enabled,
                               client_car_model=self.client_car_model,
                               server_host=self.server_host,
                               server_port=self.server_port)
@@ -868,7 +871,9 @@ class client:
         self.stop_recording()
         logger.info('sending message to restart car to server')
         self.send_to_server(self.gameSockAddr, 'restart_car', message)
+        auto=self.car_command.autodrive_enabled
         self.car_command=car_command() # override in case server does not reset the autodrive_enabled flag TODO not clear why needed
+        self.car_command.autodrive_enabled=auto
         if self.recording_enabled:
             self.start_recording()
 
@@ -916,12 +921,12 @@ class client:
 def main():
     args = get_args()
     try:
-        mod = importlib.import_module(args.autodrive[0])
-        cl=getattr(mod, args.autodrive[1])
+        mod = importlib.import_module(args.autodrive_controller[0])
+        cl=getattr(mod, args.autodrive_controller[1])
         controller = cl() # set it to a class in globals.py
         logger.info('using autodrive controller {}'.format(controller))
     except Exception as e:
-        logger.error('cannot import AUTODRIVE_CLASS named "{}" from module AUTODRIVE_MODULE named "{}", got exception {}'.format(args.autodrive[1], args.autodrive[0],e))
+        logger.error('cannot import AUTODRIVE_CLASS named "{}" from module AUTODRIVE_MODULE named "{}", got exception {}'.format(args.autodrive_controller[1], args.autodrive_controller[0],e))
         controller=None
 
     try:
@@ -964,6 +969,7 @@ def main():
 
     game = client(track_name=args.track_name,
                   controller=controller,  # IMPORTANT, we must call set_car on the controller later, after server specifies our car
+                  autodrive_initially_on=args.autodrive_initially_on,
                   client_car_model=car_model,
                   spectate=args.spectate,
                   car_name=car_name,
