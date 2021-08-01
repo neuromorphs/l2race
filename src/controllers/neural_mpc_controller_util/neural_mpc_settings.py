@@ -26,7 +26,7 @@ class neural_mpc_settings():
     #########       Car & Track     ##########
     ##########################################
 
-    TRACK_WIDTH = 2  # TODO why not from track info?
+    TRACK_WIDTH = 30  # TODO why not from track info?
 
     ##########################################
     ####   Neural MPC Car Controller     #####

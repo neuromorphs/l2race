@@ -134,7 +134,7 @@ M_PER_PIXEL = 0.20  # Overall scale parameter: 0.2 makes the cars really small o
 MODEL = vehicle_dynamics_st # vehicle_dynamics_ks vehicle_dynamics_ST vehicle_dynamics_MB
 SOLVER = 'euler' # 'RK23'  # DOP853 LSODA BDF RK45 RK23 # faster, no overhead but no checking
 PARAMETERS = parameters_vehicle2()
-EULER_TIMESTEP_S=1e-3 # fixed timestep for Euler solver (except for last one)
+EULER_TIMESTEP_S=.2e-3 # fixed timestep for Euler solver (except for last one)
 RTOL = 1e-2 # tolerance value for RK and other gear-shifting solvers (anything but euler)
 ATOL = 1e-4
 
@@ -145,6 +145,7 @@ CLIENT_PORT_RANGE = '50010-50020'  # range of ports used for client that server 
 KILL_ZOMBIE_TRACK_TIMEOUT_S = 10  # if track process gets no input for this long, it terminates itself
 FRICTION_FACTOR = .5  # overall friction parameter multiplier for some models, not used for now
 SAND_SLOWDOWN = 0.985  # If in sand, at every update the resulting velocity is multiplied by the slowdown factor
+WATER_SLOWDOWN_RELATIVE_TO_SAND = 1.5  # If in sand, at every update the resulting velocity is multiplied by the slowdown factor
 REVERSE_TO_FORWARD_GEAR = 0.5  # You get less acceleration on reverse gear than while moving forwards.
 MODEL_UPDATE_RATE_HZ = 50  # rate that server attempts to update all the car models for each track process (models run serially in each track process)
 MAX_CARS_PER_TRACK = 6  # only this many cars can run on each track
