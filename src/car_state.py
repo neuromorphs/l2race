@@ -71,7 +71,7 @@ class car_state:
         self.rw_ang_speed_hz=0.0 # rear wheel rotation rate in Hz  - only for drifter std and mb
 
         # from track
-        self.surface_type=20 # asphalt starting value, from track.py
+        self.surface_type=20 # asphalt starting value, from track.py TODO use dict in track for surface types
 
         self.static_info=self.static_info(name=name,length_m=length_m,width_m=width_m,client_ip=client_ip)
 

@@ -63,7 +63,6 @@ class CarController(car_controller):
         # self.parameters = parameters_vehicle1()
         self.parameters = parameters_vehicle2()
         self.tEulerStep = self.g.T_EULER_STEP  # [s] One step of solving the ODEINT or EULER
-        self.g = neural_mpc_settings()
 
         # Control with neural network
         if predictor == "nn":

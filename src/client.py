@@ -465,7 +465,7 @@ class client:
                 self.__init__(car_name=self.car_name,
                               track_name=self.track_name,
                               controller=self.autodrive_controller,
-                              autodrive_initially_on=car_command.autodrive_enabled,
+                              autodrive_initially_on=self.car_command.autodrive_enabled,
                               client_car_model=self.client_car_model,
                               server_host=self.server_host,
                               server_port=self.server_port)
