@@ -1,16 +1,18 @@
-from setuptools import setup, find_packages
 # from Cython.Build import cythonize
 import sys
+
+from setuptools import setup, find_packages
+
 sys.path.insert(0, 'src/')
 
 # run with
 # python setup.py build_ext --inplace
 
-with open("README.md", "r") as fh:
+with open("README.md", "r") as fh: # ignore non encodable characters (remove them)
     long_description = fh.read()
 
 setup(
-    name="l2race", # Replace with your own username
+    name="l2race",  # Replace with your own username
     version="2.0.1",
     author="Tobi Delbruck, Marcin Paluch, Antonio Rios",
     author_email="tobi@ini.uzh.ch,marcin.paluch1994@gmail.com,arios@us.es",
@@ -20,7 +22,7 @@ setup(
     url="https://github.com/neuromorphs/l2race",
     packages=find_packages(),
     # scripts=['client.py','server.py'],
-    entry_points = {
+    entry_points={
         'console_scripts': ['l2race-client=src.client:main', 'l2race-server=src.server:main']
     },
     install_requires=[
@@ -38,19 +40,19 @@ setup(
         # 'scikit-learn-extras',
         'upnpy',
         'pandas',
-        'geos', # needed since shapely does not install geos_c.dll needed, solved by conda install geos
+        'geos',  # needed since shapely does not install geos_c.dll needed, solved by conda install geos
         'shapely',
         'tensorflow>=2.5',
         'typing-extensions>=3.7.4',
         # 'pysindy',
-        'torch', # go to https://pytorch.org/get-started/locally/ for correct pip or conda command generator
+        'torch',  # go to https://pytorch.org/get-started/locally/ for correct pip or conda command generator
         'IPython',
         'cvxpy',
         'easygui',
         'numpy-ringbuffer',
         # 'kivy', # UI using https://kivy.org/doc/stable/api-kivy.app.html#creating-an-application
         # 'reloading'
-        ],
+    ],
     classifiers=[
         "Programming Language :: Python :: 3",
         "License :: OSI Approved :: CC License",
