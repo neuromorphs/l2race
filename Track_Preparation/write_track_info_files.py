@@ -49,18 +49,18 @@ names = ['sebring',
 WAYPOINT_SPACING=20 # spacing in pixels (roughly) between waypoints
 
 # each track has a direction that cars should drive on, which determines waypoint ordering
-track_direction={'sebring':track.CCW,
+track_direction_dict={'sebring':track.CCW,
                  'oval':track.CW,
                  'oval_easy':track.CW,
                  'track_1':track.CW,
                  'track_2':track.CW,
                  'track_3':track.CW,
                  'track_4':track.CCW,
-                 'track_5':track.CCW,
+                 'track_5':track.CW,
                  'track_6':track.CCW
-                 }
+                      }
 
-start_up_tracks = ['track_1', 'track_2', 'track_3', 'track_5']
+start_at_top_tracks = ['track_1', 'track_2', 'track_3', 'track_5']
 
 # Functions to calculate angles between two vectors
 # https://stackoverflow.com/questions/2827393/angles-between-two-n-dimensional-vectors-in-python
@@ -100,10 +100,13 @@ def angle_between(v1, v2):
     return angle
     # return (angle_raw-360.0*np.rint(angle_raw/360.0))  # Shift range and reverse convention
 
+tr=track() # construct empty class to use class variables
 
 for name in names:
 
-    print('Now processing: ' + name)
+    track_direction=track_direction_dict[name]
+    print(f'*** Now processing: {name} which is a {track_direction} track')
+
 
     # Load gray version of the track picture and recover the grayscale format.
     fn='./tracks_gray/'+name+'_G.png'
@@ -111,19 +114,18 @@ for name in names:
     im = cv.imread(fn, cv.IMREAD_UNCHANGED)
     im = cv.cvtColor(im, cv.COLOR_BGR2GRAY)
 
-    track=track()
 
     # Make boundaries between regions sharp (matplotlib applies color interpolation between regions of different color)
     # And assign new values to the different regions:
     # 0 - water
     # 10 - sand (8 - left and 12 - right boundary)
-    # track.ASPHALT - asphalt (18 - left and 22 - right boundary)
-    # 30 - middle line
-    # track.WAYPOINT - checkpoints
-    im[(im < track.WATER)] = 0  # water
-    im[(im < 100) & (im >= 10)] = track.SAND  # sand
-    im[(im < 255) & (im >= 100)] = track.ASPHALT # asphalt
-    im[(im == 255)] = track.CENTERLINE
+    # tr.ASPHALT - asphalt (18 - left and 22 - right boundary)
+    # 30 - centerline
+    # tr.WAYPOINT - waypoints
+    im[(im < 10)] = tr.WATER  # water
+    im[(im < 100) & (im >= 10)] = tr.SAND  # sand
+    im[(im < 255) & (im >= 100)] = tr.ASPHALT # asphalt
+    im[(im == 255)] = tr.WAYPOINT
 
     # Extract the middle line
     # We assume (from experience) that the middle line after boarder sharpening (above) is "never much broader" than 1 pixel
@@ -141,8 +143,8 @@ for name in names:
 
     # Downgrade the points lying on this newly extracting middle line to 30
     for i in range(len(x)):
-        if im[y[i], x[i]] == track.WAYPOINT:
-            im[y[i], x[i]] = track.CENTERLINE
+        if im[y[i], x[i]] == tr.WAYPOINT:
+            im[y[i], x[i]] = tr.CENTERLINE
         # We do not get other cases - this confirms that we pick the contour from the right points -
         # - inside the old middle line
         elif im[y[i], x[i]] == 2000:
@@ -150,14 +152,14 @@ for name in names:
         else:
             im[y[i], x[i]] = -10
 
-    # Degrade other points from the middle line to be a normal asphalt (track.ASPHALT)
-    im[(im == track.WAYPOINT)] = track.ASPHALT
+    # Degrade other points from the middle line to be a normal asphalt (tr.ASPHALT)
+    im[(im == tr.WAYPOINT)] = tr.ASPHALT
 
     # Draw boundaries of asphalt and sand regions
 
     imA = np.copy(im)  # "A(sphalt)" an image copy to extract boundaries of asphalt region
-    imA[imA >= track.ASPHALT] = 100
-    imA[imA < track.ASPHALT] = 0
+    imA[imA >= tr.ASPHALT] = 100
+    imA[imA < tr.ASPHALT] = 0
 
     imS = np.copy(im)  # "S(and)" an image copy to extract boundaries of sand region
     imS[imS >= 10] = 100
@@ -199,7 +201,7 @@ for name in names:
         # Manual correction for our sand region, if there are more contours than 2
 
         if len(contours_b) > 2:
-            print('You have more than 2 contours in track named' + track_name)
+            print('You have more than 2 contours in track named ' + track_name)
             pass
             # left: 0, 1
             # right: 3, 2
@@ -234,8 +236,8 @@ for name in names:
         return xl, yl, xr, yr
 
 
-    make_boundaries(im, imA, b_left=track.ASPHALT_LEFT, b_right=track.ASPHALT_RIGHT, track_name=name)
-    make_boundaries(im, imS, b_left=track.SAND_LEFT, b_right=track.SAND_RIGHT, track_name=name)
+    make_boundaries(im, imA, b_left=tr.ASPHALT_LEFT, b_right=tr.ASPHALT_RIGHT, track_name=name)
+    make_boundaries(im, imS, b_left=tr.SAND_LEFT, b_right=tr.SAND_RIGHT, track_name=name)
     del imA, imS
 
     # Find start line -- assume it is perfectly vertical
@@ -250,10 +252,10 @@ for name in names:
     # find the boundary to the right
     (Y, X) = np.where(im_start > 0)
 
-    if name in start_up_tracks:
-        X_start_idx = np.where(X == min(X))  # Clockwise, start up
+    if name in start_at_top_tracks:
+        X_start_idx = np.where(X == min(X))  # Clockwise, start line at top (small y)
     else:
-        X_start_idx = np.where(X == max(X))  # Clockwise, start down
+        X_start_idx = np.where(X == max(X))  # CCW, start line at bottom (large y)
 
     Y = Y[X_start_idx]
     X = X[X_start_idx]
@@ -271,21 +273,28 @@ for name in names:
     # Actually it is enough to save dy. The x position will be given by the first checkpoint
 
     # Find the point on the start line and on the middle line
-    (Y, X) = np.where(((im_start > 0) & (im == track.CENTERLINE)))
-    pass
+    (Y, X) = np.where(((im_start > 0) & (im == tr.CENTERLINE)))
 
     idx_start = np.array(np.where((x == X) & (y == Y))).squeeze()
 
     x = np.hstack((x[idx_start:], x[:idx_start]))
     y = np.hstack((y[idx_start:], y[:idx_start]))
 
-    # if necessary reverse order of the waypoints with x[0] remaining x[0]
-    if (y[0] < max(y)/2 and x[WAYPOINT_SPACING] < x[0]) or (y[0] > max(y)/2 and x[WAYPOINT_SPACING] > x[0]): # remember y-axis points down
-        print('I change the direction of '+name)
+    # The track direction is specified as track_direction in this file header.
+    # If necessary, reverse order of the waypoints with x[0] remaining x[0]
+    if (y[0] < max(y) / 2 and x[WAYPOINT_SPACING] < x[0] and track_direction_dict[name] == tr.CW) \
+            or \
+            (y[0] > max(y) / 2 and x[WAYPOINT_SPACING] > x[0] and track_direction_dict[name] == tr.CW): # remember y-axis points down
+        # if the starting waypoint is on the top (smaller y) and later x is to left, then waypoints are in CCW order, so reverse to CW order if track should be CW.
+        # OR starting waypoint is on bottom (larger y) and later x is to right, then waypoints are in CCW order, so reverse the waypoint order if track should be CW.
+        print(f'inferred waypoint order of {name} is CCW but direction should be CW, reversing waypoint order to be CW')
         x = x[::-1] # x.flip()
         x = np.hstack((x[-1], x[:-1]))
         y = y[::-1]
         y = np.hstack((y[-1], y[:-1]))
+    else:
+        print(f'inferred waypoint order of {name} is OK for its direction {track_direction_dict[name]}')
+
 
     # Choose points on the center line to make waypoints
     x = x[::WAYPOINT_SPACING]
@@ -293,8 +302,8 @@ for name in names:
 
     # Make waypoints - upgrade the chosen points on the center line
     for i in range(len(x)):
-        if im[y[i], x[i]] == track.CENTERLINE:  # Check if these points lay on the center line
-            im[y[i], x[i]] = track.WAYPOINT
+        if im[y[i], x[i]] == tr.CENTERLINE:  # Check if these points lay on the center line
+            im[y[i], x[i]] = tr.WAYPOINT
         else:
             print('Error while making waypoints')
 
@@ -307,6 +316,15 @@ for name in names:
     # plt.matshow(im[520:-100,770:-100], cmap=cmap, norm=norm)
     #
     # plt.show()
+
+    # Matplotlib code to show the waypoints
+    if True: # name == 'sebring':
+        plt.plot(x, y, 'ro')
+        for i in range(len(x)):
+            plt.annotate(str(i), (x[i], y[i]))
+        plt.title(f'waypoints for {name} ({track_direction})')
+        plt.gca().invert_yaxis()
+        plt.show()
 
     # Calculate additional information for a user
     dx = np.diff(x, append=x[0])
@@ -400,7 +418,7 @@ for name in names:
                  'AngleNextCheckpointEast': angles,
                  'AngleNextCheckpointRelative': anglesRelative,
                  'AngleNextSegmentEast': angles2,
-                 'TrackDirection': track_direction[name]
+                 'TrackDirection': track_direction_dict[name]
     }
 
     # Saving all relevant data

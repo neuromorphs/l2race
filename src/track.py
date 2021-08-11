@@ -328,7 +328,7 @@ class track:
                                            self.waypoints_y[self.num_waypoints // 2] - 60, 120, 120)
 
         logger.info(f'track direction is {self.TrackInfo["TrackDirection"]}')
-        self.start_angle_deg = self.angle_next_segment_east_deg[0] if self.is_clockwise() else self.angle_next_segment_east_deg[0] + 180
+        self.start_angle_deg = self.angle_next_segment_east_deg[0]# if self.is_clockwise() else self.angle_next_segment_east_deg[0] + 180
         # compute the possible starting positions of cars that will selected later from
 
         if self.waypoints_y[0] > max(self.waypoints_y) / 2:  # Remember y points down, Here I am down below halfway on track
