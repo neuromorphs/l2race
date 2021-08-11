@@ -80,7 +80,7 @@ TRACK_NAME='dialog' # tracks are stored in the 'media' folder. Data for a track 
 TRACKS_FOLDER='./media/tracks/' # location of tracks relative to root of l2race
 # Other possible track names:
 # track_names = [
-#          'Sebring',
+#          'sebring',
 #          'oval',
 #          'oval_easy',
 #          'track_1',
@@ -138,14 +138,14 @@ EULER_TIMESTEP_S=.2e-3 # fixed timestep for Euler solver (except for last one)
 RTOL = 1e-2 # tolerance value for RK and other gear-shifting solvers (anything but euler)
 ATOL = 1e-4
 
-SERVER_PORT = 50000  # client starts game on this port on the SERVER_HOST
+SERVER_PORT = 50001  # client starts game on this port on the SERVER_HOST
 CLIENT_PORT_RANGE = '50010-50020'  # range of ports used for client that server uses for game
     # client needs to open/forward this port range for receiving state from server and sending commands to server
     # The ENABLE_UPNP flag turns on automatic forwarding but it does not work with all routers.
 KILL_ZOMBIE_TRACK_TIMEOUT_S = 10  # if track process gets no input for this long, it terminates itself
 FRICTION_FACTOR = .5  # overall friction parameter multiplier for some models, not used for now
 SAND_SLOWDOWN = 0.985  # If in sand, at every update the resulting velocity is multiplied by the slowdown factor
-WATER_SLOWDOWN_RELATIVE_TO_SAND = 1.5  # If in sand, at every update the resulting velocity is multiplied by the slowdown factor
+WATER_SLOWDOWN_RELATIVE_TO_SAND = 1.1  # If in water, at every update the resulting velocity is multiplied by the slowdown factor relative to sand
 REVERSE_TO_FORWARD_GEAR = 0.5  # You get less acceleration on reverse gear than while moving forwards.
 MODEL_UPDATE_RATE_HZ = 50  # rate that server attempts to update all the car models for each track process (models run serially in each track process)
 MAX_CARS_PER_TRACK = 6  # only this many cars can run on each track

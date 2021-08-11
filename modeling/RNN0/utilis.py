@@ -2,6 +2,8 @@
 """
 Created on Fri Jun 19 08:28:34 2020
 
+Various utilities for working with l2race
+
 @author: Marcin
 """
 
@@ -220,22 +222,6 @@ def create_log_file(rnn_name, inputs_list, outputs_list, path_save):
     print('Full name given to the currently trained network is {}.'.format(rnn_full_name))
     print('')
     return rnn_full_name
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 class Sequence(nn.Module):
     """"

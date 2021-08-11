@@ -86,9 +86,9 @@ class car_model:
         # Randomly chose initial position
         x_start, y_start = self.choose_initial_position()
         # Create car_state object - object keeping all the information user can access
-        self.car_state:car_state = car_state(x=x_start, y=y_start, body_angle_deg=self.track.start_angle,
-                                   name=car_name, client_ip=client_ip)
-
+        self.car_state:car_state = car_state(x=x_start, y=y_start, body_angle_deg=self.track.start_angle_deg,
+                                             name=car_name, client_ip=client_ip)
+        logger.info(f'made car with car_state={self.car_state}')
         # Variables passed_anti_cheat_rect, round_num serves monitoring the completed rounds by the car
         self.passed_anti_cheat_rect = True  # Prohibiting (significant) cutoff
         self.round_num = 0  # Counts the rounds
@@ -373,15 +373,15 @@ class car_model:
 
     # Car will experience big friction and slowdown if it is in sand region
     def sand_deceleration(self):
-        surface_type = self.track.get_surface_type(x=self.model_state[IXPOS], y=self.model_state[IYPOS])
-        if (not self.allow_off_track) and (surface_type >= 8) and (surface_type <= 12):  # 8 and 12 are boundary lines
+        surface_type = self.track.get_surface_type_key(x=self.model_state[IXPOS], y=self.model_state[IYPOS])
+        if (not self.allow_off_track) and (surface_type >= track.SAND_LEFT) and (surface_type <= track.SAND_RIGHT):  # 8 and 12 are boundary lines
             self.model_state[ISPEED] = self.model_state[ISPEED] * SAND_SLOWDOWN
 
     # If car is off track the forward speed will be set to zero
     # However it can still move backwards
     def stop_off_track(self):
-        surface_type = self.track.get_surface_type(x=self.model_state[IXPOS], y=self.model_state[IYPOS])
-        if (not self.allow_off_track) and (surface_type == 0):
+        surface_type = self.track.get_surface_type_key(x=self.model_state[IXPOS], y=self.model_state[IYPOS])
+        if (not self.allow_off_track) and (surface_type == track.WATER):
             self.model_state[ISPEED] = self.model_state[ISPEED] * SAND_SLOWDOWN / WATER_SLOWDOWN_RELATIVE_TO_SAND
 
     # update driver's observed state from model
@@ -418,7 +418,7 @@ class car_model:
         self.car_state.accel_m_per_sec_2.y = 0  # todo, for now and with KS/ST model, update for drifter and mb
         self.car_state.body_angle_sin=np.sin(radians(self.car_state.body_angle_deg))
         self.car_state.body_angle_cos=np.cos(radians(self.car_state.body_angle_deg))
-        self.car_state.surface_type=self.track.get_surface_type(car_state=self.car_state)
+        self.car_state.surface_type=self.track.get_surface_type_key(car_state=self.car_state)
 
     # Constrain position of the car to map
     def constrain_to_map(self):

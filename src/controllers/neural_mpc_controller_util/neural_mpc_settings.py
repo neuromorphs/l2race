@@ -9,7 +9,7 @@ class neural_mpc_settings():
     Setting values for controller
     """
     T_CONTROL = 0.2  # TODO ??
-    T_EULER_STEP = 0.01  # TODO ??
+    T_EULER_STEP = 0.005  # TODO ??
 
     MIN_SPEED_MPS = 5.0  # minimum speed of car that controller will generate control (model is not trained below this speed)
 

@@ -7,6 +7,8 @@ from car_command import car_command
 from l2race_utils import my_logger
 import numpy as np
 
+from track import get_surface_type_name_from_key
+
 logger = my_logger(__name__)
 from l2race_settings import SCREEN_WIDTH_PIXELS, SCREEN_HEIGHT_PIXELS, M_PER_PIXEL
 
@@ -23,7 +25,7 @@ class car_state:
     Participants have access only to this state, which does not include many of the state variables for some models.
 
     ****
-    This state MUST be kept small to minimize the pickled size for UDP tranfer of the state.
+    This state MUST be kept small to minimize the pickled size for its UDP transfer.
     ****
 
     """
@@ -64,7 +66,7 @@ class car_state:
         self.speed_m_per_sec=0.0 # length of velocity vector
         self.accel_m_per_sec_2 = Vector2(0.0, 0.0) # ax and ay *in frame of car*, *along* car body, i.e. ax>0 means car accelerating forwards. ay>0 means rightward acceleration on car body.
         self.steering_angle_deg = 0.0 # degrees of front wheel steering, increases CW/right with zero straight ahead
-        self.body_angle_deg = 0.0 # degrees, increases CW (on screen!) with zero pointing to right/east
+        self.body_angle_deg = body_angle_deg # degrees, increases CW (on screen!) with zero pointing to right/east
         self.yaw_rate_deg_per_sec = 0.0 # degrees/sec, increases CW on screen
         self.drift_angle_deg=0.0 # drift angle, (beta) relative to heading direction. Zero for no drift. +-90 for drifting entirely sideways. + is drift to left,- to right.
         self.fw_ang_speed_hz=0.0 # front wheel rotation rate in Hz  - only for drifter std and mb
@@ -132,7 +134,7 @@ class car_state:
         return self.static_info.client_ip[0] if self.static_info.client_ip else None
 
     def __str__(self):
-        return f't={self.time:1f}\n{str(self.command)}\npos=({self.position_m.x:4.1f},{self.position_m.y:4.1f})m vel=({self.velocity_m_per_sec.x:5.1f},{self.velocity_m_per_sec.x:5.1f})m/s, speed={self.speed_m_per_sec:6.2f}m/s accel={self.accel_m_per_sec_2.length():6.2f}m/s^2\nsteering_angle={self.steering_angle_deg:4.1f}deg body_angle={self.body_angle_deg:4.1f}deg\nyaw_rate={self.yaw_rate_deg_per_sec:4.1f}deg/s drift_angle={self.drift_angle_deg:4.1f}\nFW {self.fw_ang_speed_hz:.1f}Hz RW {self.rw_ang_speed_hz:.1f}Hz surface={self.surface_type:.1f}\nmsg: {str(self.server_msg)}'
+        return f't={self.time:1f} surface_type={get_surface_type_name_from_key(self.surface_type)} \n{str(self.command)}\npos=({self.position_m.x:4.1f},{self.position_m.y:4.1f})m vel=({self.velocity_m_per_sec.x:5.1f},{self.velocity_m_per_sec.x:5.1f})m/s, speed={self.speed_m_per_sec:6.2f}m/s accel={self.accel_m_per_sec_2.length():6.2f}m/s^2\nsteering_angle={self.steering_angle_deg:4.1f}deg body_angle={self.body_angle_deg:4.1f}deg\nyaw_rate={self.yaw_rate_deg_per_sec:4.1f}deg/s drift_angle={self.drift_angle_deg:4.1f}\nFW {self.fw_ang_speed_hz:.1f}Hz RW {self.rw_ang_speed_hz:.1f}Hz surface={self.surface_type:.1f}\nmsg: {str(self.server_msg)}'
 
     def get_csv_file_header(self, car):
         """

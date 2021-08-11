@@ -546,6 +546,7 @@ class client:
         :return: None
         """
         lidar = False
+
         self.track_instance.draw(self.screen)
         self.draw_other_cars()
         self.draw_server_message()
@@ -618,7 +619,7 @@ class client:
 
     def update_state(self, all_states: List[car_state]) -> None:
         """
-        Updates list of internal state.
+        Updates list of internal states.
 
         :param all_states: the list of states of all cars from model server
         :return: None
@@ -912,6 +913,7 @@ class client:
         :param paused: boolean
         """
         self.paused= paused
+        logger.info(f'client requesting server to set paused={self.paused}')
         if self.paused:
             self.send_to_server(self.gameSockAddr, 'pause', self.car_command)
         else:

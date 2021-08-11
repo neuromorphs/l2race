@@ -26,7 +26,7 @@ w: int = 1024
 h: int = 768
 plt.rcParams['figure.figsize'] = w/float(f), h/float(f)
 # Name of the picture (png) we load to extract track shape
-names = ['Sebring',
+names = ['sebring',
          'oval',
          'oval_easy',
          'track_1',
@@ -76,7 +76,7 @@ for name in names:
     # They set the starting point index and smoothly combine the end with the beginning
     # TODO document how this index is found by the track maker
 
-    if name == 'Sebring':
+    if name == 'sebring':
         idx_start = 118  # Search for a straight part of the track to smoothly connect start and end
     elif name == 'oval':
         idx_start = 1

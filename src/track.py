@@ -3,8 +3,7 @@ from typing import List, Tuple, Optional
 import pygame
 import numpy as np
 
-from l2race_settings import M_PER_PIXEL, TRACKS_FOLDER
-
+from l2race_settings import M_PER_PIXEL, TRACKS_FOLDER, GAME_FONT_SIZE, GAME_FONT_NAME
 
 # Functions for finding hit position
 from scipy.special import tandg, cotdg, cosdg, sindg
@@ -14,9 +13,11 @@ from l2race_utils import my_logger
 logger = my_logger(__name__)
 
 
+
 def squared_distance(p1, p2):
     squared_distance = abs(p1[0] - p2[0]) ** 2 + abs(p1[1] - p2[1]) ** 2
     return squared_distance
+
 
 
 def list_tracks() -> List[str]:
@@ -32,7 +33,7 @@ def list_tracks() -> List[str]:
             and being included in directory given by "directory" argument
         :param directory: Directory which content should be listed
         :param extension: Only files with this extension will be included on the list
-        :return: List of files in the directory with the predefined extension
+        :return: List of files in the directory with the predefined extension, with names in lower-case
         """
         return (f for f in listdir(directory) if f.endswith('.' + extension))
 
@@ -42,6 +43,7 @@ def list_tracks() -> List[str]:
     directory = 'media/tracks'
     # Find all the png files in the directory - these are the pictures of available tracks
     files = list_files(directory, "png")
+
     # For every found png file
 
     def rchop(s, suffix):
@@ -51,7 +53,7 @@ def list_tracks() -> List[str]:
 
     for f in files:
         # ...strip the .png suffix from its name to get track name and append to the list of all track names
-        tr.append(rchop(f,'.png'))
+        tr.append(rchop(f, '.png'))
     # Return track names list
     return tr
 
@@ -102,7 +104,7 @@ def meters2pixels(x_track: float):
 
 
 def closest_node(x, y, x_vector, y_vector):
-    '''
+    """
     The function finds the nearest target point, from target point list (normally a waypoints list)
     to a reference point (normally a car position)
 
@@ -110,7 +112,7 @@ def closest_node(x, y, x_vector, y_vector):
     :param y: Position (its x and y coordinates) of the reference point (normally of the car) in map units (pixels)
     :param x_vector, y_vector: List of positions of target points in map units
     :return: Index of the nearest target point
-    '''
+    """
     dist_2 = (x_vector - x) ** 2 + (y_vector - y) ** 2
     return np.argmin(dist_2)
 
@@ -223,15 +225,55 @@ def calculate_distance(pos_1, pos_2):
         d = 0
     return d
 
+def get_surface_type_name_from_key(key:int) -> str:
+    """
+    :param key: the key for the surface type
+
+    :returns string name of surface type
+    """
+    return track.SURFACE_TYPES[key] if key is not None else 'unknown'
+
 
 class track:
-    def __init__(self, track_name='track', media_folder_path=TRACKS_FOLDER, waypoints_visible=1):
+    """
+    The racetrack class. It has methods for finding wayoints.
+
+    """
+    CW = 'cw'
+    CCW = 'ccw'
+    # surface types
+    WATER=0
+    SAND=10
+    SAND_LEFT=8
+    SAND_RIGHT=12
+    ASPHALT=20
+    ASPHALT_LEFT=18
+    ASPHALT_RIGHT=22
+    CENTERLINE=30
+    WAYPOINT=40
+
+    SURFACE_TYPES = {WATER:'water',
+                     SAND:'sand',
+                     SAND_LEFT:'sand_left',
+                     SAND_RIGHT:'sand_right',
+                     ASPHALT: 'asphalt',
+                     ASPHALT_LEFT: 'asphalt_left',
+                     ASPHALT_RIGHT: 'asphalt_right',
+                     CENTERLINE: 'centerline',
+                     WAYPOINT: 'waypoint'
+                     }
+
+
+    def __init__(self, track_name=None, media_folder_path=TRACKS_FOLDER, waypoints_visible=1):
         """
         Constructs a new track instance.
 
         :param track_name: name of track without suffix, e.g. track_1
         :param media_folder_path: optional media folder path
         """
+        if track_name is None: # no arg to use class variables like WATER
+            return
+
         self.name = track_name
         logger.info('loading track image and info files with base name {}'.format(media_folder_path + track_name))
         try:
@@ -240,9 +282,12 @@ class track:
             map_npy_ = media_folder_path + track_name + '_map.npy'
             self.track_map = np.load(map_npy_, allow_pickle=True)
             info_npy_ = media_folder_path + track_name + '_info.npy'
-            self.TrackInfo = np.load(info_npy_, allow_pickle=True).item() # TODO document why .item() needed
+            # see write_track_info_files.py for fields of TrackInfo dict
+            self.TrackInfo = np.load(info_npy_,
+                                     allow_pickle=True).item()  # fields are shows in write_track_info_files.py line 362 TODO document why .item() needed
         except FileNotFoundError as ex:
-            logger.error(f'exception {ex} with filename {ex.filename2} trying to open track named {track_name} from folder {media_folder_path}')
+            logger.error(
+                f'exception {ex} with filename {ex.filename2} trying to open track named {track_name} from folder {media_folder_path}')
             raise
         # TrackInfo dict has following
         # waypoint_x
@@ -254,14 +299,18 @@ class track:
 
         self.waypoints_x = self.TrackInfo['waypoint_x']  # Waypoint x coordinates in pixels
         self.waypoints_y = self.TrackInfo['waypoint_y']  # Waypoint y coordinates in pixels
-        self.AngleNextCheckpointEast =  M_PER_PIXEL * self.TrackInfo['AngleNextCheckpointEast'] #absolute Angles of track line segments
-        self.AngleNextCheckpointRelative =  M_PER_PIXEL * self.TrackInfo['AngleNextCheckpointRelative'] # Relative angles of track line segmentes
-        self.waypoints = [[self.waypoints_x[i] * M_PER_PIXEL, self.waypoints_y[i] * M_PER_PIXEL] for i in range(len(self.waypoints_x))]
-        
+        self.AngleDegNextCheckpointEast = M_PER_PIXEL * self.TrackInfo[
+            'AngleNextCheckpointEast']  # absolute Angles of track line segments in degrees
+        self.AngleDegNextCheckpointRelative = M_PER_PIXEL * self.TrackInfo[
+            'AngleNextCheckpointRelative']  # Relative angles of track line segments in degrees
+        self.waypoints = [[self.waypoints_x[i] * M_PER_PIXEL, self.waypoints_y[i] * M_PER_PIXEL] for i in
+                          range(len(self.waypoints_x))]
+
         self.num_waypoints = len(self.waypoints_x)
 
-        self.angle_next_segment_east = self.TrackInfo['AngleNextSegmentEast'] # TODO angle in degrees of the next segment relative to east which is 0 degrees ??
-        self.angle_next_waypoint = self.TrackInfo['AngleNextCheckpointEast'] # TODO ???? what is this?
+        self.angle_next_segment_east_deg = self.TrackInfo[
+            'AngleNextSegmentEast']  # angle is in degrees of the next segment relative to east which is 0 degrees
+        self.angle_next_waypoint_deg = self.TrackInfo['AngleNextCheckpointEast']  # TODO ???? what is this?
 
         if track_name == 'oval_easy':
             self.waypoints_search_radius = 160
@@ -278,8 +327,11 @@ class track:
         self.anti_cheat_rect = pygame.Rect(self.waypoints_x[self.num_waypoints // 2],
                                            self.waypoints_y[self.num_waypoints // 2] - 60, 120, 120)
 
-        self.start_angle = self.angle_next_segment_east[0]
-        if self.waypoints_y[0] > max(self.waypoints_y) / 2:  # Remember y points down, Here I am down
+        logger.info(f'track direction is {self.TrackInfo["TrackDirection"]}')
+        self.start_angle_deg = self.angle_next_segment_east_deg[0] if self.is_clockwise() else self.angle_next_segment_east_deg[0] + 180
+        # compute the possible starting positions of cars that will selected later from
+
+        if self.waypoints_y[0] > max(self.waypoints_y) / 2:  # Remember y points down, Here I am down below halfway on track
             self.start_position_1 = np.array((self.waypoints_x[0], self.waypoints_y[0] + 20))  # out
             self.start_position_2 = np.array((self.waypoints_x[0] + 40, self.waypoints_y[0] - 20))  # in
         else:  # Here I am up
@@ -293,6 +345,7 @@ class track:
 
         self.map_lidar = np.copy(self.track_map)
         self.map_lidar[self.map_lidar != 10] = 0
+        self.game_font=None # only initialized if we need to draw track
 
     def create_waypoints_surface(self, waypoints_visible):
         """
@@ -326,11 +379,21 @@ class track:
         surface.blit(self.track_image, (0, 0))
         if self.surface_waypoints is not None:
             surface.blit(self.surface_waypoints, (0, 0))
+        if self.game_font is None:
+            try:
+                self.game_font = pygame.freetype.SysFont(GAME_FONT_NAME, GAME_FONT_SIZE)
+            except:
+                logger.warning('cannot get specified globals.py font {}, using pygame default font'.format(GAME_FONT_NAME))
+                self.game_font = pygame.freetype.SysFont(pygame.font.get_default_font(), GAME_FONT_SIZE)
+        self.game_font.render_to(surface, (0,0 + GAME_FONT_SIZE), self.name, (255,255,255)),
 
-    def get_surface_type(self, car_state=None, x=None, y=None):
+    def is_clockwise(self):
+        return self.TrackInfo['TrackDirection'] == track.CW
+
+    def get_surface_type_key(self, car_state=None, x=None, y=None):
         """
         This function returns the number corresponding to the surface type at the position of the car given in car_state
-        OR at the position given by x,y arguments. The numbers maps to surface type according the following key:
+        OR at the position given by x,y arguments. The numbers maps to surface type according the following keys in track.SURFACE_TYPES:
             0 - water (out of track, now forward movement possible, possible to go back on reverse gear)
             10 - sand (8 - left and 12 - right boundary) (out of track, only slow movement possible)
             20 - asphalt (18 - left and 22 - right boundary) (normal car dynamics)
@@ -340,7 +403,8 @@ class track:
         :param car_state: car_state from which coordinates of the point of interest (car position) can me extracted
         :param x: x-coordinate of point of interest in meter (usually the car position)
         :param y: y_car: y-coordinate of point of interest in meter (usually the car position)
-        :return: A value corresponding to the surface type at the point of interest, 0 if out of map.
+
+        :return: int value corresponding to the surface type at the point of interest, e.g. track.WATER if in water
         """
 
         # Getting x,y coordinates of the point of interest in the map units (pixels)
@@ -352,7 +416,8 @@ class track:
         # if yes check on track_map what kind of surface is at the point of interest
         return self.track_map[y, x]
 
-    def get_nearest_waypoint_idx(self, car_state=None, x=None, y=None):
+
+    def get_nearest_waypoint_idx(self, car_state=None, x=None, y=None)->int:
         """
         Function returns the index of the nearest waypoint to the point of reference.
         The coordinates of the point of reference may be either read from car_state (car position),
@@ -361,7 +426,7 @@ class track:
         :param x: x-coordinate of point of reference in meter (usually the car position)
         :param y: y-coordinate of point of reference in meter (usually the car position)
 
-        :return: closest waypoint
+        :return: index of closest waypoint
         """
         x_map, y_map = get_position_on_map(car_state=car_state, x=x, y=y)
 
@@ -385,8 +450,6 @@ class track:
 
         return closest_waypoint
 
-
-
     def get_closest_index(self, p):
 
         min_distance = 100000
@@ -394,19 +457,18 @@ class track:
         for i in range(len(self.waypoints_x)):
             waypoint = [self.waypoints_x[i], self.waypoints_y[i]]
             dist = squared_distance(p, waypoint)
-            if(dist < min_distance):
+            if (dist < min_distance):
                 min_distance = dist
                 waypoint_index = i
         return waypoint_index
 
-        
     def get_current_angle_to_road(self, car_state=None,
                                   angle_car=None,
                                   x=None,
                                   y=None,
                                   nearest_waypoint_idx=None):
         """
-        Returns the angle to the "nearest segment" of the road from the point of reference (usually the car).
+        Returns the angle (in DEGREES) to the "nearest segment" of the road from the point of reference (usually the car).
 
         Def: nearest segment
            is a line segment connecting the next waypoint before and the next waypoint after the nearest waypoint
@@ -424,7 +486,7 @@ class track:
                 If not provided or None it will be calculated in this function;
                 if previously calculated it may be provided to save calculation time
 
-        :return: Angle to the nearest segment
+        :return: Angle in degrees to the nearest segment, positive to right TODO check
         """
 
         x_map, y_map = get_position_on_map(car_state=car_state, x=x, y=y)
@@ -443,7 +505,7 @@ class track:
         # print('angle car: {}'.format(angle_car))
         # print('angle segment: {}'.format(self.angle_next_segment_east[nearest_waypoint_idx]))
 
-        angle_to_road = angle_car - self.angle_next_segment_east[nearest_waypoint_idx]
+        angle_to_road = angle_car - self.angle_next_segment_east_deg[nearest_waypoint_idx]
         angle_to_road = angle_to_road - 360.0 * np.rint(angle_to_road / 360.0)
         # print('angle_to_road: {}'.format(angle_to_road))
         # logger.info(angele_to_road)
@@ -471,7 +533,7 @@ class track:
         :param nearest_waypoint_idx: Optional. Index of the nearest waypoint.
                 If not provided or None it will be calculated in this function;
                 if previously calculated it may be provided to save calculation time
-        :return: Signed distance from the nearest segment
+        :return: Signed distance from the nearest segment, positive to right TODO negative to left of track
         """
 
         x_map, y_map = get_position_on_map(car_state=car_state, x=x_car, y=y_car)

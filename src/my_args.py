@@ -42,7 +42,7 @@ def client_args(parser):
     track_choices.append('')
     track_choices.append('dialog')
     track_choices.append('choose')
-    clientTrackCarMode.add_argument("--track_name", type=str, default=TRACK_NAME, choices=track_choices, help="Name of track (or empty string or 'none' or 'choose' or 'dialog' to show dialog). Available tracks are in the '{}' folder, defined by globals.TRACKS_FOLDER.".format(TRACKS_FOLDER))
+    clientTrackCarMode.add_argument("--track_name", type=str.lower, default=TRACK_NAME, choices=track_choices, help="Name of track (or empty string or 'none' or 'choose' or 'dialog' to show dialog). Available tracks are in the '{}' folder, defined by globals.TRACKS_FOLDER.".format(TRACKS_FOLDER))
     clientTrackCarMode.add_argument("--car_name", type=str, default=None, help="Name of this car (last 2 letters are randomly chosen each time).")
     clientTrackCarMode.add_argument("--spectate", action='store_true', help="Just be a spectator on the cars on the track.")
 

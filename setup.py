@@ -35,7 +35,7 @@ setup(
         'opencv-python',
         # numba # not using now
         # 'cython', # cython needs to be compiled using setup.py
-        'scikit-learn>=0.24.1',
+        'scikit-learn>=0.24.2',
         'scipy',
         # 'scikit-learn-extras',
         'upnpy',

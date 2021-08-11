@@ -328,7 +328,7 @@ def main():
 
     args = get_args()
     set_logging_level(args)
-
+    logger.info(f'opening socket on port {args.port} for server')
     server_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
     server_socket.bind(('', args.port))  # bind to empty host, so we can receive from anyone on this port
     logger.info("waiting on {}".format(str(server_socket)))
@@ -476,4 +476,6 @@ def main():
 
 
 if __name__ == '__main__':
+    import server # see https://stackoverflow.com/questions/27732354/unable-to-load-files-using-pickle-and-multiple-modules
+    from server import track_server_process
     main()

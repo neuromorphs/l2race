@@ -368,7 +368,7 @@ class CarController(car_controller):
         number_of_states = len(trajectory)
         index = 0
 
-        angles = np.absolute(self.track.AngleNextCheckpointRelative)
+        angles = np.absolute(self.track.AngleDegNextCheckpointRelative)
         waypoint_index = self.track.get_nearest_waypoint_idx(x=self.car_state[0], y=self.car_state[1])
         angles = angles[
                  waypoint_index
