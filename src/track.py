@@ -54,6 +54,9 @@ def list_tracks() -> List[str]:
     for f in files:
         # ...strip the .png suffix from its name to get track name and append to the list of all track names
         tr.append(rchop(f, '.png'))
+
+    # Sort names
+    tr = sorted(tr)
     # Return track names list
     return tr
 
