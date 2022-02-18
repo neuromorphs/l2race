@@ -47,7 +47,7 @@ class neural_mpc_settings():
     INVERSE_TEMP = 100 # TODO ??
 
     # Initializing parameters
-    NUMBER_OF_INITIAL_TRAJECTORIES = 150  # number of rollouts per control step
+    NUMBER_OF_INITIAL_TRAJECTORIES = 250  # number of rollouts per control step
     INITIAL_STEERING_VARIANCE = 0.25  # TODO what are units?
     INITIAL_ACCELERATION_VARIANCE = 0.4  # TODO units?  What is typical range?
 

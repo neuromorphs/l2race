@@ -167,7 +167,7 @@ Description: # Learning to Race (l2race)
                          [--fps FPS] [--joystick JOYSTICK] [--record [RECORD]]
                          [--replay [REPLAY]] [--autodrive AUTODRIVE AUTODRIVE]
                          [--carmodel CARMODEL CARMODEL] [--lidar [LIDAR]]
-                         [--track_name {empty,oval,oval_easy,sebring,track_1,track_2,track_3,track_4,track_5,track_6,,dialog,choose}]
+                         [--track_name {empty,oval,oval_easy,Sebring,track_1,track_2,track_3,track_4,track_5,track_6,,dialog,choose}]
                          [--car_name CAR_NAME] [--spectate] [--log LOG]
         
         l2race client: run this if you are a racer.
@@ -223,7 +223,7 @@ Description: # Learning to Race (l2race)
                                 found. (default: None)
         
         Track car/spectate options::
-          --track_name {empty,oval,oval_easy,sebring,track_1,track_2,track_3,track_4,track_5,track_6,,dialog,choose}
+          --track_name {empty,oval,oval_easy,Sebring,track_1,track_2,track_3,track_4,track_5,track_6,,dialog,choose}
                                 Name of track (or empty string or 'none' or 'choose'
                                 or 'dialog' to show dialog). Available tracks are in
                                 the './media/tracks/' folder, defined by

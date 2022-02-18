@@ -35,8 +35,8 @@ UPNP_LEASE_TIME = 1200  # the lease time for these ports in seconds
 # overridden by command line --autodrive
 # AUTODRIVE_MODULE='controllers.pure_pursuit_controller'
 # AUTODRIVE_CLASS = 'pure_pursuit_controller'
-# AUTODRIVE_MODULE='src.controllers.pure_pursuit_controller_v2'
-# AUTODRIVE_CLASS = 'pure_pursuit_controller_v2'
+AUTODRIVE_MODULE = 'src.controllers.pure_pursuit_controller_v2'
+AUTODRIVE_CLASS = 'pure_pursuit_controller_v2'
 
 # autodrive using MPC with DNN model
 # Florian says: To run MPPI MPC with GT models,
@@ -49,9 +49,9 @@ UPNP_LEASE_TIME = 1200  # the lease time for these ports in seconds
 
 # MPPI controller parameters are defined in src/controllers/neural_mpc_util/globals.py
 
-AUTODRIVE_MODULE='src.controllers.neural_mpc_controller'
-AUTODRIVE_CLASS = 'neural_mpc_controller'
-AUTODRIVE_INITIALLY_ON=False # set to true to enable at startup
+# AUTODRIVE_MODULE = 'src.controllers.neural_mpc_controller'
+# AUTODRIVE_CLASS = 'neural_mpc_controller'
+AUTODRIVE_INITIALLY_ON=True # set to true to enable at startup
 
 
 # your model class that takes car state and control and predicts the next state given a future time.
