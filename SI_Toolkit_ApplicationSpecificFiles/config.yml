@@ -1,7 +1,7 @@
   modeling:
     NET_NAME: 'GRU-16H1-16H2'
     RNN_PATH: './save_tf/'
-    PREDICTION_FEATURES_NAMES: ['pos.x', 'pos.y' , 'vel.x', 'vel.y', 'speed', 'accel.x', 'accel.y', 'steering_angle', 'body_angle', 'yaw_rate', 'drift_angle']
+    PREDICTION_FEATURES_NAMES: ['position_m.x','position_m.y','velocity_m_per_sec.x','velocity_m_per_sec.y','speed_m_per_sec','accel_m_per_sec_2.x','accel_m_per_sec_2.y','steering_angle_deg','body_angle_deg','yaw_rate_deg_per_sec','drift_angle_deg']
 
   paths:
     # PATH HAS TO END WITH A SOLIDUS ("/") CHARACTER
@@ -10,9 +10,10 @@
 
   training_default:
     # For training closed loop dynamics model:
-    control_inputs: ['cmd.throttle', 'cmd.brake', 'cmd.reverse']
-    state_inputs: ['pos.x', 'pos.y' , 'vel.x', 'vel.y', 'speed', 'accel.x', 'accel.y', 'steering_angle', 'body_angle', 'yaw_rate', 'drift_angle']
-    outputs: ['pos.x', 'pos.y' , 'vel.x', 'vel.y', 'speed', 'accel.x', 'accel.y', 'steering_angle', 'body_angle', 'yaw_rate', 'drift_angle']
+    control_inputs: ['command.steering','command.throttle','command.brake']
+    state_inputs: ['position_m.x','position_m.y','velocity_m_per_sec.x','velocity_m_per_sec.y','speed_m_per_sec','accel_m_per_sec_2.x','accel_m_per_sec_2.y','steering_angle_deg','body_angle_deg','yaw_rate_deg_per_sec','drift_angle_deg']
+    setpoint_inputs: []
+    outputs: ['position_m.x','position_m.y','velocity_m_per_sec.x','velocity_m_per_sec.y','speed_m_per_sec','accel_m_per_sec_2.x','accel_m_per_sec_2.y','steering_angle_deg','body_angle_deg','yaw_rate_deg_per_sec','drift_angle_deg']
     # Cartpole examples: For training open loop dynamics model:
     # inputs = ['position', 'positionD', 'angle_sin', 'angle_cos', 'angleD']
     # outputs = inputs_list
