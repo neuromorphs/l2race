@@ -1,6 +1,5 @@
   modeling:
-    NET_NAME: 'GRU-16H1-16H2'
-    RNN_PATH: './save_tf/'
+    NET_NAME: 'GRU-32H1-32H2'
     PREDICTION_FEATURES_NAMES: ['position_m.x','position_m.y','velocity_m_per_sec.x','velocity_m_per_sec.y','speed_m_per_sec','accel_m_per_sec_2.x','accel_m_per_sec_2.y','steering_angle_deg','body_angle_deg','yaw_rate_deg_per_sec','drift_angle_deg']
 
   paths:
@@ -22,5 +21,5 @@
     # outputs = ['Q']
 
   testing:
-    tests: [ 'Euler' ]  # May be 'Euler', Euler-predictor, name of network or None = 'Dense-16H1-16H2'
-    TEST_FILE: 'Experiment-1.csv'
+    tests: ['Euler','GRU-6IN-32H1-32H2-5OUT-0']  # May be 'Euler', Euler-predictor, name of network or None = 'Dense-16H1-16H2'
+    TEST_FILE: 'l2race-DESKTOP-oval_easy-20220218-144837.csv'
