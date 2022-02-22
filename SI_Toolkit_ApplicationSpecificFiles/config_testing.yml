@@ -1,0 +1,3 @@
+  testing:
+    tests: ['Euler','GRU-14IN-64H1-64H2-32H3-11OUT-0']  # May be 'Euler', Euler-predictor, name of network or None = 'Dense-16H1-16H2'
+    TEST_FILE: 'l2race-DESKTOP-oval_easy-20220218-144837.csv'
