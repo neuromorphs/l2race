@@ -1,6 +1,6 @@
   modeling:
-    NET_NAME: 'GRU-64H1-64H2-32H3'
-    PREDICTION_FEATURES_NAMES: ['position_m.x','position_m.y','velocity_m_per_sec.x','velocity_m_per_sec.y','speed_m_per_sec','accel_m_per_sec_2.x','accel_m_per_sec_2.y','steering_angle_deg','body_angle_deg','yaw_rate_deg_per_sec','drift_angle_deg']
+    NET_NAME: 'GRU-64H1-64H2'
+    PREDICTION_FEATURES_NAMES: ['position_m.x','position_m.y','speed_m_per_sec','steering_angle_deg','body_angle_deg','yaw_rate_deg_per_sec','drift_angle_deg']
 
   paths:
     # PATH HAS TO END WITH A SOLIDUS ("/") CHARACTER
@@ -9,10 +9,18 @@
 
   training_default:
     # For training closed loop dynamics model:
-    control_inputs: ['command.steering','command.throttle','command.brake']
-    state_inputs: ['position_m.x','position_m.y','velocity_m_per_sec.x','velocity_m_per_sec.y','speed_m_per_sec','accel_m_per_sec_2.x','accel_m_per_sec_2.y','steering_angle_deg','body_angle_deg','yaw_rate_deg_per_sec','drift_angle_deg']
+    control_inputs: ['command.steering','command.throttle']
+    state_inputs: ['position_m.x','position_m.y','speed_m_per_sec','steering_angle_deg','body_angle_deg','yaw_rate_deg_per_sec','drift_angle_deg']
     setpoint_inputs: []
-    outputs: ['position_m.x','position_m.y','velocity_m_per_sec.x','velocity_m_per_sec.y','speed_m_per_sec','accel_m_per_sec_2.x','accel_m_per_sec_2.y','steering_angle_deg','body_angle_deg','yaw_rate_deg_per_sec','drift_angle_deg']
+    outputs: ['position_m.x','position_m.y','speed_m_per_sec','steering_angle_deg','body_angle_deg','yaw_rate_deg_per_sec','drift_angle_deg']
+    EPOCHS: 50
+    BATCH_SIZE: 32
+    SEED: 1873
+    LR: 1.0e-2
+    WASH_OUT_LEN: 10
+    POST_WASH_OUT_LEN: 20
+    ON_FLY_DATA_GENERATION: False
+    NORMALIZE: True
     # Cartpole examples: For training open loop dynamics model:
     # inputs = ['position', 'positionD', 'angle_sin', 'angle_cos', 'angleD']
     # outputs = inputs_list
