@@ -29,7 +29,7 @@ setup(
         'svgpathtools',
         'pygame==2.0.1',
         'matplotlib',
-        'numpy==1.19.2',
+        'numpy==1.22.0',
         'argparse',
         'argcomplete',
         'opencv-python',
